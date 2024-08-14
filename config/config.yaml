@@ -1,0 +1,16 @@
+log:
+  level: "debug"
+
+http_api_server:
+  host: 0.0.0.0
+  port: 8080
+
+dns_sd:
+  service_name: "data-pipelines-worker"
+  service_type: "_http._tcp."
+  service_domain: "local."
+  service_port: 8080
+  version: "0.1"
+  load: ""
+  available: no
+  
