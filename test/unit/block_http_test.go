@@ -1,7 +1,9 @@
 package unit_test
 
 import (
+	"data-pipelines-worker/types"
 	"data-pipelines-worker/types/blocks"
+
 	"net/http"
 	"net/http/httptest"
 )
@@ -9,10 +11,11 @@ import (
 func (suite *UnitTestSuite) TestBlockHTTP() {
 	block := blocks.NewBlockHTTP()
 
-	suite.Equal("get_http_url", block.GetId())
-	suite.Equal("Get HTTP URL", block.GetName())
-	suite.Equal("Block to perform request to a URL and get the content", block.GetDescription())
-	suite.NotEmpty(block.GetSchema())
+	suite.Equal("http_request", block.GetId())
+	suite.Equal("Request HTTP Resource", block.GetName())
+	suite.Equal("Block to perform request to a URL and save the Response", block.GetDescription())
+	suite.Nil(block.GetSchema())
+	suite.NotEmpty(block.GetSchemaString())
 }
 
 func (suite *UnitTestSuite) TestBlockHTTPDetectOk() {
@@ -24,9 +27,12 @@ func (suite *UnitTestSuite) TestBlockHTTPDetectOk() {
 	}))
 	defer server.Close()
 
-	httpClient := &http.Client{}
-
-	blockDetected := block.Detect(httpClient, server.URL)
+	blockDetected := block.Detect(
+		&blocks.DetectorHTTP{
+			Client: &http.Client{},
+			Url:    server.URL,
+		},
+	)
 	suite.True(blockDetected)
 }
 
@@ -39,8 +45,29 @@ func (suite *UnitTestSuite) TestBlockHTTPDetectFail() {
 	}))
 	defer server.Close()
 
-	httpClient := &http.Client{}
-
-	blockDetected := block.Detect(httpClient, server.URL)
+	blockDetected := block.Detect(
+		&blocks.DetectorHTTP{
+			Client: &http.Client{},
+			Url:    server.URL,
+		},
+	)
 	suite.True(blockDetected)
+}
+
+func (suite *UnitTestSuite) TestBlockHTTPValidateSchemaOk() {
+	block := blocks.NewBlockHTTP()
+
+	schemaPtr, schema, err := block.ValidateSchema(types.BlockSchemaValidator{})
+	suite.Nil(err)
+	suite.NotNil(schemaPtr)
+	suite.NotNil(schema)
+}
+
+func (suite *UnitTestSuite) TestBlockHTTPValidateSchemaFail() {
+	block := blocks.NewBlockHTTP()
+
+	block.SchemaString = "invalid schema"
+
+	_, _, err := block.ValidateSchema(types.BlockSchemaValidator{})
+	suite.NotNil(err)
 }

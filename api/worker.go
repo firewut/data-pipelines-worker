@@ -23,8 +23,6 @@ type Worker struct {
 }
 
 func NewWorker() *Worker {
-	detectedBlocksIds := make([]string, 0)
-
 	config := types.NewConfig()
 	detectedBlocks := blocks.DetectBlocks()
 
@@ -32,10 +30,7 @@ func NewWorker() *Worker {
 	_echo.HideBanner = true
 
 	mdns := types.NewMDNS(config)
-	for _, block := range detectedBlocks {
-		detectedBlocksIds = append(detectedBlocksIds, block.GetId())
-	}
-	mdns.SetDetectedBlocks(detectedBlocksIds)
+	mdns.SetDetectedBlocks(detectedBlocks)
 
 	var worker = &Worker{
 		host:   config.HTTPAPIServer.Host,
@@ -92,4 +87,8 @@ func (w *Worker) GetEcho() *echo.Echo {
 
 func (w *Worker) GetConfig() types.Config {
 	return w.config
+}
+
+func (w *Worker) GetDetectedBlocks() []types.Block {
+	return w.mdns.GetDetectedBlocks()
 }

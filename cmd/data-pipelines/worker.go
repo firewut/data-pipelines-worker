@@ -31,6 +31,10 @@ func main() {
 		}),
 	)
 
+	worker.AddHTTPAPIRoute("GET", "/health", handlers.HealthHandler)
+	worker.AddHTTPAPIRoute("GET", "/blocks", handlers.BlocksHandler(
+		worker.GetDetectedBlocks(),
+	))
 	worker.AddHTTPAPIRoute("GET", "/workers/discover", handlers.WorkersDiscoverHandler)
 
 	worker.Start()

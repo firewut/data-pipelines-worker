@@ -30,5 +30,4 @@ func WorkersDiscoverHandler(c echo.Context) error {
 	mutex.Lock()
 	defer mutex.Unlock()
 	return c.JSON(http.StatusOK, workers)
-
 }

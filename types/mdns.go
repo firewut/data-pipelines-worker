@@ -11,19 +11,23 @@ import (
 type MDNS struct {
 	sync.Mutex
 
-	server         *mdns.Server
-	DNSSDStatus    DNSSD
-	detectedBlocks []string
-	load           float32
-	available      bool
+	server      *mdns.Server
+	DNSSDStatus DNSSD
+
+	detectedBlocksMap map[string]Block
+	detectedBlocks    []Block
+
+	load      float32
+	available bool
 }
 
 func NewMDNS(config Config) *MDNS {
 	return &MDNS{
-		DNSSDStatus:    config.DNSSD,
-		detectedBlocks: make([]string, 0),
-		load:           0.0,
-		available:      false,
+		DNSSDStatus:       config.DNSSD,
+		detectedBlocksMap: make(map[string]Block),
+		detectedBlocks:    make([]Block, 0),
+		load:              0.0,
+		available:         false,
 	}
 }
 
@@ -55,29 +59,50 @@ func (m *MDNS) GetAvailable() bool {
 	return m.available
 }
 
-func (m *MDNS) SetDetectedBlocks(detectedBlocks []string) {
+func (m *MDNS) SetDetectedBlocks(detectedBlocks []Block) {
 	m.Lock()
 	defer m.Unlock()
 
 	m.detectedBlocks = detectedBlocks
+	for _, block := range detectedBlocks {
+		m.detectedBlocksMap[block.GetId()] = block
+	}
 }
 
-func (m *MDNS) GetDetectedBlocks() []string {
+func (m *MDNS) GetDetectedBlocks() []Block {
 	m.Lock()
 	defer m.Unlock()
 
 	return m.detectedBlocks
 }
 
+func (m *MDNS) GetDetectedBlock(id string) Block {
+	m.Lock()
+	defer m.Unlock()
+
+	return m.detectedBlocksMap[id]
+}
+
 func (m *MDNS) GetTXT() []string {
 	m.Lock()
 	defer m.Unlock()
+
+	keys := make([]string, 0, len(m.detectedBlocks))
+	for k := range m.detectedBlocksMap {
+		keys = append(keys, k)
+	}
 
 	return []string{
 		fmt.Sprintf("version=%s", m.DNSSDStatus.Version),
 		fmt.Sprintf("load=%.2f", m.load),
 		fmt.Sprintf("available=%t", m.available),
-		fmt.Sprintf("blocks=%s", strings.Join(m.detectedBlocks, ",")),
+		fmt.Sprintf(
+			"blocks=%s",
+			strings.Join(
+				keys,
+				",",
+			),
+		),
 	}
 }
 

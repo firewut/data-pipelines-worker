@@ -2,6 +2,7 @@ package unit_test
 
 import (
 	"data-pipelines-worker/types"
+	"data-pipelines-worker/types/blocks"
 )
 
 func (suite *UnitTestSuite) TestNewMDNS() {
@@ -15,7 +16,7 @@ func (suite *UnitTestSuite) TestNewMDNS() {
 	suite.Equal("", mdns.DNSSDStatus.Load)
 	suite.Equal(false, mdns.DNSSDStatus.Available)
 
-	suite.Equal([]string{}, mdns.GetDetectedBlocks())
+	suite.Equal([]types.Block{}, mdns.GetDetectedBlocks())
 	suite.EqualValues(0.0, mdns.GetLoad())
 	suite.Equal(false, mdns.GetAvailable())
 }
@@ -24,10 +25,12 @@ func (suite *UnitTestSuite) TestMDNSDetectedBlocks() {
 	config := types.NewConfig()
 	mdns := types.NewMDNS(config)
 
-	suite.Equal([]string{}, mdns.GetDetectedBlocks())
+	suite.Equal([]types.Block{}, mdns.GetDetectedBlocks())
 
-	detectedBlocks := []string{"http", "image", "video"}
-	mdns.SetDetectedBlocks(detectedBlocks)
+	detectedBlocks := []types.Block{blocks.NewBlockHTTP()}
+	mdns.SetDetectedBlocks([]types.Block{
+		blocks.NewBlockHTTP(),
+	})
 	suite.Equal(detectedBlocks, mdns.GetDetectedBlocks())
 }
 
