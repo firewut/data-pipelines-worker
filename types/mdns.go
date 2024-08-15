@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/mdns"
 )
@@ -17,17 +18,23 @@ type MDNS struct {
 	detectedBlocksMap map[string]Block
 	detectedBlocks    []Block
 
+	discoverWorkersLock sync.Mutex
+	discoveredWorkers   []*mdns.ServiceEntry
+	discoverWorkersDone chan bool
+
 	load      float32
 	available bool
 }
 
 func NewMDNS(config Config) *MDNS {
 	return &MDNS{
-		DNSSDStatus:       config.DNSSD,
-		detectedBlocksMap: make(map[string]Block),
-		detectedBlocks:    make([]Block, 0),
-		load:              0.0,
-		available:         false,
+		DNSSDStatus:         config.DNSSD,
+		detectedBlocksMap:   make(map[string]Block),
+		detectedBlocks:      make([]Block, 0),
+		discoveredWorkers:   make([]*mdns.ServiceEntry, 0),
+		load:                0.0,
+		available:           false,
+		discoverWorkersDone: make(chan bool, 1),
 	}
 }
 
@@ -106,7 +113,7 @@ func (m *MDNS) GetTXT() []string {
 	}
 }
 
-func (m *MDNS) Advertise() {
+func (m *MDNS) Announce() {
 	txt := m.GetTXT()
 
 	m.Lock()
@@ -126,8 +133,7 @@ func (m *MDNS) Advertise() {
 	}
 
 	GetLogger().Debugf(
-		"Starting mDNS server %s with TXT %s",
-		service,
+		"Registering mDNS Service Entry with TXT %s",
 		txt,
 	)
 
@@ -138,16 +144,70 @@ func (m *MDNS) Advertise() {
 	}
 }
 
+func (m *MDNS) GetDiscoveredWorkers() []*mdns.ServiceEntry {
+	m.Lock()
+	defer m.Unlock()
+
+	return m.discoveredWorkers
+}
+
+func (m *MDNS) DiscoverWorkers() {
+	go func() {
+		ticker := time.NewTicker(time.Second)
+		for {
+			select {
+			case <-m.discoverWorkersDone:
+				ticker.Stop()
+				close(m.discoverWorkersDone)
+				return
+			case <-ticker.C:
+				m.discoverWorkersLock.Lock()
+
+				workers := make([]*mdns.ServiceEntry, 0)
+				entriesCh := make(chan *mdns.ServiceEntry)
+
+				go func(_m *MDNS, _workers []*mdns.ServiceEntry) {
+					for entry := range entriesCh {
+						_workers = append(_workers, entry)
+					}
+					_m.SetDiscoveredWorkers(_workers)
+				}(m, workers)
+
+				params := &mdns.QueryParam{
+					Service:     m.DNSSDStatus.ServiceType,
+					Domain:      m.DNSSDStatus.ServiceDomain,
+					Timeout:     5 * time.Second,
+					Entries:     entriesCh,
+					DisableIPv6: true,
+				}
+
+				// Add check for Filter and ServiceName herez
+				if err := mdns.Query(params); err != nil {
+					GetLogger().Errorf("Failed to query mDNS: %s", err)
+				}
+				close(entriesCh)
+
+				m.discoverWorkersLock.Unlock()
+			}
+		}
+	}()
+}
+
+func (m *MDNS) SetDiscoveredWorkers(workers []*mdns.ServiceEntry) {
+	m.Lock()
+	defer m.Unlock()
+
+	m.discoveredWorkers = workers
+}
+
 func (m *MDNS) Shutdown() {
 	m.Lock()
 	defer m.Unlock()
 
-	GetLogger().Debugf(
-		"Shutting down mDNS server %s",
-		m.server,
-	)
+	GetLogger().Debugf("Removing mDNS Service Entry")
 
 	if m.server != nil {
 		m.server.Shutdown()
+		m.discoverWorkersDone <- true
 	}
 }

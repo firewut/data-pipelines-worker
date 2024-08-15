@@ -57,7 +57,8 @@ func (w *Worker) AddHTTPAPIRoute(method string, path string, handlerFunc echo.Ha
 }
 
 func (w *Worker) Start() {
-	w.mdns.Advertise()
+	w.mdns.Announce()
+	w.mdns.DiscoverWorkers()
 	w.echo.Logger.Fatal(
 		w.echo.Start(fmt.Sprintf("%s:%d", w.host, w.port)),
 	)
@@ -83,6 +84,10 @@ func (w *Worker) GetPort() int {
 
 func (w *Worker) GetEcho() *echo.Echo {
 	return w.echo
+}
+
+func (w *Worker) GetMDNS() *types.MDNS {
+	return w.mdns
 }
 
 func (w *Worker) GetConfig() types.Config {

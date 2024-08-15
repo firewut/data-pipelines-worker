@@ -23,6 +23,7 @@ type ProcessorHTTP struct {
 }
 
 func (p *ProcessorHTTP) Process() int {
+	// Save result to FTP file ( shared storage )
 	return 0
 }
 

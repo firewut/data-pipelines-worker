@@ -1,18 +1,33 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
-
-	"data-pipelines-worker/api"
-	"data-pipelines-worker/api/handlers"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+
+	"data-pipelines-worker/api"
+	"data-pipelines-worker/api/handlers"
 )
 
 func main() {
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
 	worker := api.NewWorker()
 	defer worker.Shutdown(time.Second * 5)
+
+	go func() {
+		sig := <-sigChan
+		fmt.Printf("Received signal: %s. Shutting down...\n", sig)
+		// Perform cleanup or shutdown tasks here
+		worker.Shutdown(time.Second * 5) // Assuming you have a Stop method to clean up
+		os.Exit(0)
+	}()
 
 	worker.AddMiddleware(
 		middleware.Logger(),
@@ -35,7 +50,9 @@ func main() {
 	worker.AddHTTPAPIRoute("GET", "/blocks", handlers.BlocksHandler(
 		worker.GetDetectedBlocks(),
 	))
-	worker.AddHTTPAPIRoute("GET", "/workers/discover", handlers.WorkersDiscoverHandler)
+	worker.AddHTTPAPIRoute("GET", "/workers", handlers.WorkersHandler(
+		worker.GetMDNS(),
+	))
 
 	worker.Start()
 }

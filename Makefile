@@ -1,6 +1,6 @@
 .PHONY: build test clean start
 
-BINARY-NAME=data-pipelines-worker
+BINARY_NAME=data-pipelines-worker
 TEST_UNIT_PATH=./test/unit/...
 TEST_FUNCTIONAL_PATH=./test/functional/...
 CONFIG_FILE=${PWD}/config/config.yaml

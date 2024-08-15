@@ -2,32 +2,14 @@ package handlers
 
 import (
 	"net/http"
-	"sync"
-	"time"
 
 	"github.com/labstack/echo/v4"
+
+	"data-pipelines-worker/types"
 )
 
-var (
-	mutex   sync.Mutex
-	workers []string
-)
-
-func init() {
-	go populateWorkers()
-}
-
-func populateWorkers() {
-	for {
-		mutex.Lock()
-		workers = append(workers, time.Now().Format(time.RFC3339))
-		mutex.Unlock()
-		time.Sleep(1 * time.Second)
+func WorkersHandler(mDNS *types.MDNS) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		return c.JSON(http.StatusOK, mDNS.GetDiscoveredWorkers())
 	}
-}
-
-func WorkersDiscoverHandler(c echo.Context) error {
-	mutex.Lock()
-	defer mutex.Unlock()
-	return c.JSON(http.StatusOK, workers)
 }
