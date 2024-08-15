@@ -15,6 +15,6 @@ func (suite *UnitTestSuite) TestNewConfig() {
 	suite.Equal("_http._tcp.", config.DNSSD.ServiceType)
 	suite.Equal("local.", config.DNSSD.ServiceDomain)
 	suite.Equal(8080, config.DNSSD.ServicePort)
-	suite.Equal("", config.DNSSD.Load)
+	suite.EqualValues(0.0, config.DNSSD.Load)
 	suite.Equal(false, config.DNSSD.Available)
 }

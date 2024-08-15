@@ -19,7 +19,7 @@ type MDNS struct {
 	detectedBlocks    []Block
 
 	discoverWorkersLock sync.Mutex
-	discoveredWorkers   []*mdns.ServiceEntry
+	discoveredWorkers   []*Worker
 	discoverWorkersDone chan bool
 
 	load      float32
@@ -31,7 +31,7 @@ func NewMDNS(config Config) *MDNS {
 		DNSSDStatus:         config.DNSSD,
 		detectedBlocksMap:   make(map[string]Block),
 		detectedBlocks:      make([]Block, 0),
-		discoveredWorkers:   make([]*mdns.ServiceEntry, 0),
+		discoveredWorkers:   make([]*Worker, 0),
 		load:                0.0,
 		available:           false,
 		discoverWorkersDone: make(chan bool, 1),
@@ -114,6 +114,8 @@ func (m *MDNS) GetTXT() []string {
 }
 
 func (m *MDNS) Announce() {
+	m.SetAvailable(true)
+
 	txt := m.GetTXT()
 
 	m.Lock()
@@ -144,7 +146,7 @@ func (m *MDNS) Announce() {
 	}
 }
 
-func (m *MDNS) GetDiscoveredWorkers() []*mdns.ServiceEntry {
+func (m *MDNS) GetDiscoveredWorkers() []*Worker {
 	m.Lock()
 	defer m.Unlock()
 
@@ -163,14 +165,19 @@ func (m *MDNS) DiscoverWorkers() {
 			case <-ticker.C:
 				m.discoverWorkersLock.Lock()
 
-				workers := make([]*mdns.ServiceEntry, 0)
+				workers := make([]*Worker, 0)
 				entriesCh := make(chan *mdns.ServiceEntry)
 
-				go func(_m *MDNS, _workers []*mdns.ServiceEntry) {
+				go func(_m *MDNS, _workers []*Worker) {
 					for entry := range entriesCh {
-						_workers = append(_workers, entry)
+						if !strings.Contains(entry.Name, m.DNSSDStatus.ServiceName) {
+							continue
+						}
+						_workers = append(_workers, NewWorker(entry))
 					}
-					_m.SetDiscoveredWorkers(_workers)
+					if len(_workers) > 0 {
+						_m.SetDiscoveredWorkers(_workers)
+					}
 				}(m, workers)
 
 				params := &mdns.QueryParam{
@@ -193,7 +200,7 @@ func (m *MDNS) DiscoverWorkers() {
 	}()
 }
 
-func (m *MDNS) SetDiscoveredWorkers(workers []*mdns.ServiceEntry) {
+func (m *MDNS) SetDiscoveredWorkers(workers []*Worker) {
 	m.Lock()
 	defer m.Unlock()
 

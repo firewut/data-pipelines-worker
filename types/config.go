@@ -22,13 +22,13 @@ type HTTPAPIServer struct {
 }
 
 type DNSSD struct {
-	ServiceName   string `yaml:"service_name" json:"-"`
-	ServiceType   string `yaml:"service_type" json:"-"`
-	ServiceDomain string `yaml:"service_domain" json:"-"`
-	ServicePort   int    `yaml:"service_port" json:"-"`
-	Version       string `yaml:"version" json:"-"`
-	Load          string `yaml:"load" json:"-"`
-	Available     bool   `yaml:"available" json:"-"`
+	ServiceName   string  `yaml:"service_name" json:"-"`
+	ServiceType   string  `yaml:"service_type" json:"-"`
+	ServiceDomain string  `yaml:"service_domain" json:"-"`
+	ServicePort   int     `yaml:"service_port" json:"-"`
+	Version       string  `yaml:"version" json:"-"`
+	Load          float32 `yaml:"load" json:"-"`
+	Available     bool    `yaml:"available" json:"-"`
 }
 
 func NewConfig() Config {

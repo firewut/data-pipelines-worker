@@ -18,7 +18,7 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	worker := api.NewWorker()
+	worker := api.NewServer()
 	defer worker.Shutdown(time.Second * 5)
 
 	go func() {

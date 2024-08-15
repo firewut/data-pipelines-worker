@@ -11,6 +11,6 @@ dns_sd:
   service_domain: "local."
   service_port: *http_api_server_port
   version: "0.1"
-  load: ""
+  load: 0.0
   available: no
 

@@ -15,7 +15,7 @@ func (suite *UnitTestSuite) TestNewMDNS() {
 	suite.Equal("_http._tcp.", mdnsService.DNSSDStatus.ServiceType)
 	suite.Equal("local.", mdnsService.DNSSDStatus.ServiceDomain)
 	suite.Equal(8080, mdnsService.DNSSDStatus.ServicePort)
-	suite.Equal("", mdnsService.DNSSDStatus.Load)
+	suite.EqualValues(0.0, mdnsService.DNSSDStatus.Load)
 	suite.Equal(false, mdnsService.DNSSDStatus.Available)
 
 	suite.Equal([]types.Block{}, mdnsService.GetDetectedBlocks())
@@ -40,7 +40,7 @@ func (suite *UnitTestSuite) TestMDNSLoad() {
 	config := types.NewConfig()
 	mdnsService := types.NewMDNS(config)
 
-	suite.Equal("", mdnsService.DNSSDStatus.Load)
+	suite.EqualValues(0.0, mdnsService.DNSSDStatus.Load)
 	suite.EqualValues(0.0, mdnsService.GetLoad())
 
 	mdnsService.SetLoad(0.5)
@@ -84,8 +84,11 @@ func (suite *UnitTestSuite) TestGetDiscoveredWorkers() {
 			Port: 8080,
 		},
 	}
+	discoveredWorkers := []*types.Worker{
+		types.NewWorker(discoveredEntries[0]),
+	}
 
-	mdnsService.SetDiscoveredWorkers(discoveredEntries)
+	mdnsService.SetDiscoveredWorkers(discoveredWorkers)
 
-	suite.Equal(mdnsService.GetDiscoveredWorkers(), discoveredEntries)
+	suite.Equal(mdnsService.GetDiscoveredWorkers(), discoveredWorkers)
 }
