@@ -14,3 +14,5 @@ dns_sd:
   load: 0.0
   available: no
 
+storage:
+  storage_credentials_path: "./storage_credentials.json"

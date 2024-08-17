@@ -17,4 +17,11 @@ func (suite *UnitTestSuite) TestNewConfig() {
 	suite.Equal(8080, config.DNSSD.ServicePort)
 	suite.EqualValues(0.0, config.DNSSD.Load)
 	suite.Equal(false, config.DNSSD.Available)
+
+	suite.NotEmpty(config.Storage.CredentialsPath)
+	suite.NotEmpty(config.Storage.AccessKey)
+	suite.NotEmpty(config.Storage.Api)
+	suite.NotEmpty(config.Storage.Path)
+	suite.NotEmpty(config.Storage.SecretKey)
+	suite.NotEmpty(config.Storage.Url)
 }
