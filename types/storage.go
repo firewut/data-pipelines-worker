@@ -20,7 +20,7 @@ type MINIOStorage struct {
 }
 
 func NewMINIOStorage() *MINIOStorage {
-	config := NewConfig()
+	config := GetConfig()
 	storageConfig := config.Storage
 
 	minioClient, err := minio.New(

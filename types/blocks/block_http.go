@@ -85,6 +85,10 @@ func NewBlockHTTP() *BlockHTTP {
 						"body": {
 							"description": "Body to send in the request",
 							"type": ["string", "object", "array", "null"]
+						},
+						"description": {
+							"description": "Description of the request",
+							"type": ["string", "null"]
 						}
 					},
 					"required": ["url"]

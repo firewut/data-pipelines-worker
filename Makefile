@@ -30,3 +30,4 @@ clean:
 
 start:
 	go run -race cmd/data-pipelines/worker.go
+	# go run -race cmd/data-pipelines/worker.go --http-api-port=8080

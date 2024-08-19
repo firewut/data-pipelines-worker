@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/mdns"
+	"github.com/grandcat/zeroconf"
 )
 
 type Worker struct {
@@ -22,11 +22,9 @@ type WorkerStatus struct {
 	Blocks    []string `json:"blocks"`
 }
 
-func NewWorker(entry *mdns.ServiceEntry) *Worker {
-	// entry.InfoFields = [version=0.1 load=0.00 available=false blocks=http_request]
-
+func NewWorker(entry *zeroconf.ServiceEntry) *Worker {
 	infoFields := make(map[string]interface{})
-	for _, field := range entry.InfoFields {
+	for _, field := range entry.Text {
 		keyValue := strings.Split(field, "=")
 		if len(keyValue) == 2 {
 			infoFields[keyValue[0]] = keyValue[1]
@@ -34,10 +32,10 @@ func NewWorker(entry *mdns.ServiceEntry) *Worker {
 	}
 
 	return &Worker{
-		Host:   entry.Host,
+		Host:   entry.HostName,
 		Port:   entry.Port,
-		IpV4:   entry.AddrV4.String(),
-		IpV6:   entry.AddrV6.String(),
+		IpV4:   entry.AddrIPv4[0].String(),
+		IpV6:   entry.AddrIPv6[0].String(),
 		Status: NewWorkerStatus(infoFields),
 	}
 }

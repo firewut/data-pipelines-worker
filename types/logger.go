@@ -9,13 +9,13 @@ import (
 )
 
 var (
-	logger echo.Logger
-	once   sync.Once
+	logger     echo.Logger
+	onceLogger sync.Once
 )
 
 func GetLogger() echo.Logger {
-	once.Do(func() {
-		config := NewConfig()
+	onceLogger.Do(func() {
+		config := GetConfig()
 		e := echo.New()
 		e.Logger.SetLevel(log.WARN)
 

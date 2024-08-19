@@ -15,3 +15,9 @@ Storage configuration `./config/storage_credentials.json`. Uses MINIO exported c
         "bucket": "data-pipelines"
     }
 ```
+
+## Start
+Just execute following command in terminal and it should be up and running
+```
+make start
+```

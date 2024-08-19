@@ -4,8 +4,8 @@ import (
 	"data-pipelines-worker/types"
 )
 
-func (suite *UnitTestSuite) TestNewConfig() {
-	config := types.NewConfig()
+func (suite *UnitTestSuite) TestGetConfig() {
+	config := types.GetConfig()
 
 	suite.Equal("debug", config.Log.Level)
 	suite.Equal("0.0.0.0", config.HTTPAPIServer.Host)

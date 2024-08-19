@@ -2,10 +2,17 @@ package types
 
 import (
 	"encoding/json"
+	"flag"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"gopkg.in/yaml.v2"
+)
+
+var (
+	config     Config
+	onceConfig sync.Once
 )
 
 type Config struct {
@@ -46,6 +53,10 @@ type StorageConfig struct {
 
 func NewConfig() Config {
 	config := Config{}
+
+	httpAPIPort := flag.Int("http-api-port", 8080, "HTTP API port")
+
+	flag.Parse()
 
 	var configPath string
 	configPath = os.Getenv("CONFIG_FILE")
@@ -90,5 +101,17 @@ func NewConfig() Config {
 		config.Storage = storageConfig
 	}
 
+	if httpAPIPort != nil {
+		config.HTTPAPIServer.Port = *httpAPIPort
+		config.DNSSD.ServicePort = *httpAPIPort
+	}
+
+	return config
+}
+
+func GetConfig() Config {
+	onceConfig.Do(func() {
+		config = NewConfig()
+	})
 	return config
 }

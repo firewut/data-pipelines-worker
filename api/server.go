@@ -23,7 +23,7 @@ type Server struct {
 }
 
 func NewServer() *Server {
-	config := types.NewConfig()
+	config := types.GetConfig()
 	detectedBlocks := blocks.DetectBlocks()
 
 	_echo := echo.New()

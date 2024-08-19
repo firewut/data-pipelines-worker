@@ -1,14 +1,16 @@
 package unit_test
 
 import (
-	"github.com/hashicorp/mdns"
+	"net"
+
+	"github.com/grandcat/zeroconf"
 
 	"data-pipelines-worker/types"
 	"data-pipelines-worker/types/blocks"
 )
 
 func (suite *UnitTestSuite) TestNewMDNS() {
-	config := types.NewConfig()
+	config := types.GetConfig()
 	mdnsService := types.NewMDNS(config)
 
 	suite.Equal("data-pipelines-worker", mdnsService.DNSSDStatus.ServiceName)
@@ -24,7 +26,7 @@ func (suite *UnitTestSuite) TestNewMDNS() {
 }
 
 func (suite *UnitTestSuite) TestMDNSDetectedBlocks() {
-	config := types.NewConfig()
+	config := types.GetConfig()
 	mdnsService := types.NewMDNS(config)
 
 	suite.Equal([]types.Block{}, mdnsService.GetDetectedBlocks())
@@ -37,7 +39,7 @@ func (suite *UnitTestSuite) TestMDNSDetectedBlocks() {
 }
 
 func (suite *UnitTestSuite) TestMDNSLoad() {
-	config := types.NewConfig()
+	config := types.GetConfig()
 	mdnsService := types.NewMDNS(config)
 
 	suite.EqualValues(0.0, mdnsService.DNSSDStatus.Load)
@@ -48,7 +50,7 @@ func (suite *UnitTestSuite) TestMDNSLoad() {
 }
 
 func (suite *UnitTestSuite) TestMDNSAvailable() {
-	config := types.NewConfig()
+	config := types.GetConfig()
 	mdnsService := types.NewMDNS(config)
 
 	suite.Equal(false, mdnsService.DNSSDStatus.Available)
@@ -59,7 +61,7 @@ func (suite *UnitTestSuite) TestMDNSAvailable() {
 }
 
 func (suite *UnitTestSuite) TestMDNSGetTXT() {
-	config := types.NewConfig()
+	config := types.GetConfig()
 	mdnsService := types.NewMDNS(config)
 
 	txt := mdnsService.GetTXT()
@@ -73,19 +75,32 @@ func (suite *UnitTestSuite) TestMDNSGetTXT() {
 }
 
 func (suite *UnitTestSuite) TestGetDiscoveredWorkers() {
-	config := types.NewConfig()
+	config := types.GetConfig()
 	mdnsService := types.NewMDNS(config)
 
 	suite.Equal(len(mdnsService.GetDiscoveredWorkers()), 0)
 
-	discoveredEntries := []*mdns.ServiceEntry{
+	discoveredEntries := []*zeroconf.ServiceEntry{
 		{
-			Name: "localhost",
-			Port: 8080,
+			ServiceRecord: zeroconf.ServiceRecord{
+				Instance: "localhost",
+			},
+			AddrIPv4: []net.IP{net.ParseIP("192.168.1.1")},
+			AddrIPv6: []net.IP{net.ParseIP("::1")},
+			Port:     8080,
+		},
+		{
+			ServiceRecord: zeroconf.ServiceRecord{
+				Instance: "remotehost",
+			},
+			AddrIPv4: []net.IP{net.ParseIP("192.168.1.2")},
+			AddrIPv6: []net.IP{net.ParseIP("::1")},
+			Port:     8080,
 		},
 	}
 	discoveredWorkers := []*types.Worker{
 		types.NewWorker(discoveredEntries[0]),
+		types.NewWorker(discoveredEntries[1]),
 	}
 
 	mdnsService.SetDiscoveredWorkers(discoveredWorkers)

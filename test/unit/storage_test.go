@@ -8,7 +8,7 @@ import (
 )
 
 func (suite *UnitTestSuite) TestS3Storage() {
-	config := types.NewConfig()
+	config := types.GetConfig()
 	storage := types.NewMINIOStorage()
 
 	tmpFile, err := os.CreateTemp("/tmp", "test")

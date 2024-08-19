@@ -28,7 +28,7 @@ func (suite *UnitTestSuite) SetupSuite() {
 	suite.Lock()
 	defer suite.Unlock()
 
-	suite.config = types.NewConfig()
+	suite.config = types.GetConfig()
 }
 
 func (suite *UnitTestSuite) TearDownSuite() {

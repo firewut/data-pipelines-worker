@@ -1,18 +1,21 @@
 package types
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/hashicorp/mdns"
+	"github.com/google/uuid"
+	"github.com/grandcat/zeroconf"
 )
 
 type MDNS struct {
 	sync.Mutex
 
-	server      *mdns.Server
+	server      *zeroconf.Server
 	DNSSDStatus DNSSD
 
 	detectedBlocksMap map[string]Block
@@ -121,29 +124,27 @@ func (m *MDNS) Announce() {
 	m.Lock()
 	defer m.Unlock()
 
-	service, err := mdns.NewMDNSService(
-		m.DNSSDStatus.ServiceName,
+	server, err := zeroconf.Register(
+		fmt.Sprintf(
+			"%s-%s",
+			m.DNSSDStatus.ServiceName,
+			uuid.New().String(),
+		),
 		m.DNSSDStatus.ServiceType,
 		m.DNSSDStatus.ServiceDomain,
-		"",
 		m.DNSSDStatus.ServicePort,
-		nil,
 		txt,
+		nil,
 	)
 	if err != nil {
 		panic(err)
 	}
+	m.server = server
 
 	GetLogger().Debugf(
 		"Registering mDNS Service Entry with TXT %s",
 		txt,
 	)
-
-	if server, err := mdns.NewServer(&mdns.Config{Zone: service}); err == nil {
-		m.server = server
-	} else {
-		panic(err)
-	}
 }
 
 func (m *MDNS) GetDiscoveredWorkers() []*Worker {
@@ -155,7 +156,7 @@ func (m *MDNS) GetDiscoveredWorkers() []*Worker {
 
 func (m *MDNS) DiscoverWorkers() {
 	go func() {
-		ticker := time.NewTicker(time.Second)
+		ticker := time.NewTicker(5 * time.Second)
 		for {
 			select {
 			case <-m.discoverWorkersDone:
@@ -165,34 +166,47 @@ func (m *MDNS) DiscoverWorkers() {
 			case <-ticker.C:
 				m.discoverWorkersLock.Lock()
 
-				workers := make([]*Worker, 0)
-				entriesCh := make(chan *mdns.ServiceEntry)
+				go func(_m *MDNS) {
+					workers := make([]*Worker, 0)
 
-				go func(_m *MDNS, _workers []*Worker) {
-					for entry := range entriesCh {
-						if !strings.Contains(entry.Name, m.DNSSDStatus.ServiceName) {
-							continue
+					resolver, err := zeroconf.NewResolver(nil)
+					if err != nil {
+						log.Fatalln("Failed to initialize resolver:", err.Error())
+					}
+					entries := make(chan *zeroconf.ServiceEntry)
+					go func(results <-chan *zeroconf.ServiceEntry) {
+						GetLogger().Debug("Discovering Workers")
+						for entry := range results {
+							if !strings.Contains(
+								entry.Instance,
+								m.DNSSDStatus.ServiceName,
+							) {
+								continue
+							}
+							GetLogger().Debugf(
+								"Discovered Worker %s at %s:%d",
+								entry.Instance,
+								entry.HostName,
+								entry.Port,
+							)
+							workers = append(workers, NewWorker(entry))
 						}
-						_workers = append(_workers, NewWorker(entry))
-					}
-					if len(_workers) > 0 {
-						_m.SetDiscoveredWorkers(_workers)
-					}
-				}(m, workers)
+						_m.SetDiscoveredWorkers(workers)
+					}(entries)
 
-				params := &mdns.QueryParam{
-					Service:     m.DNSSDStatus.ServiceType,
-					Domain:      m.DNSSDStatus.ServiceDomain,
-					Timeout:     5 * time.Second,
-					Entries:     entriesCh,
-					DisableIPv6: true,
-				}
-
-				// Add check for Filter and ServiceName herez
-				if err := mdns.Query(params); err != nil {
-					GetLogger().Errorf("Failed to query mDNS: %s", err)
-				}
-				close(entriesCh)
+					ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+					defer cancel()
+					err = resolver.Browse(
+						ctx,
+						m.DNSSDStatus.ServiceType,
+						m.DNSSDStatus.ServiceDomain,
+						entries,
+					)
+					if err != nil {
+						GetLogger().Error("Failed to browse:", err.Error())
+					}
+					<-ctx.Done()
+				}(m)
 
 				m.discoverWorkersLock.Unlock()
 			}
