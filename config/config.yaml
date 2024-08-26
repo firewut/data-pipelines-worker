@@ -16,3 +16,7 @@ dns_sd:
 
 storage:
   storage_credentials_path: "./storage_credentials.json"
+
+pipeline:
+  pipeline_validation_schema_path: "./pipelines_validation_schema.json"
+  pipeline_catalogue: "./pipelines"

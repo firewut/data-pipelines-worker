@@ -11,9 +11,9 @@ import (
 )
 
 type UnitTestSuite struct {
-	suite.Suite
 	sync.RWMutex
 
+	suite.Suite
 	config types.Config
 }
 
@@ -39,4 +39,34 @@ func (suite *UnitTestSuite) SetupTest() {
 }
 
 func (suite *UnitTestSuite) TearDownTest() {
+}
+
+func (suite *UnitTestSuite) GetTestPipelineDefinition() []byte {
+	return []byte(`{
+			"slug": "test",
+			"title": "Test Pipeline",
+			"description": "This is a test pipeline",
+			"blocks": [
+				{
+					"id": "http_request",
+					"slug": "get-text-content-for-video",
+					"description": "Get Text Content of the Video",
+					"input": {
+						"url": "https://openai.com/api/v2/completion",
+						"method": "POST",
+						"headers": {
+							"Content-Type": "application/json",
+							"Authorisation: Bearer": "OPENAI_TOKEN"
+						},
+						"body": {
+							"messages": [
+								{"role": "assitant", "content": "theme"},
+								{"role": "user", "content": "answer this question"}
+							]
+						}
+					}
+				}
+			]
+		}`,
+	)
 }

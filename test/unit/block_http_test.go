@@ -57,7 +57,7 @@ func (suite *UnitTestSuite) TestBlockHTTPDetectFail() {
 func (suite *UnitTestSuite) TestBlockHTTPValidateSchemaOk() {
 	block := blocks.NewBlockHTTP()
 
-	schemaPtr, schema, err := block.ValidateSchema(types.BlockSchemaValidator{})
+	schemaPtr, schema, err := block.ValidateSchema(types.JSONSchemaValidator{})
 	suite.Nil(err)
 	suite.NotNil(schemaPtr)
 	suite.NotNil(schema)
@@ -68,6 +68,6 @@ func (suite *UnitTestSuite) TestBlockHTTPValidateSchemaFail() {
 
 	block.SchemaString = "invalid schema"
 
-	_, _, err := block.ValidateSchema(types.BlockSchemaValidator{})
+	_, _, err := block.ValidateSchema(types.JSONSchemaValidator{})
 	suite.NotNil(err)
 }

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/xeipuuv/gojsonschema"
 	"gopkg.in/yaml.v2"
 )
 
@@ -16,10 +17,12 @@ var (
 )
 
 type Config struct {
-	Log           LogConfig     `yaml:"log" json:"-"`
-	HTTPAPIServer HTTPAPIServer `yaml:"http_api_server" json:"-"`
-	DNSSD         DNSSD         `yaml:"dns_sd" json:"-"`
-	Storage       StorageConfig `yaml:"storage" json:"-"`
+	Log              LogConfig         `yaml:"log" json:"-"`
+	HTTPAPIServer    HTTPAPIServer     `yaml:"http_api_server" json:"-"`
+	DNSSD            DNSSD             `yaml:"dns_sd" json:"-"`
+	Storage          StorageConfig     `yaml:"storage" json:"-"`
+	Pipeline         PipelineConfig    `yaml:"pipeline" json:"-"`
+	PipelineRegistry *PipelineRegistry `yaml:"-" json:"-"` // Not in the config file
 }
 
 type LogConfig struct {
@@ -51,6 +54,12 @@ type StorageConfig struct {
 	Url             string `yaml:"url" json:"url"`
 }
 
+type PipelineConfig struct {
+	StoragePath string               `yaml:"pipeline_validation_schema_path" json:"-"`
+	Catalogue   string               `yaml:"pipeline_catalogue" json:"-"`
+	SchemaPtr   *gojsonschema.Schema `yaml:"-" json:"-"`
+}
+
 func NewConfig() Config {
 	config := Config{}
 
@@ -80,7 +89,7 @@ func NewConfig() Config {
 		file, err := os.ReadFile(credentailsPath)
 
 		if condition := os.IsNotExist(err); condition {
-			// Falllback - check credentials file in the same directory as the config file
+			// Fallback - check credentials file in the same directory as the config file
 			configDir := filepath.Dir(configPath)
 			credentialsFilename := filepath.Base(credentailsPath)
 			credentailsPath = filepath.Join(configDir, credentialsFilename)
@@ -101,6 +110,51 @@ func NewConfig() Config {
 		config.Storage = storageConfig
 	}
 
+	if config.Pipeline.StoragePath != "" {
+		pipelineConfigPath := config.Pipeline.StoragePath
+		file, err := os.ReadFile(pipelineConfigPath)
+
+		if condition := os.IsNotExist(err); condition {
+			// Fallback - check credentials file in the same directory as the config file
+			configDir := filepath.Dir(configPath)
+			pipelineConfigFilename := filepath.Base(pipelineConfigPath)
+			pipelineConfigPath = filepath.Join(configDir, pipelineConfigFilename)
+
+			file, err = os.ReadFile(pipelineConfigPath)
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		schemaLoader := gojsonschema.NewStringLoader(string(file))
+		schemaPtr, err := gojsonschema.NewSchema(schemaLoader)
+		if err != nil {
+			panic(err)
+		}
+
+		if config.Pipeline.Catalogue != "" {
+			// Check directory exists
+			_, err := os.ReadDir(config.Pipeline.Catalogue)
+			if condition := os.IsNotExist(err); condition {
+				configDir := filepath.Dir(configPath)
+
+				config.Pipeline.Catalogue = filepath.Join(
+					configDir, filepath.Base(
+						PIPELINES_CATALOGUE_DIR,
+					),
+				)
+			}
+		}
+
+		pipelineConfig := PipelineConfig{
+			StoragePath: config.Pipeline.StoragePath,
+			Catalogue:   config.Pipeline.Catalogue,
+			SchemaPtr:   schemaPtr,
+		}
+
+		config.Pipeline = pipelineConfig
+	}
+
 	if httpAPIPort != nil {
 		config.HTTPAPIServer.Port = *httpAPIPort
 		config.DNSSD.ServicePort = *httpAPIPort
@@ -109,9 +163,17 @@ func NewConfig() Config {
 	return config
 }
 
+// func (c *Config) SetupPipelineRegistry() {
+// 	pipelineRegistry := NewPipelineRegistry()
+// 	pipelineRegistry.LoadFromCatalogue()
+
+// 	c.PipelineRegistry = pipelineRegistry
+// }
+
 func GetConfig() Config {
 	onceConfig.Do(func() {
 		config = NewConfig()
+		// config.SetupPipelineRegistry()
 	})
 	return config
 }

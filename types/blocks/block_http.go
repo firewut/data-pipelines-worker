@@ -23,7 +23,7 @@ type ProcessorHTTP struct {
 }
 
 func (p *ProcessorHTTP) Process() int {
-	// Save result to FTP file ( shared storage )
+	// Save result to TMP file
 	return 0
 }
 
@@ -46,7 +46,7 @@ func NewBlockHTTP() *BlockHTTP {
 		SchemaString: `{
         	"type": "object",
 			"properties": {
-				"in": {
+				"input": {
 					"type": "object",
 					"description": "Input parameters",
 					"properties": {
@@ -93,7 +93,7 @@ func NewBlockHTTP() *BlockHTTP {
 					},
 					"required": ["url"]
 				},
-				"out": {
+				"output": {
 					"description": "Content fetched from the URL",
 					"type": ["string", "null"],
 					"format": "file"
@@ -128,11 +128,11 @@ func (b *BlockHTTP) GetSchemaString() string {
 	return b.SchemaString
 }
 
-func (b *BlockHTTP) SetSchema(v types.BlockSchemaValidator) error {
+func (b *BlockHTTP) SetSchema(v types.JSONSchemaValidator) error {
 	b.Lock()
 	defer b.Unlock()
 
-	schemaPtr, schema, err := v.Validate(b)
+	schemaPtr, schema, err := v.Validate(b.SchemaString)
 	if err == nil {
 		b.SchemaPtr = schemaPtr
 		b.Schema = schema
@@ -148,11 +148,11 @@ func (b *BlockHTTP) Detect(d types.BlockDetector) bool {
 	return d.Detect()
 }
 
-func (b *BlockHTTP) ValidateSchema(v types.BlockSchemaValidator) (*gojsonschema.Schema, interface{}, error) {
+func (b *BlockHTTP) ValidateSchema(v types.JSONSchemaValidator) (*gojsonschema.Schema, interface{}, error) {
 	b.Lock()
 	defer b.Unlock()
 
-	return v.Validate(b)
+	return v.Validate(b.SchemaString)
 }
 
 func (b *BlockHTTP) Process(p types.BlockProcessor) int {

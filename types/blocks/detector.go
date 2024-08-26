@@ -18,8 +18,8 @@ func DetectBlocks() []types.Block {
 
 	for block, detector := range BlockRegistry {
 		if block.Detect(detector) {
-			validator := types.BlockSchemaValidator{}
-			if _, _, err := validator.Validate(block); err == nil {
+			validator := types.JSONSchemaValidator{}
+			if _, _, err := validator.Validate(block.GetSchemaString()); err == nil {
 				block.SetSchema(validator)
 			} else {
 				types.GetLogger().Warnf(

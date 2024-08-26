@@ -24,4 +24,7 @@ func (suite *UnitTestSuite) TestGetConfig() {
 	suite.NotEmpty(config.Storage.Path)
 	suite.NotEmpty(config.Storage.SecretKey)
 	suite.NotEmpty(config.Storage.Url)
+
+	suite.NotEmpty(config.Pipeline.StoragePath)
+	suite.NotNil(config.Pipeline.SchemaPtr)
 }
