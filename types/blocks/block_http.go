@@ -1,12 +1,15 @@
 package blocks
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"net/http"
-	"sync"
 
-	"data-pipelines-worker/types"
+	gjm "github.com/firewut/go-json-map"
 
-	"github.com/xeipuuv/gojsonschema"
+	"data-pipelines-worker/types/config"
+	"data-pipelines-worker/types/interfaces"
 )
 
 type DetectorHTTP struct {
@@ -15,6 +18,7 @@ type DetectorHTTP struct {
 }
 
 func (d *DetectorHTTP) Detect() bool {
+	// TODO: Implement Transport with timeout from config
 	_, err := d.Client.Get(d.Url)
 	return err == nil
 }
@@ -22,28 +26,59 @@ func (d *DetectorHTTP) Detect() bool {
 type ProcessorHTTP struct {
 }
 
-func (p *ProcessorHTTP) Process() int {
-	// Save result to TMP file
-	return 0
+func NewProcessorHTTP(data interfaces.ProcessableBlockData) *ProcessorHTTP {
+	return &ProcessorHTTP{}
+}
+
+func (p *ProcessorHTTP) Process(
+	block interfaces.Block,
+	data interfaces.ProcessableBlockData,
+) (*bytes.Buffer, error) {
+	var output *bytes.Buffer = &bytes.Buffer{}
+
+	logger := config.GetLogger()
+
+	_data := data.GetInputData().(map[string]interface{})
+
+	url, err := gjm.GetProperty(_data, "url")
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := http.Get(url.(string))
+	if err != nil {
+		logger.Errorf("HTTP request error: %v", err)
+		return output, err
+	}
+	defer response.Body.Close()
+
+	// Read response body
+	_, err = io.Copy(output, response.Body)
+	if err != nil {
+		return output, err
+	}
+
+	// Check response status code
+	if response.StatusCode != http.StatusOK {
+		err := fmt.Errorf("HTTP request failed with status code: %d", response.StatusCode)
+		logger.Error(err)
+		return output, err
+	}
+
+	return output, nil
 }
 
 type BlockHTTP struct {
-	sync.Mutex
-
-	Id           string               `json:"id"`
-	Name         string               `json:"name"`
-	Description  string               `json:"description"`
-	SchemaString string               `json:"-"`
-	SchemaPtr    *gojsonschema.Schema `json:"-"`
-	Schema       interface{}          `json:"schema"`
+	BlockParent
 }
 
 func NewBlockHTTP() *BlockHTTP {
-	return &BlockHTTP{
-		Id:          "http_request",
-		Name:        "Request HTTP Resource",
-		Description: "Block to perform request to a URL and save the Response",
-		SchemaString: `{
+	block := &BlockHTTP{
+		BlockParent: BlockParent{
+			Id:          "http_request",
+			Name:        "Request HTTP Resource",
+			Description: "Block to perform request to a URL and save the Response",
+			SchemaString: `{
         	"type": "object",
 			"properties": {
 				"input": {
@@ -53,6 +88,7 @@ func NewBlockHTTP() *BlockHTTP {
 						"url": {
 							"description": "URL to fetch content from",
 							"type": "string",
+							"minLength": 5,
 							"format": "url"
 						},
 						"method": {
@@ -100,61 +136,14 @@ func NewBlockHTTP() *BlockHTTP {
 				}
 			}
 		}`,
-		SchemaPtr: nil,
-		Schema:    nil,
-	}
-}
-
-func (b *BlockHTTP) GetId() string {
-	return b.Id
-}
-
-func (b *BlockHTTP) GetName() string {
-	return b.Name
-}
-
-func (b *BlockHTTP) GetDescription() string {
-	return b.Description
-}
-
-func (b *BlockHTTP) GetSchema() *gojsonschema.Schema {
-	b.Lock()
-	defer b.Unlock()
-
-	return b.SchemaPtr
-}
-
-func (b *BlockHTTP) GetSchemaString() string {
-	return b.SchemaString
-}
-
-func (b *BlockHTTP) SetSchema(v types.JSONSchemaValidator) error {
-	b.Lock()
-	defer b.Unlock()
-
-	schemaPtr, schema, err := v.Validate(b.SchemaString)
-	if err == nil {
-		b.SchemaPtr = schemaPtr
-		b.Schema = schema
+			SchemaPtr: nil,
+			Schema:    nil,
+		},
 	}
 
-	return err
-}
+	if err := block.ApplySchema(block.GetSchemaString()); err != nil {
+		panic(err)
+	}
 
-func (b *BlockHTTP) Detect(d types.BlockDetector) bool {
-	b.Lock()
-	defer b.Unlock()
-
-	return d.Detect()
-}
-
-func (b *BlockHTTP) ValidateSchema(v types.JSONSchemaValidator) (*gojsonschema.Schema, interface{}, error) {
-	b.Lock()
-	defer b.Unlock()
-
-	return v.Validate(b.SchemaString)
-}
-
-func (b *BlockHTTP) Process(p types.BlockProcessor) int {
-	return p.Process()
+	return block
 }

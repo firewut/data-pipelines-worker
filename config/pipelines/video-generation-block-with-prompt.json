@@ -4,22 +4,12 @@
     "description": "Generates videos for youtube Channel <CHANNEL>. Uses Prompt in the Block.",
     "blocks": [
         {
-            "id": "http_request",
+            "id": "openai_chat_completion",
             "slug": "get-text-content-for-video",
             "description": "Get Text Content of the Video",
             "input": {
-                "url": "https://openai.com/api/v2/completion",
-                "method": "POST",
-                "headers": {
-                    "Content-Type": "application/json",
-                    "Authorisation: Bearer": "OPENAI_TOKEN"
-                },
-                "body": {
-                    "messages": [
-                        {"role": "assitant", "content": "theme"},
-                        {"role": "user", "content": "answer this question"}
-                    ]
-                }
+                "model": "gpt-4o",
+                "prompt": "Generate a video for the youtube channel <CHANNEL>. The video should be around 5 minutes long. The video should be informative and engaging. The video should be about <TOPIC>. The video should contain <NUMBER> of segments. Each segment should be around 30 seconds long. The video should contain images and text. The text should be generated from the audio. The video should contain a title, description, and tags. The video should be uploaded to youtube. The video should be private. The video should not be made for kids. The video should be in English. The video should be in the category of Education. The video should contain the following segments: <SEGMENTS>. The video should contain the following images: <IMAGES>. The video should contain the following text: <TEXT>. The video should contain the following audio: <AUDIO>. The video should contain the following title: <TITLE>. The video should contain the following description: <DESCRIPTION>. The video should contain the following tags: <TAGS>."
             }
         },
         {

@@ -1,4 +1,4 @@
-package types
+package config
 
 import (
 	"encoding/json"
@@ -11,18 +11,23 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const (
+	CONFIG_FILE             = "config/config.yaml"
+	PIPELINES_CATALOGUE_DIR = "config/pipelines"
+)
+
 var (
 	config     Config
 	onceConfig sync.Once
 )
 
 type Config struct {
-	Log              LogConfig         `yaml:"log" json:"-"`
-	HTTPAPIServer    HTTPAPIServer     `yaml:"http_api_server" json:"-"`
-	DNSSD            DNSSD             `yaml:"dns_sd" json:"-"`
-	Storage          StorageConfig     `yaml:"storage" json:"-"`
-	Pipeline         PipelineConfig    `yaml:"pipeline" json:"-"`
-	PipelineRegistry *PipelineRegistry `yaml:"-" json:"-"` // Not in the config file
+	Log           LogConfig      `yaml:"log" json:"-"`
+	HTTPAPIServer HTTPAPIServer  `yaml:"http_api_server" json:"-"`
+	DNSSD         DNSSD          `yaml:"dns_sd" json:"-"`
+	Storage       StorageConfig  `yaml:"storage" json:"-"`
+	Pipeline      PipelineConfig `yaml:"pipeline" json:"-"`
+	OpenAI        OpenAIConfig   `yaml:"openai" json:"-"`
 }
 
 type LogConfig struct {
@@ -58,6 +63,15 @@ type PipelineConfig struct {
 	StoragePath string               `yaml:"pipeline_validation_schema_path" json:"-"`
 	Catalogue   string               `yaml:"pipeline_catalogue" json:"-"`
 	SchemaPtr   *gojsonschema.Schema `yaml:"-" json:"-"`
+}
+
+type openAIToken struct {
+	Token string `json:"token"`
+}
+
+type OpenAIConfig struct {
+	CredentialsPath string `yaml:"openai_credentials_path" json:"-"`
+	Token           string `yaml:"-" json:"-"`
 }
 
 func NewConfig() Config {
@@ -155,6 +169,35 @@ func NewConfig() Config {
 		config.Pipeline = pipelineConfig
 	}
 
+	if config.OpenAI.CredentialsPath != "" {
+		credentailsPath := config.OpenAI.CredentialsPath
+		file, err := os.ReadFile(credentailsPath)
+
+		if condition := os.IsNotExist(err); condition {
+			// Fallback - check credentials file in the same directory as the config file
+			configDir := filepath.Dir(configPath)
+			credentialsFilename := filepath.Base(credentailsPath)
+			credentailsPath = filepath.Join(configDir, credentialsFilename)
+
+			file, err = os.ReadFile(credentailsPath)
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		openAIConfig := OpenAIConfig{
+			CredentialsPath: config.OpenAI.CredentialsPath,
+		}
+
+		token := openAIToken{}
+		if err = json.Unmarshal(file, &token); err != nil {
+			panic(err)
+		}
+
+		openAIConfig.Token = token.Token
+		config.OpenAI = openAIConfig
+	}
+
 	if httpAPIPort != nil {
 		config.HTTPAPIServer.Port = *httpAPIPort
 		config.DNSSD.ServicePort = *httpAPIPort
@@ -163,17 +206,9 @@ func NewConfig() Config {
 	return config
 }
 
-// func (c *Config) SetupPipelineRegistry() {
-// 	pipelineRegistry := NewPipelineRegistry()
-// 	pipelineRegistry.LoadFromCatalogue()
-
-// 	c.PipelineRegistry = pipelineRegistry
-// }
-
 func GetConfig() Config {
 	onceConfig.Do(func() {
 		config = NewConfig()
-		// config.SetupPipelineRegistry()
 	})
 	return config
 }

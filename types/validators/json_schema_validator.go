@@ -1,11 +1,11 @@
-package types
+package validators
 
 import "github.com/xeipuuv/gojsonschema"
 
 type JSONSchemaValidator struct {
 }
 
-func (b *JSONSchemaValidator) Validate(schemaString string) (*gojsonschema.Schema, interface{}, error) {
+func (b *JSONSchemaValidator) ValidateSchema(schemaString string) (*gojsonschema.Schema, interface{}, error) {
 	gojsonschema.FormatCheckers.Add("file", FileFormatChecker{})
 
 	schemaLoader := gojsonschema.NewStringLoader(schemaString)

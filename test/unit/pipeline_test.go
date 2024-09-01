@@ -1,24 +1,22 @@
 package unit_test
 
-import (
-	"data-pipelines-worker/types"
-)
+import "data-pipelines-worker/types/dataclasses"
 
 func (suite *UnitTestSuite) TestGetPipelinesConfigSchema() {
-	config := types.GetConfig()
-
-	suite.NotNil(config.Pipeline.SchemaPtr)
+	suite.NotNil(suite._config.Pipeline.SchemaPtr)
 }
 
 func (suite *UnitTestSuite) TestNewPipelineErrorBrokenJSON() {
-	suite.Panics(func() {
-		types.NewPipeline([]byte(`{"slug": "test",
-			"title": "Test Pipeline"`))
-	})
+	_, err := dataclasses.NewPipelineFromCatalogue(
+		[]byte(`{"slug": "test",
+			"title": "Test Pipeline"`,
+		),
+	)
+	suite.NotNil(err)
 }
 
 func (suite *UnitTestSuite) TestNewPipelineCorrectJSON() {
-	types.NewPipeline([]byte(`{
+	dataclasses.NewPipelineFromCatalogue([]byte(`{
 		"slug": "test",
 		"title": "Test Pipeline"
 	}`))

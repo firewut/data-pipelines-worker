@@ -1,52 +1,66 @@
 package unit_test
 
 import (
-	"data-pipelines-worker/types"
+	"data-pipelines-worker/types/dataclasses"
+	"data-pipelines-worker/types/registries"
 )
 
 func (suite *UnitTestSuite) TestNewPipelineRegistry() {
-	registry := types.NewPipelineRegistry()
+	registry, err := registries.NewPipelineRegistry(
+		&dataclasses.PipelineCatalogueLoader{},
+	)
+	suite.Nil(err)
 
 	suite.NotNil(registry)
-	suite.Empty(registry.GetAll())
+	suite.NotEmpty(registry.GetAll())
 }
 
 func (suite *UnitTestSuite) TestPipelineRegistryRegisterCorrect() {
-	registry := types.NewPipelineRegistry()
-	pipeline := types.NewPipeline(suite.GetTestPipelineDefinition())
+	registry, err := registries.NewPipelineRegistry(
+		&dataclasses.PipelineCatalogueLoader{},
+	)
+	suite.Nil(err)
+
+	pipeline, err := dataclasses.NewPipelineFromCatalogue(
+		suite.GetTestPipelineDefinition(),
+	)
+	suite.Nil(err)
+	suite.NotEmpty(pipeline.GetBlocks())
 
 	registry.Register(pipeline)
 
 	suite.NotEmpty(registry.GetAll())
 }
 
-func (suite *UnitTestSuite) TestPipelineRegistryRegisterErrorInvalidJSON() {
-	registry := types.NewPipelineRegistry()
-
-	suite.Panics(func() {
-		types.NewPipeline([]byte(`{`))
-	})
-
-	suite.Empty(registry.GetAll())
-}
-
 func (suite *UnitTestSuite) TestPipelineRegistryRegisterErrorMissingRequiredProperty() {
-	registry := types.NewPipelineRegistry()
-	pipeline := types.NewPipeline([]byte(`{
-		"slug": "YT-CHANNEL-video-generation",
-		"title": "Youtube Video generation Pipeline"
-	}`))
+	registry, err := registries.NewPipelineRegistry(
+		&dataclasses.PipelineCatalogueLoader{},
+	)
+	suite.Nil(err)
+
+	pipeline, err := dataclasses.NewPipelineFromCatalogue(
+		[]byte(`{
+			"slug": "YT-CHANNEL-video-generation-invalid",
+			"title": "Youtube Video generation Pipeline"
+		}`),
+	)
+	suite.Nil(err)
 
 	suite.Panics(func() {
 		registry.Register(pipeline)
 	})
 
-	suite.Empty(registry.GetAll())
+	suite.Empty(registry.Get(pipeline.GetSlug()))
 }
 
 func (suite *UnitTestSuite) TestPipelineRegistryGet() {
-	registry := types.NewPipelineRegistry()
-	pipeline := types.NewPipeline(suite.GetTestPipelineDefinition())
+	registry, err := registries.NewPipelineRegistry(
+		&dataclasses.PipelineCatalogueLoader{},
+	)
+	suite.Nil(err)
+
+	pipeline, err := dataclasses.NewPipelineFromCatalogue(suite.GetTestPipelineDefinition())
+	suite.Nil(err)
 
 	registry.Register(pipeline)
 	suite.NotEmpty(registry.GetAll())
@@ -55,27 +69,60 @@ func (suite *UnitTestSuite) TestPipelineRegistryGet() {
 }
 
 func (suite *UnitTestSuite) TestPipelineRegistryGetAll() {
-	registry := types.NewPipelineRegistry()
-	pipeline := types.NewPipeline(suite.GetTestPipelineDefinition())
+	registry, err := registries.NewPipelineRegistry(
+		&dataclasses.PipelineCatalogueLoader{},
+	)
+	suite.Nil(err)
+
+	pipeline, err := dataclasses.NewPipelineFromCatalogue(suite.GetTestPipelineDefinition())
+	suite.Nil(err)
 
 	registry.Register(pipeline)
 	suite.NotEmpty(registry.GetAll())
 }
 
 func (suite *UnitTestSuite) TestPipelineRegistryDelete() {
-	registry := types.NewPipelineRegistry()
-	pipeline := types.NewPipeline(suite.GetTestPipelineDefinition())
+	registry, err := registries.NewPipelineRegistry(
+		&dataclasses.PipelineCatalogueLoader{},
+	)
+	suite.Nil(err)
+
+	pipeline, err := dataclasses.NewPipelineFromCatalogue(suite.GetTestPipelineDefinition())
+	suite.Nil(err)
 
 	registry.Register(pipeline)
-	suite.NotEmpty(registry.GetAll())
+	suite.NotEmpty(registry.Get("test"))
 
 	registry.Delete("test")
-	suite.Empty(registry.GetAll())
+	suite.Empty(registry.Get("test"))
 }
 
 func (suite *UnitTestSuite) TestPipelineRegistryLoadFromCatalogue() {
-	registry := types.NewPipelineRegistry()
-	registry.LoadFromCatalogue()
+	registry, err := registries.NewPipelineRegistry(
+		&dataclasses.PipelineCatalogueLoader{},
+	)
+	suite.Nil(err)
 
-	suite.NotEmpty(registry.GetAll())
+	pipelineSlug := "YT-CHANNEL-video-generation-block-prompt"
+	pipeline := registry.Get(pipelineSlug)
+
+	suite.NotEmpty(pipeline)
+	suite.Greater(len(pipeline.GetBlocks()), 0)
+
+	implementedBlocks := map[string]string{
+		"http_request": "openai_chat_completion",
+	}
+
+	for _, blockStructure := range pipeline.GetBlocks() {
+		suite.NotEmpty(blockStructure)
+		suite.Equal(pipeline, blockStructure.GetPipeline())
+
+		for _, blockId := range implementedBlocks {
+			if blockStructure.GetId() == blockId {
+				blockData := blockStructure.GetBlock()
+				suite.NotEmpty(blockData)
+				suite.Equal(blockId, blockData.GetId())
+			}
+		}
+	}
 }

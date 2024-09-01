@@ -1,0 +1,153 @@
+package blocks
+
+import (
+	"bytes"
+	"fmt"
+	"sync"
+
+	"github.com/xeipuuv/gojsonschema"
+
+	"data-pipelines-worker/types/config"
+	"data-pipelines-worker/types/interfaces"
+	"data-pipelines-worker/types/validators"
+)
+
+type BlockParent struct {
+	sync.Mutex
+
+	Id           string               `json:"id"`
+	Name         string               `json:"name"`
+	Description  string               `json:"description"`
+	SchemaString string               `json:"-"`
+	SchemaPtr    *gojsonschema.Schema `json:"-"`
+	Schema       interface{}          `json:"schema"`
+
+	available bool
+	block     interfaces.Block
+}
+
+func (b *BlockParent) GetId() string {
+	return b.Id
+}
+
+func (b *BlockParent) GetName() string {
+	return b.Name
+}
+
+func (b *BlockParent) GetDescription() string {
+	return b.Description
+}
+
+func (b *BlockParent) GetSchema() *gojsonschema.Schema {
+	b.Lock()
+	defer b.Unlock()
+
+	return b.SchemaPtr
+}
+
+func (b *BlockParent) ApplySchema(schemaString string) error {
+	b.Lock()
+	defer b.Unlock()
+
+	validator := validators.JSONSchemaValidator{}
+	if schemaString == "" {
+		return fmt.Errorf("block (%s) schema is nil", b.GetId())
+	}
+
+	schemaPtr, schema, err := validator.ValidateSchema(schemaString)
+	if err == nil {
+		b.SchemaPtr = schemaPtr
+		b.Schema = schema
+	}
+
+	return err
+}
+
+func (b *BlockParent) GetSchemaString() string {
+	return b.SchemaString
+}
+
+func (b *BlockParent) Detect(d interfaces.BlockDetector) bool {
+	b.Lock()
+	defer b.Unlock()
+
+	return d.Detect()
+}
+
+func (b *BlockParent) ValidateSchema(v validators.JSONSchemaValidator) (*gojsonschema.Schema, interface{}, error) {
+	b.Lock()
+	defer b.Unlock()
+
+	return v.ValidateSchema(b.SchemaString)
+}
+
+func (b *BlockParent) Process(
+	processor interfaces.BlockProcessor,
+	data interfaces.ProcessableBlockData,
+) (*bytes.Buffer, error) {
+	var result *bytes.Buffer = &bytes.Buffer{}
+
+	logger := config.GetLogger()
+
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Errorf("Block (%s) panic: %v", b.GetId(), r)
+		}
+	}()
+
+	// Validate data against block schema
+	blockSchema := b.GetSchema()
+	dataLoader := gojsonschema.NewGoLoader(data)
+	validationResult, err := blockSchema.Validate(dataLoader)
+	if err != nil {
+		logger.Errorf(
+			"Block (%s) schema validation error: %v",
+			b.GetId(),
+			err,
+		)
+		return result, err
+	}
+	if !validationResult.Valid() {
+		errStr := "Block (%s) schema is invalid for data: %s"
+		for _, err := range validationResult.Errors() {
+			errStr += fmt.Sprintf("\n- %s", err)
+		}
+		logger.Errorf(errStr, b.GetId(), data.GetStringRepresentation())
+		return result, fmt.Errorf(errStr, b.GetId(), data.GetStringRepresentation())
+	}
+
+	return processor.Process(b, data)
+}
+
+func (b *BlockParent) SaveOutput(
+	data interfaces.ProcessableBlockData,
+	output *bytes.Buffer,
+	storage interfaces.Storage,
+) (string, error) {
+	// Block output is a file named:
+	// <pipeline-slug>/<pipeline-uuid>/<block-slug>/output.<mimetype>
+
+	pipeline := data.GetPipeline()
+	filePath := fmt.Sprintf(
+		"%s/%s/%s/output",
+		pipeline.GetSlug(),
+		pipeline.GetID(),
+		data.GetSlug(),
+	)
+
+	return storage.PutObjectBytes(filePath, output)
+}
+
+func (b *BlockParent) SetAvailable(available bool) {
+	b.Lock()
+	defer b.Unlock()
+
+	b.available = available
+}
+
+func (b *BlockParent) IsAvailable() bool {
+	b.Lock()
+	defer b.Unlock()
+
+	return b.available
+}

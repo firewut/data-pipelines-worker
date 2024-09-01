@@ -24,6 +24,11 @@
                         "type": {
                             "type": "string",
                             "enum": ["array", "number", "string", "boolean"]
+                        },
+                        "share_output": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Share Output file  via Shared Storage if next Block is not Detected at current Worker"
                         }
                     },
                     "additionalProperties": true,

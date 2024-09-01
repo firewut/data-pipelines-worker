@@ -2,47 +2,59 @@ package api
 
 import (
 	"context"
-	workerMiddleware "data-pipelines-worker/api/middleware"
-	"data-pipelines-worker/types"
-	"data-pipelines-worker/types/blocks"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+
+	workerMiddleware "data-pipelines-worker/api/middleware"
+	"data-pipelines-worker/types"
+	"data-pipelines-worker/types/config"
+	"data-pipelines-worker/types/dataclasses"
+	"data-pipelines-worker/types/interfaces"
+	"data-pipelines-worker/types/registries"
 )
 
 type Server struct {
 	host   string
 	port   int
-	config types.Config
+	config config.Config
 
 	echo *echo.Echo
 	mdns *types.MDNS
 }
 
 func NewServer() *Server {
-	config := types.GetConfig()
-	detectedBlocks := blocks.DetectBlocks()
+	_config := config.GetConfig()
+
+	blockRegistry := registries.GetBlockRegistry()
+
+	_, err := registries.NewPipelineRegistry(
+		&dataclasses.PipelineCatalogueLoader{},
+	)
+	if err != nil {
+		panic(err)
+	}
 
 	_echo := echo.New()
 	_echo.HideBanner = true
 
-	mdns := types.NewMDNS(config)
-	mdns.SetDetectedBlocks(detectedBlocks)
+	mdns := types.NewMDNS(_config)
+	mdns.SetDetectedBlocks(blockRegistry.GetBlocks())
 
 	var worker = &Server{
-		host:   config.HTTPAPIServer.Host,
-		port:   config.HTTPAPIServer.Port,
+		host:   _config.HTTPAPIServer.Host,
+		port:   _config.HTTPAPIServer.Port,
 		echo:   _echo,
 		mdns:   mdns,
-		config: config,
+		config: _config,
 	}
 	worker.echo.Use(middleware.Logger())
 	worker.echo.Use(middleware.Recover())
 	worker.echo.Use(
-		workerMiddleware.ConfigMiddleware(config),
+		workerMiddleware.ConfigMiddleware(_config),
 	)
 
 	return worker
@@ -90,10 +102,10 @@ func (s *Server) GetMDNS() *types.MDNS {
 	return s.mdns
 }
 
-func (s *Server) GetConfig() types.Config {
+func (s *Server) GetConfig() config.Config {
 	return s.config
 }
 
-func (s *Server) GetDetectedBlocks() []types.Block {
+func (s *Server) GetDetectedBlocks() map[string]interfaces.Block {
 	return s.mdns.GetDetectedBlocks()
 }

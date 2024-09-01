@@ -20,3 +20,13 @@ storage:
 pipeline:
   pipeline_validation_schema_path: "./pipelines_validation_schema.json"
   pipeline_catalogue: "./pipelines"
+
+openai:
+  openai_credentials_path: "./openai_credentials.json"
+
+# TODO: Block settings for Runtime and Detection 
+blocks:
+  http_request:
+    max_retries: 3
+    retry_delay: 1s
+    timeout: 5s

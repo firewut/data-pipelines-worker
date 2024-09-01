@@ -7,11 +7,13 @@ import (
 
 	"data-pipelines-worker/types"
 	"data-pipelines-worker/types/blocks"
+	"data-pipelines-worker/types/config"
+	"data-pipelines-worker/types/interfaces"
 )
 
 func (suite *UnitTestSuite) TestNewMDNS() {
-	config := types.GetConfig()
-	mdnsService := types.NewMDNS(config)
+	_config := config.GetConfig()
+	mdnsService := types.NewMDNS(_config)
 
 	suite.Equal("data-pipelines-worker", mdnsService.DNSSDStatus.ServiceName)
 	suite.Equal("_http._tcp.", mdnsService.DNSSDStatus.ServiceType)
@@ -20,27 +22,29 @@ func (suite *UnitTestSuite) TestNewMDNS() {
 	suite.EqualValues(0.0, mdnsService.DNSSDStatus.Load)
 	suite.Equal(false, mdnsService.DNSSDStatus.Available)
 
-	suite.Equal([]types.Block{}, mdnsService.GetDetectedBlocks())
+	suite.Equal(map[string]interfaces.Block{}, mdnsService.GetDetectedBlocks())
 	suite.EqualValues(0.0, mdnsService.GetLoad())
 	suite.Equal(false, mdnsService.GetAvailable())
 }
 
 func (suite *UnitTestSuite) TestMDNSDetectedBlocks() {
-	config := types.GetConfig()
-	mdnsService := types.NewMDNS(config)
+	_config := config.GetConfig()
+	mdnsService := types.NewMDNS(_config)
 
-	suite.Equal([]types.Block{}, mdnsService.GetDetectedBlocks())
+	suite.Equal(map[string]interfaces.Block{}, mdnsService.GetDetectedBlocks())
 
-	detectedBlocks := []types.Block{blocks.NewBlockHTTP()}
-	mdnsService.SetDetectedBlocks([]types.Block{
-		blocks.NewBlockHTTP(),
-	})
-	suite.Equal(detectedBlocks, mdnsService.GetDetectedBlocks())
+	detectedBlocks := map[string]interfaces.Block{
+		"http_request":           blocks.NewBlockHTTP(),
+		"openai_chat_completion": blocks.NewBlockOpenAIRequestCompletion(),
+	}
+
+	mdnsService.SetDetectedBlocks(detectedBlocks)
+	suite.EqualValues(detectedBlocks, mdnsService.GetDetectedBlocks())
 }
 
 func (suite *UnitTestSuite) TestMDNSLoad() {
-	config := types.GetConfig()
-	mdnsService := types.NewMDNS(config)
+	_config := config.GetConfig()
+	mdnsService := types.NewMDNS(_config)
 
 	suite.EqualValues(0.0, mdnsService.DNSSDStatus.Load)
 	suite.EqualValues(0.0, mdnsService.GetLoad())
@@ -50,8 +54,8 @@ func (suite *UnitTestSuite) TestMDNSLoad() {
 }
 
 func (suite *UnitTestSuite) TestMDNSAvailable() {
-	config := types.GetConfig()
-	mdnsService := types.NewMDNS(config)
+	_config := config.GetConfig()
+	mdnsService := types.NewMDNS(_config)
 
 	suite.Equal(false, mdnsService.DNSSDStatus.Available)
 	suite.Equal(false, mdnsService.GetAvailable())
@@ -61,8 +65,8 @@ func (suite *UnitTestSuite) TestMDNSAvailable() {
 }
 
 func (suite *UnitTestSuite) TestMDNSGetTXT() {
-	config := types.GetConfig()
-	mdnsService := types.NewMDNS(config)
+	_config := config.GetConfig()
+	mdnsService := types.NewMDNS(_config)
 
 	txt := mdnsService.GetTXT()
 	expected := []string{
@@ -75,8 +79,8 @@ func (suite *UnitTestSuite) TestMDNSGetTXT() {
 }
 
 func (suite *UnitTestSuite) TestGetDiscoveredWorkers() {
-	config := types.GetConfig()
-	mdnsService := types.NewMDNS(config)
+	_config := config.GetConfig()
+	mdnsService := types.NewMDNS(_config)
 
 	suite.Equal(len(mdnsService.GetDiscoveredWorkers()), 0)
 

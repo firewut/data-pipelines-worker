@@ -1,30 +1,31 @@
 package unit_test
 
-import (
-	"data-pipelines-worker/types"
-)
+import "data-pipelines-worker/types/config"
 
 func (suite *UnitTestSuite) TestGetConfig() {
-	config := types.GetConfig()
+	_config := config.GetConfig()
 
-	suite.Equal("debug", config.Log.Level)
-	suite.Equal("0.0.0.0", config.HTTPAPIServer.Host)
-	suite.Equal(8080, config.HTTPAPIServer.Port)
+	suite.Equal("debug", _config.Log.Level)
+	suite.Equal("0.0.0.0", _config.HTTPAPIServer.Host)
+	suite.Equal(8080, _config.HTTPAPIServer.Port)
 
-	suite.Equal("data-pipelines-worker", config.DNSSD.ServiceName)
-	suite.Equal("_http._tcp.", config.DNSSD.ServiceType)
-	suite.Equal("local.", config.DNSSD.ServiceDomain)
-	suite.Equal(8080, config.DNSSD.ServicePort)
-	suite.EqualValues(0.0, config.DNSSD.Load)
-	suite.Equal(false, config.DNSSD.Available)
+	suite.Equal("data-pipelines-worker", _config.DNSSD.ServiceName)
+	suite.Equal("_http._tcp.", _config.DNSSD.ServiceType)
+	suite.Equal("local.", _config.DNSSD.ServiceDomain)
+	suite.Equal(8080, _config.DNSSD.ServicePort)
+	suite.EqualValues(0.0, _config.DNSSD.Load)
+	suite.Equal(false, _config.DNSSD.Available)
 
-	suite.NotEmpty(config.Storage.CredentialsPath)
-	suite.NotEmpty(config.Storage.AccessKey)
-	suite.NotEmpty(config.Storage.Api)
-	suite.NotEmpty(config.Storage.Path)
-	suite.NotEmpty(config.Storage.SecretKey)
-	suite.NotEmpty(config.Storage.Url)
+	suite.NotEmpty(_config.Storage.CredentialsPath)
+	suite.NotEmpty(_config.Storage.AccessKey)
+	suite.NotEmpty(_config.Storage.Api)
+	suite.NotEmpty(_config.Storage.Path)
+	suite.NotEmpty(_config.Storage.SecretKey)
+	suite.NotEmpty(_config.Storage.Url)
 
-	suite.NotEmpty(config.Pipeline.StoragePath)
-	suite.NotNil(config.Pipeline.SchemaPtr)
+	suite.NotEmpty(_config.Pipeline.StoragePath)
+	suite.NotNil(_config.Pipeline.SchemaPtr)
+
+	suite.NotEmpty(_config.OpenAI.CredentialsPath)
+	suite.NotEmpty(_config.OpenAI.Token)
 }

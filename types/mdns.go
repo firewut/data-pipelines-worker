@@ -10,16 +10,18 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/grandcat/zeroconf"
+
+	"data-pipelines-worker/types/config"
+	"data-pipelines-worker/types/interfaces"
 )
 
 type MDNS struct {
 	sync.Mutex
 
 	server      *zeroconf.Server
-	DNSSDStatus DNSSD
+	DNSSDStatus config.DNSSD
 
-	detectedBlocksMap map[string]Block
-	detectedBlocks    []Block
+	detectedBlocksMap map[string]interfaces.Block
 
 	discoverWorkersLock sync.Mutex
 	discoveredWorkers   []*Worker
@@ -29,11 +31,10 @@ type MDNS struct {
 	available bool
 }
 
-func NewMDNS(config Config) *MDNS {
+func NewMDNS(config config.Config) *MDNS {
 	return &MDNS{
 		DNSSDStatus:         config.DNSSD,
-		detectedBlocksMap:   make(map[string]Block),
-		detectedBlocks:      make([]Block, 0),
+		detectedBlocksMap:   make(map[string]interfaces.Block),
 		discoveredWorkers:   make([]*Worker, 0),
 		load:                0.0,
 		available:           false,
@@ -69,24 +70,21 @@ func (m *MDNS) GetAvailable() bool {
 	return m.available
 }
 
-func (m *MDNS) SetDetectedBlocks(detectedBlocks []Block) {
+func (m *MDNS) SetDetectedBlocks(detectedBlocks map[string]interfaces.Block) {
 	m.Lock()
 	defer m.Unlock()
 
-	m.detectedBlocks = detectedBlocks
-	for _, block := range detectedBlocks {
-		m.detectedBlocksMap[block.GetId()] = block
-	}
+	m.detectedBlocksMap = detectedBlocks
 }
 
-func (m *MDNS) GetDetectedBlocks() []Block {
+func (m *MDNS) GetDetectedBlocks() map[string]interfaces.Block {
 	m.Lock()
 	defer m.Unlock()
 
-	return m.detectedBlocks
+	return m.detectedBlocksMap
 }
 
-func (m *MDNS) GetDetectedBlock(id string) Block {
+func (m *MDNS) GetDetectedBlock(id string) interfaces.Block {
 	m.Lock()
 	defer m.Unlock()
 
@@ -97,7 +95,7 @@ func (m *MDNS) GetTXT() []string {
 	m.Lock()
 	defer m.Unlock()
 
-	keys := make([]string, 0, len(m.detectedBlocks))
+	keys := make([]string, 0, len(m.detectedBlocksMap))
 	for k := range m.detectedBlocksMap {
 		keys = append(keys, k)
 	}
@@ -141,7 +139,7 @@ func (m *MDNS) Announce() {
 	}
 	m.server = server
 
-	GetLogger().Debugf(
+	config.GetLogger().Debugf(
 		"Registering mDNS Service Entry with TXT %s",
 		txt,
 	)
@@ -175,7 +173,7 @@ func (m *MDNS) DiscoverWorkers() {
 					}
 					entries := make(chan *zeroconf.ServiceEntry)
 					go func(results <-chan *zeroconf.ServiceEntry) {
-						GetLogger().Debug("Discovering Workers")
+						config.GetLogger().Debug("Discovering Workers")
 						for entry := range results {
 							if !strings.Contains(
 								entry.Instance,
@@ -183,7 +181,7 @@ func (m *MDNS) DiscoverWorkers() {
 							) {
 								continue
 							}
-							GetLogger().Debugf(
+							config.GetLogger().Debugf(
 								"Discovered Worker %s at %s:%d",
 								entry.Instance,
 								entry.HostName,
@@ -203,7 +201,7 @@ func (m *MDNS) DiscoverWorkers() {
 						entries,
 					)
 					if err != nil {
-						GetLogger().Error("Failed to browse:", err.Error())
+						config.GetLogger().Error("Failed to browse:", err.Error())
 					}
 					<-ctx.Done()
 				}(m)
@@ -225,7 +223,7 @@ func (m *MDNS) Shutdown() {
 	m.Lock()
 	defer m.Unlock()
 
-	GetLogger().Debugf("Removing mDNS Service Entry")
+	config.GetLogger().Debugf("Removing mDNS Service Entry")
 
 	if m.server != nil {
 		m.server.Shutdown()
