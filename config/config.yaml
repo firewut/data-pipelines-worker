@@ -24,9 +24,12 @@ pipeline:
 openai:
   openai_credentials_path: "./openai_credentials.json"
 
-# TODO: Block settings for Runtime and Detection 
 blocks:
   http_request:
-    max_retries: 3
-    retry_delay: 1s
-    timeout: 5s
+    detector:
+      conditions:
+        url: https://google.com
+  openai_chat_completion:
+    detector:
+      conditions:
+        url: https://api.openai.com

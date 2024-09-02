@@ -3,6 +3,8 @@ package unit_test
 import (
 	"bytes"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"sync"
 	"testing"
 
@@ -24,6 +26,8 @@ type UnitTestSuite struct {
 	suite.Suite
 	_config         config.Config
 	_detectedBlocks map[string]interfaces.Block
+
+	httpTestServers []*httptest.Server // to mock http requests
 }
 
 func TestUnitTestSuite(t *testing.T) {
@@ -45,10 +49,39 @@ func (suite *UnitTestSuite) TearDownSuite() {
 }
 
 func (suite *UnitTestSuite) SetupTest() {
+	// Make Mock HTTP Server for each URL Block Detector
+	_config := config.GetConfig()
+	for blockId, blockConfig := range _config.Blocks {
+		if blockConfig.Detector.Conditions["url"] != nil {
+			successUrl := suite.GetMockHTTPServerURL("Mocked Response OK", http.StatusOK)
+			_config.Blocks[blockId].Detector.Conditions["url"] = successUrl
+		}
+	}
+}
 
+func (suite *UnitTestSuite) GetMockHTTPServerURL(body string, statusCode int) string {
+	suite.Lock()
+	defer suite.Unlock()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(statusCode)
+		if body != "" {
+			w.Write([]byte(body))
+		}
+	}))
+	suite.httpTestServers = append(suite.httpTestServers, server)
+
+	return server.URL
 }
 
 func (suite *UnitTestSuite) TearDownTest() {
+	suite.Lock()
+	defer suite.Unlock()
+
+	for _, server := range suite.httpTestServers {
+		server.Close()
+	}
+	suite.httpTestServers = make([]*httptest.Server, 0)
 }
 
 func (suite *UnitTestSuite) GetTestPipelineDefinition() []byte {

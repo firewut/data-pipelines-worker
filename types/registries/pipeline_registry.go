@@ -6,15 +6,9 @@ import (
 
 	"github.com/xeipuuv/gojsonschema"
 
-	"data-pipelines-worker/types"
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/interfaces"
 )
-
-// var (
-// 	oncePipelineRegistry     sync.Once
-// 	pipelineRegistryInstance *PipelineRegistry
-// )
 
 type PipelineRegistry struct {
 	sync.Mutex
@@ -31,8 +25,7 @@ func NewPipelineRegistry(pipelineCatalogueLoader interfaces.PipelineCatalogueLoa
 		pipelineCatalogueLoader: pipelineCatalogueLoader,
 	}
 
-	pipelines, err := pipelineCatalogueLoader.Load(
-		types.NewLocalStorage(),
+	pipelines, err := pipelineCatalogueLoader.LoadCatalogue(
 		_config.Pipeline.Catalogue,
 	)
 	if err != nil {
@@ -89,11 +82,3 @@ func (pr *PipelineRegistry) Delete(slug string) {
 
 	delete(pr.Pipelines, slug)
 }
-
-// func GetPipelineRegistry() *PipelineRegistry {
-// 	oncePipelineRegistry.Do(func() {
-// 		pipelineRegistryInstance = NewPipelineRegistry()
-// 	})
-
-// 	return pipelineRegistryInstance
-// }

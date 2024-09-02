@@ -32,7 +32,7 @@ func NewServer() *Server {
 	blockRegistry := registries.GetBlockRegistry()
 
 	_, err := registries.NewPipelineRegistry(
-		&dataclasses.PipelineCatalogueLoader{},
+		dataclasses.NewPipelineCatalogueLoader()
 	)
 	if err != nil {
 		panic(err)

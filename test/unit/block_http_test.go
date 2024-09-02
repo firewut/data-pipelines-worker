@@ -9,7 +9,6 @@ import (
 	"os"
 
 	"net/http"
-	"net/http/httptest"
 )
 
 func (suite *UnitTestSuite) TestBlockHTTP() {
@@ -25,16 +24,12 @@ func (suite *UnitTestSuite) TestBlockHTTP() {
 func (suite *UnitTestSuite) TestBlockHTTPDetectOk() {
 	block := blocks.NewBlockHTTP()
 
-	// Create a mock server that always returns 200 OK
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
+	successUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusOK)
 
 	blockDetected := block.Detect(
 		&blocks.DetectorHTTP{
 			Client: &http.Client{},
-			Url:    server.URL,
+			Url:    successUrl,
 		},
 	)
 	suite.True(blockDetected)
@@ -43,16 +38,12 @@ func (suite *UnitTestSuite) TestBlockHTTPDetectOk() {
 func (suite *UnitTestSuite) TestBlockHTTPDetectFail() {
 	block := blocks.NewBlockHTTP()
 
-	// Create a mock server that always returns 500 Internal Server Error
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-	defer server.Close()
+	failUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusForbidden)
 
 	blockDetected := block.Detect(
 		&blocks.DetectorHTTP{
 			Client: &http.Client{},
-			Url:    server.URL,
+			Url:    failUrl,
 		},
 	)
 	suite.True(blockDetected)
@@ -100,21 +91,14 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessIncorrectInput() {
 func (suite *UnitTestSuite) TestBlockHTTPProcessSuccess() {
 	block := blocks.NewBlockHTTP()
 
-	// Create a mock server that always returns 200 OK
-	server := httptest.NewServer(
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Hello, world!\n"))
-		}),
-	)
-	defer server.Close()
+	successUrl := suite.GetMockHTTPServerURL("Hello, world!\n", http.StatusOK)
 
 	// Create a mock data
 	data := &dataclasses.BlockData{
 		Id:   "http_request",
 		Slug: "http-request",
 		Input: map[string]interface{}{
-			"url": server.URL,
+			"url": successUrl,
 		},
 	}
 
@@ -128,21 +112,14 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessSuccess() {
 func (suite *UnitTestSuite) TestBlockHTTPProcessError() {
 	block := blocks.NewBlockHTTP()
 
-	// Create a mock server that always returns 200 OK
-	server := httptest.NewServer(
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("Server panic"))
-		}),
-	)
-	defer server.Close()
+	failUrl := suite.GetMockHTTPServerURL("Server panic", http.StatusInternalServerError)
 
 	// Create a mock data
 	data := &dataclasses.BlockData{
 		Id:   "http_request",
 		Slug: "http-request",
 		Input: map[string]interface{}{
-			"url": server.URL,
+			"url": failUrl,
 		},
 	}
 
@@ -159,7 +136,7 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessError() {
 
 func (suite *UnitTestSuite) TestBlockHTTPSaveOutput() {
 	registry, err := registries.NewPipelineRegistry(
-		&dataclasses.PipelineCatalogueLoader{},
+		dataclasses.NewPipelineCatalogueLoader(),
 	)
 	suite.Nil(err)
 
@@ -168,21 +145,15 @@ func (suite *UnitTestSuite) TestBlockHTTPSaveOutput() {
 
 	block := blocks.NewBlockHTTP()
 
-	// Create a mock server that always returns 200 OK
-	server := httptest.NewServer(
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Testing save output method!\n"))
-		}),
-	)
-	defer server.Close()
+	httpContent := "Testing save output method!\n"
+	successUrl := suite.GetMockHTTPServerURL(httpContent, http.StatusOK)
 
 	// Create a mock data
 	data := &dataclasses.BlockData{
 		Id:   "http_request",
 		Slug: "http-request",
 		Input: map[string]interface{}{
-			"url": server.URL,
+			"url": successUrl,
 		},
 	}
 	data.SetPipeline(pipeline)
@@ -192,7 +163,7 @@ func (suite *UnitTestSuite) TestBlockHTTPSaveOutput() {
 	result, err := block.Process(&blocks.ProcessorHTTP{}, data)
 	suite.NotNil(result)
 	suite.Nil(err)
-	suite.Equal("Testing save output method!\n", result.String())
+	suite.Equal(httpContent, result.String())
 
 	// Save the output
 	fileName, err := block.SaveOutput(
@@ -206,12 +177,12 @@ func (suite *UnitTestSuite) TestBlockHTTPSaveOutput() {
 	// Read file content
 	content, err := os.ReadFile(fileName)
 	suite.Nil(err)
-	suite.Equal("Testing save output method!\n", string(content))
+	suite.Equal(httpContent, string(content))
 }
 
 func (suite *UnitTestSuite) TestBlockHTTPSaveOutputNoSpaceOnDeviceLeft() {
 	registry, err := registries.NewPipelineRegistry(
-		&dataclasses.PipelineCatalogueLoader{},
+		dataclasses.NewPipelineCatalogueLoader(),
 	)
 	suite.Nil(err)
 
@@ -220,21 +191,15 @@ func (suite *UnitTestSuite) TestBlockHTTPSaveOutputNoSpaceOnDeviceLeft() {
 
 	block := blocks.NewBlockHTTP()
 
-	// Create a mock server that always returns 200 OK
-	server := httptest.NewServer(
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Testing save output method!\n"))
-		}),
-	)
-	defer server.Close()
+	httpContent := "Testing save output method!\n"
+	successUrl := suite.GetMockHTTPServerURL(httpContent, http.StatusOK)
 
 	// Create a mock data
 	data := &dataclasses.BlockData{
 		Id:   "http_request",
 		Slug: "http-request",
 		Input: map[string]interface{}{
-			"url": server.URL,
+			"url": successUrl,
 		},
 	}
 	data.SetPipeline(pipeline)
@@ -244,7 +209,7 @@ func (suite *UnitTestSuite) TestBlockHTTPSaveOutputNoSpaceOnDeviceLeft() {
 	result, err := block.Process(&blocks.ProcessorHTTP{}, data)
 	suite.NotNil(result)
 	suite.Nil(err)
-	suite.Equal("Testing save output method!\n", result.String())
+	suite.Equal(httpContent, result.String())
 
 	// Save the output
 	fileName, err := block.SaveOutput(

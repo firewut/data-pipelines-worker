@@ -7,7 +7,7 @@ import (
 
 func (suite *UnitTestSuite) TestNewPipelineRegistry() {
 	registry, err := registries.NewPipelineRegistry(
-		&dataclasses.PipelineCatalogueLoader{},
+		dataclasses.NewPipelineCatalogueLoader(),
 	)
 	suite.Nil(err)
 
@@ -17,11 +17,11 @@ func (suite *UnitTestSuite) TestNewPipelineRegistry() {
 
 func (suite *UnitTestSuite) TestPipelineRegistryRegisterCorrect() {
 	registry, err := registries.NewPipelineRegistry(
-		&dataclasses.PipelineCatalogueLoader{},
+		dataclasses.NewPipelineCatalogueLoader(),
 	)
 	suite.Nil(err)
 
-	pipeline, err := dataclasses.NewPipelineFromCatalogue(
+	pipeline, err := dataclasses.NewPipelineFromBytes(
 		suite.GetTestPipelineDefinition(),
 	)
 	suite.Nil(err)
@@ -34,11 +34,11 @@ func (suite *UnitTestSuite) TestPipelineRegistryRegisterCorrect() {
 
 func (suite *UnitTestSuite) TestPipelineRegistryRegisterErrorMissingRequiredProperty() {
 	registry, err := registries.NewPipelineRegistry(
-		&dataclasses.PipelineCatalogueLoader{},
+		dataclasses.NewPipelineCatalogueLoader(),
 	)
 	suite.Nil(err)
 
-	pipeline, err := dataclasses.NewPipelineFromCatalogue(
+	pipeline, err := dataclasses.NewPipelineFromBytes(
 		[]byte(`{
 			"slug": "YT-CHANNEL-video-generation-invalid",
 			"title": "Youtube Video generation Pipeline"
@@ -55,11 +55,11 @@ func (suite *UnitTestSuite) TestPipelineRegistryRegisterErrorMissingRequiredProp
 
 func (suite *UnitTestSuite) TestPipelineRegistryGet() {
 	registry, err := registries.NewPipelineRegistry(
-		&dataclasses.PipelineCatalogueLoader{},
+		dataclasses.NewPipelineCatalogueLoader(),
 	)
 	suite.Nil(err)
 
-	pipeline, err := dataclasses.NewPipelineFromCatalogue(suite.GetTestPipelineDefinition())
+	pipeline, err := dataclasses.NewPipelineFromBytes(suite.GetTestPipelineDefinition())
 	suite.Nil(err)
 
 	registry.Register(pipeline)
@@ -70,11 +70,11 @@ func (suite *UnitTestSuite) TestPipelineRegistryGet() {
 
 func (suite *UnitTestSuite) TestPipelineRegistryGetAll() {
 	registry, err := registries.NewPipelineRegistry(
-		&dataclasses.PipelineCatalogueLoader{},
+		dataclasses.NewPipelineCatalogueLoader(),
 	)
 	suite.Nil(err)
 
-	pipeline, err := dataclasses.NewPipelineFromCatalogue(suite.GetTestPipelineDefinition())
+	pipeline, err := dataclasses.NewPipelineFromBytes(suite.GetTestPipelineDefinition())
 	suite.Nil(err)
 
 	registry.Register(pipeline)
@@ -83,11 +83,11 @@ func (suite *UnitTestSuite) TestPipelineRegistryGetAll() {
 
 func (suite *UnitTestSuite) TestPipelineRegistryDelete() {
 	registry, err := registries.NewPipelineRegistry(
-		&dataclasses.PipelineCatalogueLoader{},
+		dataclasses.NewPipelineCatalogueLoader(),
 	)
 	suite.Nil(err)
 
-	pipeline, err := dataclasses.NewPipelineFromCatalogue(suite.GetTestPipelineDefinition())
+	pipeline, err := dataclasses.NewPipelineFromBytes(suite.GetTestPipelineDefinition())
 	suite.Nil(err)
 
 	registry.Register(pipeline)
@@ -99,7 +99,7 @@ func (suite *UnitTestSuite) TestPipelineRegistryDelete() {
 
 func (suite *UnitTestSuite) TestPipelineRegistryLoadFromCatalogue() {
 	registry, err := registries.NewPipelineRegistry(
-		&dataclasses.PipelineCatalogueLoader{},
+		dataclasses.NewPipelineCatalogueLoader(),
 	)
 	suite.Nil(err)
 

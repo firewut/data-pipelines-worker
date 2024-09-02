@@ -65,7 +65,7 @@ func (p *PipelineData) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func NewPipelineFromCatalogue(data []byte) (*PipelineData, error) {
+func NewPipelineFromBytes(data []byte) (*PipelineData, error) {
 	pipeline := &PipelineData{}
 	err := pipeline.UnmarshalJSON(data)
 
@@ -73,22 +73,10 @@ func NewPipelineFromCatalogue(data []byte) (*PipelineData, error) {
 }
 
 func NewPipelineData() *PipelineData {
-	pipeline := &PipelineData{}
-
-	pipeline.ID = uuid.New()
-
-	// blockRegistry := registries.GetBlockRegistry()
-
-	// for i := range pipeline.Blocks {
-	// 	// block := pipeline.Blocks[i]
-
-	// 	// for registeredBlockSlug, registeredBlock := range blockRegistry.GetBlocks() {
-	// 	// 	if block.GetSlug() == registeredBlockSlug {
-	// 	// 		block.SetBlock(registeredBlock)
-	// 	// 		break
-	// 	// 	}
-	// 	// }
-	// }
+	pipeline := &PipelineData{
+		ID:     uuid.New(),
+		Blocks: make([]interfaces.ProcessableBlockData, 0),
+	}
 
 	return pipeline
 }

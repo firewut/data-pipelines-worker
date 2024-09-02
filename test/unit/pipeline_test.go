@@ -7,7 +7,7 @@ func (suite *UnitTestSuite) TestGetPipelinesConfigSchema() {
 }
 
 func (suite *UnitTestSuite) TestNewPipelineErrorBrokenJSON() {
-	_, err := dataclasses.NewPipelineFromCatalogue(
+	_, err := dataclasses.NewPipelineFromBytes(
 		[]byte(`{"slug": "test",
 			"title": "Test Pipeline"`,
 		),
@@ -16,7 +16,7 @@ func (suite *UnitTestSuite) TestNewPipelineErrorBrokenJSON() {
 }
 
 func (suite *UnitTestSuite) TestNewPipelineCorrectJSON() {
-	dataclasses.NewPipelineFromCatalogue([]byte(`{
+	dataclasses.NewPipelineFromBytes([]byte(`{
 		"slug": "test",
 		"title": "Test Pipeline"
 	}`))

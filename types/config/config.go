@@ -28,6 +28,8 @@ type Config struct {
 	Storage       StorageConfig  `yaml:"storage" json:"-"`
 	Pipeline      PipelineConfig `yaml:"pipeline" json:"-"`
 	OpenAI        OpenAIConfig   `yaml:"openai" json:"-"`
+
+	Blocks map[string]BlockConfig `yaml:"blocks" json:"-"`
 }
 
 type LogConfig struct {
@@ -72,6 +74,14 @@ type openAIToken struct {
 type OpenAIConfig struct {
 	CredentialsPath string `yaml:"openai_credentials_path" json:"-"`
 	Token           string `yaml:"-" json:"-"`
+}
+
+type BlockConfig struct {
+	Detector BlockConfigDetector `yaml:"detector" json:"-"`
+}
+
+type BlockConfigDetector struct {
+	Conditions map[string]interface{} `yaml:"conditions" json:"-"`
 }
 
 func NewConfig() Config {

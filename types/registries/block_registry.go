@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"data-pipelines-worker/types/blocks"
+	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/interfaces"
 )
 
@@ -33,14 +34,16 @@ func (br *BlockRegistry) DetectBlocks() {
 	br.Lock()
 	defer br.Unlock()
 
+	_config := config.GetConfig()
+
 	blockDetector := map[interfaces.Block]interfaces.BlockDetector{
 		blocks.NewBlockHTTP(): &blocks.DetectorHTTP{
 			Client: &http.Client{},
-			Url:    "https://google.com",
+			Url:    _config.Blocks[blocks.NewBlockHTTP().GetId()].Detector.Conditions["url"].(string),
 		},
 		blocks.NewBlockOpenAIRequestCompletion(): &blocks.DetectorHTTP{
 			Client: &http.Client{},
-			Url:    "https://api.openai.com",
+			Url:    _config.Blocks[blocks.NewBlockOpenAIRequestCompletion().GetId()].Detector.Conditions["url"].(string),
 		},
 	}
 

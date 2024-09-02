@@ -9,10 +9,22 @@ import (
 )
 
 type PipelineCatalogueLoader struct {
+	storage interfaces.Storage
 }
 
-func (pcl *PipelineCatalogueLoader) Load(
-	storage interfaces.Storage,
+func NewPipelineCatalogueLoader() *PipelineCatalogueLoader {
+	return &PipelineCatalogueLoader{}
+}
+
+func (pcl *PipelineCatalogueLoader) SetStorage(storage interfaces.Storage) {
+	pcl.storage = storage
+}
+
+func (pcl *PipelineCatalogueLoader) GetStorage() interfaces.Storage {
+	return pcl.storage
+}
+
+func (pcl *PipelineCatalogueLoader) LoadCatalogue(
 	cataloguePath string,
 ) (
 	map[string]interfaces.Pipeline,
@@ -36,7 +48,7 @@ func (pcl *PipelineCatalogueLoader) Load(
 		filePath := filepath.Join(_config.Pipeline.Catalogue, file.Name())
 
 		if fileContent, err := os.ReadFile(filePath); err == nil {
-			if pipeline, err := NewPipelineFromCatalogue(fileContent); err == nil {
+			if pipeline, err := NewPipelineFromBytes(fileContent); err == nil {
 				pipelines[pipeline.GetSlug()] = pipeline
 			} else {
 				panic(err)

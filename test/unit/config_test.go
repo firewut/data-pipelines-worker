@@ -28,4 +28,12 @@ func (suite *UnitTestSuite) TestGetConfig() {
 
 	suite.NotEmpty(_config.OpenAI.CredentialsPath)
 	suite.NotEmpty(_config.OpenAI.Token)
+
+	suite.NotEmpty(_config.Blocks)
+	suite.NotEmpty(_config.Blocks["http_request"])
+	suite.NotEmpty(_config.Blocks["http_request"].Detector)
+	suite.Contains(
+		_config.Blocks["http_request"].Detector.Conditions["url"],
+		"http://",
+	)
 }
