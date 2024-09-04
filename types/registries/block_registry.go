@@ -14,15 +14,28 @@ var (
 	blockRegistryInstance *BlockRegistry
 )
 
+func GetBlockRegistry() *BlockRegistry {
+	onceBlockRegistry.Do(func() {
+		blockRegistryInstance = NewBlockRegistry()
+	})
+
+	return blockRegistryInstance
+}
+
 type BlockRegistry struct {
 	sync.Mutex
 
-	Blocks map[string]interfaces.Block
+	Blocks         map[string]interfaces.Block
+	blocksDetector map[interfaces.Block]interfaces.BlockDetector
+
+	shutdownWg *sync.WaitGroup
 }
 
 func NewBlockRegistry() *BlockRegistry {
 	registry := &BlockRegistry{
-		Blocks: make(map[string]interfaces.Block),
+		Blocks:         make(map[string]interfaces.Block),
+		blocksDetector: make(map[interfaces.Block]interfaces.BlockDetector),
+		shutdownWg:     &sync.WaitGroup{},
 	}
 
 	registry.DetectBlocks()
@@ -36,24 +49,30 @@ func (br *BlockRegistry) DetectBlocks() {
 
 	_config := config.GetConfig()
 
-	blockDetector := map[interfaces.Block]interfaces.BlockDetector{
-		blocks.NewBlockHTTP(): &blocks.DetectorHTTP{
-			Client: &http.Client{},
-			Url:    _config.Blocks[blocks.NewBlockHTTP().GetId()].Detector.Conditions["url"].(string),
-		},
-		blocks.NewBlockOpenAIRequestCompletion(): &blocks.DetectorHTTP{
-			Client: &http.Client{},
-			Url:    _config.Blocks[blocks.NewBlockOpenAIRequestCompletion().GetId()].Detector.Conditions["url"].(string),
-		},
+	httpBlock := blocks.NewBlockHTTP()
+	openAIBlock := blocks.NewBlockOpenAIRequestCompletion()
+
+	br.blocksDetector = map[interfaces.Block]interfaces.BlockDetector{
+		httpBlock: blocks.NewDetectorHTTP(
+			&http.Client{},
+			_config.Blocks[httpBlock.GetId()].Detector,
+		),
+		openAIBlock: blocks.NewDetectorHTTP(
+			&http.Client{},
+			_config.Blocks[openAIBlock.GetId()].Detector,
+		),
 	}
 
 	br.Blocks = make(map[string]interfaces.Block)
-	for block, detector := range blockDetector {
+	for block, detector := range br.blocksDetector {
 		block.SetAvailable(false)
 
-		if block.Detect(detector) {
+		if detector.Detect() {
 			block.SetAvailable(true)
 		}
+
+		br.shutdownWg.Add(1)
+		detector.Start(block, detector.Detect)
 
 		br.Blocks[block.GetId()] = block
 	}
@@ -80,10 +99,13 @@ func (br *BlockRegistry) GetAvailableBlocks() map[string]interfaces.Block {
 	return availableBlocks
 }
 
-func GetBlockRegistry() *BlockRegistry {
-	onceBlockRegistry.Do(func() {
-		blockRegistryInstance = NewBlockRegistry()
-	})
+func (br *BlockRegistry) Shutdown() {
+	br.Lock()
+	defer br.Unlock()
 
-	return blockRegistryInstance
+	for _, detector := range br.blocksDetector {
+		detector.Stop(br.shutdownWg)
+	}
+
+	br.shutdownWg.Wait()
 }

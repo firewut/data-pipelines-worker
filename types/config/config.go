@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/xeipuuv/gojsonschema"
 	"gopkg.in/yaml.v2"
@@ -77,11 +78,44 @@ type OpenAIConfig struct {
 }
 
 type BlockConfig struct {
-	Detector BlockConfigDetector `yaml:"detector" json:"-"`
+	Detector    BlockConfigDetector    `yaml:"detector" json:"-"`
+	Reliability BlockConfigReliability `yaml:"reliability" json:"-"`
 }
 
 type BlockConfigDetector struct {
-	Conditions map[string]interface{} `yaml:"conditions" json:"-"`
+	CheckInterval time.Duration          `yaml:"check_interval" json:"-"`
+	Conditions    map[string]interface{} `yaml:"conditions" json:"-"`
+}
+
+type BlockConfigReliability struct {
+	Policy       string      `yaml:"policy" json:"-"`
+	PolicyConfig interface{} `yaml:"-" json:"-"`
+}
+
+func (b *BlockConfigReliability) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	type blockConfigReliability BlockConfigReliability // create a new type to avoid recursion
+	var tmp blockConfigReliability
+	if err := unmarshal(&tmp); err != nil {
+		return err
+	}
+
+	switch tmp.Policy {
+	case "exponential_backoff":
+		var policyConfig BlockConfigReliabilityExponentialBackoff
+		if err := unmarshal(&policyConfig); err != nil {
+			return err
+		}
+		b.PolicyConfig = policyConfig
+	}
+
+	b.Policy = tmp.Policy
+	return nil
+}
+
+type BlockConfigReliabilityExponentialBackoff struct {
+	MaxRetries int   `yaml:"max_retries" json:"-"`
+	RetryDelay int   `yaml:"retry_delay" json:"-"`
+	RetryCodes []int `yaml:"retry_codes" json:"-"`
 }
 
 func NewConfig() Config {

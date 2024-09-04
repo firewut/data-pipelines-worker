@@ -330,7 +330,7 @@
                 },
                 "prompt": "Get list of tags for text. This list should contain 3 words maximum. Each tag should be one word long. Country names, historical events, and general terms are good tags. Separate tags by Space and do not use anything by characters and numbers. Exclude following words: {exclude_tags}"
             }
-        },                
+        },
         {
             "id": "upload_video_to_youtube",
             "slug": "upload-video-to-youtube",

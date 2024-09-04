@@ -9,6 +9,7 @@ import (
 
 func (suite *UnitTestSuite) TestNewBlockRegistry() {
 	blockRegistry := registries.NewBlockRegistry()
+	defer blockRegistry.Shutdown()
 
 	registeredBlocks := blockRegistry.GetBlocks()
 	suite.Greater(len(registeredBlocks), 0)
@@ -55,6 +56,8 @@ func (suite *UnitTestSuite) TestDetectBlocks() {
 	}
 
 	blockRegistry := registries.NewBlockRegistry()
+	defer blockRegistry.Shutdown()
+
 	registeredBlocks := blockRegistry.GetBlocks()
 	suite.Greater(len(registeredBlocks), 0)
 

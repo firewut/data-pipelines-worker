@@ -1,6 +1,10 @@
 package unit_test
 
-import "data-pipelines-worker/types/config"
+import (
+	"time"
+
+	"data-pipelines-worker/types/config"
+)
 
 func (suite *UnitTestSuite) TestGetConfig() {
 	_config := config.GetConfig()
@@ -32,8 +36,28 @@ func (suite *UnitTestSuite) TestGetConfig() {
 	suite.NotEmpty(_config.Blocks)
 	suite.NotEmpty(_config.Blocks["http_request"])
 	suite.NotEmpty(_config.Blocks["http_request"].Detector)
+	suite.Equal(
+		_config.Blocks["http_request"].Detector.CheckInterval,
+		time.Duration(1*time.Minute),
+	)
+
 	suite.Contains(
 		_config.Blocks["http_request"].Detector.Conditions["url"],
 		"http://",
+	)
+	suite.NotEmpty(
+		_config.Blocks["http_request"].Reliability,
+	)
+	suite.Equal(
+		"exponential_backoff",
+		_config.Blocks["http_request"].Reliability.Policy,
+	)
+	suite.Equal(
+		config.BlockConfigReliabilityExponentialBackoff{
+			MaxRetries: 5,
+			RetryDelay: 1,
+			RetryCodes: []int{500, 502, 503, 504},
+		},
+		_config.Blocks["http_request"].Reliability.PolicyConfig,
 	)
 }

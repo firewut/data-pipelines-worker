@@ -13,12 +13,27 @@ import (
 )
 
 type DetectorHTTP struct {
+	BlockDetectorParent
+
 	Client *http.Client
 	Url    string
 }
 
+func NewDetectorHTTP(
+	client *http.Client,
+	detectorConfig config.BlockConfigDetector,
+) *DetectorHTTP {
+	return &DetectorHTTP{
+		BlockDetectorParent: NewDetectorParent(detectorConfig),
+		Client:              client,
+		Url:                 detectorConfig.Conditions["url"].(string),
+	}
+}
+
 func (d *DetectorHTTP) Detect() bool {
-	// TODO: Implement Transport with timeout from config
+	d.Lock()
+	defer d.Unlock()
+
 	_, err := d.Client.Get(d.Url)
 	return err == nil
 }

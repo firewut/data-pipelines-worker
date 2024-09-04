@@ -2,12 +2,15 @@ package interfaces
 
 import (
 	"bytes"
+	"sync"
 
 	"github.com/xeipuuv/gojsonschema"
 )
 
 type BlockDetector interface {
-	Detect() bool
+	Detect() bool             // Performs a detection operation.
+	Start(Block, func() bool) // Initiates the detection loop.
+	Stop(wg *sync.WaitGroup)  // Stops the detection loop.
 }
 
 type BlockProcessor interface {
@@ -20,12 +23,10 @@ type Block interface {
 	GetDescription() string
 	GetSchemaString() string
 	GetSchema() *gojsonschema.Schema
-
 	ApplySchema(string) error
 
 	SetAvailable(bool)
 	IsAvailable() bool
-	Detect(BlockDetector) bool
 
 	Process(BlockProcessor, ProcessableBlockData) (*bytes.Buffer, error)
 	SaveOutput(ProcessableBlockData, *bytes.Buffer, Storage) (string, error)

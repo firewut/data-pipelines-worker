@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/xeipuuv/gojsonschema"
 
@@ -11,6 +12,53 @@ import (
 	"data-pipelines-worker/types/interfaces"
 	"data-pipelines-worker/types/validators"
 )
+
+type BlockDetectorParent struct {
+	sync.Mutex
+
+	Config config.BlockConfigDetector
+
+	stopChan chan struct{} // Channel to signal the stop of the loop.
+}
+
+func NewDetectorParent(config config.BlockConfigDetector) BlockDetectorParent {
+	return BlockDetectorParent{
+		Config:   config,
+		stopChan: make(chan struct{}),
+	}
+}
+
+func (d *BlockDetectorParent) Start(
+	block interfaces.Block,
+	detectionFunc func() bool,
+) {
+	d.Lock()
+	defer d.Unlock()
+
+	ticker := time.NewTicker(d.Config.CheckInterval)
+
+	go func(_d *BlockDetectorParent) {
+		defer ticker.Stop() // Ensure the ticker is stopped when the goroutine exits.
+
+		for {
+			select {
+			case <-_d.stopChan:
+				return
+			case <-ticker.C:
+				if detectionFunc() {
+					block.SetAvailable(true)
+				} else {
+					block.SetAvailable(false)
+				}
+			}
+		}
+	}(d)
+}
+
+func (d *BlockDetectorParent) Stop(wg *sync.WaitGroup) {
+	defer wg.Done()
+	close(d.stopChan)
+}
 
 type BlockParent struct {
 	sync.Mutex
@@ -23,7 +71,6 @@ type BlockParent struct {
 	Schema       interface{}          `json:"schema"`
 
 	available bool
-	block     interfaces.Block
 }
 
 func (b *BlockParent) GetId() string {
@@ -65,13 +112,6 @@ func (b *BlockParent) ApplySchema(schemaString string) error {
 
 func (b *BlockParent) GetSchemaString() string {
 	return b.SchemaString
-}
-
-func (b *BlockParent) Detect(d interfaces.BlockDetector) bool {
-	b.Lock()
-	defer b.Unlock()
-
-	return d.Detect()
 }
 
 func (b *BlockParent) ValidateSchema(v validators.JSONSchemaValidator) (*gojsonschema.Schema, interface{}, error) {

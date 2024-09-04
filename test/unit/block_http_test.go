@@ -21,34 +21,6 @@ func (suite *UnitTestSuite) TestBlockHTTP() {
 	suite.NotEmpty(block.GetSchemaString())
 }
 
-func (suite *UnitTestSuite) TestBlockHTTPDetectOk() {
-	block := blocks.NewBlockHTTP()
-
-	successUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusOK)
-
-	blockDetected := block.Detect(
-		&blocks.DetectorHTTP{
-			Client: &http.Client{},
-			Url:    successUrl,
-		},
-	)
-	suite.True(blockDetected)
-}
-
-func (suite *UnitTestSuite) TestBlockHTTPDetectFail() {
-	block := blocks.NewBlockHTTP()
-
-	failUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusForbidden)
-
-	blockDetected := block.Detect(
-		&blocks.DetectorHTTP{
-			Client: &http.Client{},
-			Url:    failUrl,
-		},
-	)
-	suite.True(blockDetected)
-}
-
 func (suite *UnitTestSuite) TestBlockHTTPValidateSchemaOk() {
 	block := blocks.NewBlockHTTP()
 

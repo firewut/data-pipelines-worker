@@ -22,21 +22,23 @@ type Server struct {
 	port   int
 	config config.Config
 
-	echo *echo.Echo
-	mdns *types.MDNS
+	echo             *echo.Echo
+	mdns             *types.MDNS
+	pipelineRegistry *registries.PipelineRegistry
+	blockRegistry    *registries.BlockRegistry
 }
 
 func NewServer() *Server {
 	_config := config.GetConfig()
 
-	blockRegistry := registries.GetBlockRegistry()
-
-	_, err := registries.NewPipelineRegistry(
-		dataclasses.NewPipelineCatalogueLoader()
+	pipelineRegistry, err := registries.NewPipelineRegistry(
+		dataclasses.NewPipelineCatalogueLoader(),
 	)
 	if err != nil {
 		panic(err)
 	}
+
+	blockRegistry := registries.GetBlockRegistry()
 
 	_echo := echo.New()
 	_echo.HideBanner = true
@@ -45,11 +47,13 @@ func NewServer() *Server {
 	mdns.SetDetectedBlocks(blockRegistry.GetBlocks())
 
 	var worker = &Server{
-		host:   _config.HTTPAPIServer.Host,
-		port:   _config.HTTPAPIServer.Port,
-		echo:   _echo,
-		mdns:   mdns,
-		config: _config,
+		host:             _config.HTTPAPIServer.Host,
+		port:             _config.HTTPAPIServer.Port,
+		echo:             _echo,
+		mdns:             mdns,
+		config:           _config,
+		pipelineRegistry: pipelineRegistry,
+		blockRegistry:    blockRegistry,
 	}
 	worker.echo.Use(middleware.Logger())
 	worker.echo.Use(middleware.Recover())
@@ -78,7 +82,11 @@ func (s *Server) Start() {
 
 func (s *Server) Shutdown(timeout time.Duration) {
 	ctx, _ := context.WithTimeout(context.Background(), timeout)
+
 	s.mdns.Shutdown()
+	s.pipelineRegistry.Shutdown()
+	s.blockRegistry.Shutdown()
+
 	s.echo.Shutdown(ctx)
 }
 

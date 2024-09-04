@@ -1,6 +1,8 @@
 log:
   level: "debug"
 
+# TODO: Mutual TSL for Inter Worker Comminucation
+
 http_api_server:
   host: 0.0.0.0
   port: &http_api_server_port 8080
@@ -27,9 +29,31 @@ openai:
 blocks:
   http_request:
     detector:
+      check_interval: 1m
       conditions:
         url: https://google.com
+    reliability:
+      policy: "exponential_backoff"
+      max_retries: 5
+      retry_delay: 1
+      retry_codes: [500, 502, 503, 504]
+
   openai_chat_completion:
     detector:
+      check_interval: 1m
       conditions:
         url: https://api.openai.com
+    reliability:
+      policy: "exponential_backoff"
+      max_retries: 5
+      retry_delay: 1
+      retry_codes: [500, 502, 503, 504]
+
+  image_add_text:
+    detector:
+      check_interval: 1m
+      conditions:
+        libraries: ["imagemagick", "ffmpeg"]
+    reliability:
+      policy: "none"
+  

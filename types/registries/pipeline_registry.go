@@ -82,3 +82,6 @@ func (pr *PipelineRegistry) Delete(slug string) {
 
 	delete(pr.Pipelines, slug)
 }
+
+func (pr *PipelineRegistry) Shutdown() {
+}

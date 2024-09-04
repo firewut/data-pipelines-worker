@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 
+	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/interfaces"
 
@@ -56,6 +57,17 @@ func (suite *UnitTestSuite) SetupTest() {
 			successUrl := suite.GetMockHTTPServerURL("Mocked Response OK", http.StatusOK)
 			_config.Blocks[blockId].Detector.Conditions["url"] = successUrl
 		}
+	}
+}
+
+func (suite *UnitTestSuite) NewDummyBlock(id string) interfaces.Block {
+	return &blocks.BlockParent{
+		Id:           id,
+		Name:         "Dummy Block",
+		Description:  "This is a dummy block",
+		Schema:       nil,
+		SchemaPtr:    nil,
+		SchemaString: "",
 	}
 }
 
