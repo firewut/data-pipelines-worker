@@ -25,8 +25,8 @@ type UnitTestSuite struct {
 	sync.RWMutex
 
 	suite.Suite
-	_config         config.Config
-	_detectedBlocks map[string]interfaces.Block
+	_config config.Config
+	_blocks map[string]interfaces.Block
 
 	httpTestServers []*httptest.Server // to mock http requests
 }
@@ -43,7 +43,7 @@ func (suite *UnitTestSuite) SetupSuite() {
 	defer suite.Unlock()
 
 	suite._config = config.GetConfig()
-	suite._detectedBlocks = make(map[string]interfaces.Block)
+	suite._blocks = make(map[string]interfaces.Block)
 }
 
 func (suite *UnitTestSuite) TearDownSuite() {

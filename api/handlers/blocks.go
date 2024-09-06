@@ -5,11 +5,11 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"data-pipelines-worker/types/interfaces"
+	"data-pipelines-worker/types/registries"
 )
 
-func BlocksHandler(detectedBlocks map[string]interfaces.Block) echo.HandlerFunc {
+func BlocksHandler(registry *registries.BlockRegistry) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		return c.JSON(http.StatusOK, detectedBlocks)
+		return c.JSON(http.StatusOK, registry.GetBlocks())
 	}
 }

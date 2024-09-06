@@ -60,23 +60,15 @@
             }
         },
         {
-            "id": "http_request",
-            "slug": "request-tts-from-openai", 
+            "id": "openai_tts_request",
+            "slug": "request-tts-from-openai",
             "description": "Request TTS from OpenAI",
             "input_config": {
                 "property": {
-                    "body": {
+                    "text": {
                         "origin": "get-text-content-for-video",
                         "xpath": "choices[0].message"
                     }
-                }
-            },
-            "input": {
-                "url": "https://openai.com/api/v2/tts",
-                "method": "POST",
-                "headers": {
-                    "Content-Type": "application/json",
-                    "Authorisation: Bearer": "OPENAI_TOKEN"
                 }
             }
         },

@@ -48,10 +48,13 @@ func main() {
 
 	worker.AddHTTPAPIRoute("GET", "/health", handlers.HealthHandler)
 	worker.AddHTTPAPIRoute("GET", "/blocks", handlers.BlocksHandler(
-		worker.GetDetectedBlocks(),
+		worker.GetBlockRegistry(),
 	))
 	worker.AddHTTPAPIRoute("GET", "/workers", handlers.WorkersHandler(
 		worker.GetMDNS(),
+	))
+	worker.AddHTTPAPIRoute("GET", "/pipelines", handlers.PipelinesHandler(
+		worker.GetPipelineRegistry(),
 	))
 
 	worker.Start()

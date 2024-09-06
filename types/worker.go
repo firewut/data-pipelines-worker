@@ -60,8 +60,9 @@ func NewWorkerStatus(infoFields map[string]interface{}) *WorkerStatus {
 	}
 
 	blocks, ok := infoFields["blocks"].(string)
-	if ok {
-		workerStatus.Blocks = append(workerStatus.Blocks, blocks)
+	if ok && blocks != "" {
+		// Split the blocks string by comma and add each block to the worker status.
+		workerStatus.Blocks = strings.Split(blocks, ",")
 	}
 
 	available, ok := infoFields["available"].(string)

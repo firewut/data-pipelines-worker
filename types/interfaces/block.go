@@ -21,6 +21,8 @@ type Block interface {
 	GetId() string
 	GetName() string
 	GetDescription() string
+	GetVersion() string
+	GetAvailable() bool
 	GetSchemaString() string
 	GetSchema() *gojsonschema.Schema
 	ApplySchema(string) error

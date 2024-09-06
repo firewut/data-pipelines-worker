@@ -88,6 +88,7 @@ func NewBlockOpenAIRequestCompletion() *BlockOpenAIRequestCompletion {
 			Id:          "openai_chat_completion",
 			Name:        "OpenAI Chat Completion",
 			Description: "Block to perform request to OpenAI's Chat Completion",
+			Version:     "1",
 			SchemaString: `{
 				"type": "object",
 				"properties": {

@@ -13,7 +13,6 @@ import (
 	"data-pipelines-worker/types"
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/dataclasses"
-	"data-pipelines-worker/types/interfaces"
 	"data-pipelines-worker/types/registries"
 )
 
@@ -44,7 +43,7 @@ func NewServer() *Server {
 	_echo.HideBanner = true
 
 	mdns := types.NewMDNS(_config)
-	mdns.SetDetectedBlocks(blockRegistry.GetBlocks())
+	mdns.SetBlocks(blockRegistry.GetBlocks())
 
 	var worker = &Server{
 		host:             _config.HTTPAPIServer.Host,
@@ -114,6 +113,10 @@ func (s *Server) GetConfig() config.Config {
 	return s.config
 }
 
-func (s *Server) GetDetectedBlocks() map[string]interfaces.Block {
-	return s.mdns.GetDetectedBlocks()
+func (s *Server) GetBlockRegistry() *registries.BlockRegistry {
+	return s.blockRegistry
+}
+
+func (s *Server) GetPipelineRegistry() *registries.PipelineRegistry {
+	return s.pipelineRegistry
 }

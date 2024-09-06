@@ -22,24 +22,24 @@ func (suite *UnitTestSuite) TestNewMDNS() {
 	suite.EqualValues(0.0, mdnsService.DNSSDStatus.Load)
 	suite.Equal(false, mdnsService.DNSSDStatus.Available)
 
-	suite.Equal(map[string]interfaces.Block{}, mdnsService.GetDetectedBlocks())
+	suite.Equal(map[string]interfaces.Block{}, mdnsService.GetBlocks())
 	suite.EqualValues(0.0, mdnsService.GetLoad())
 	suite.Equal(false, mdnsService.GetAvailable())
 }
 
-func (suite *UnitTestSuite) TestMDNSDetectedBlocks() {
+func (suite *UnitTestSuite) TestMDNSBlocks() {
 	_config := config.GetConfig()
 	mdnsService := types.NewMDNS(_config)
 
-	suite.Equal(map[string]interfaces.Block{}, mdnsService.GetDetectedBlocks())
+	suite.Equal(map[string]interfaces.Block{}, mdnsService.GetBlocks())
 
-	detectedBlocks := map[string]interfaces.Block{
+	blocks := map[string]interfaces.Block{
 		"http_request":           blocks.NewBlockHTTP(),
 		"openai_chat_completion": blocks.NewBlockOpenAIRequestCompletion(),
 	}
 
-	mdnsService.SetDetectedBlocks(detectedBlocks)
-	suite.EqualValues(detectedBlocks, mdnsService.GetDetectedBlocks())
+	mdnsService.SetBlocks(blocks)
+	suite.EqualValues(blocks, mdnsService.GetBlocks())
 }
 
 func (suite *UnitTestSuite) TestMDNSLoad() {
@@ -92,6 +92,7 @@ func (suite *UnitTestSuite) TestGetDiscoveredWorkers() {
 			AddrIPv4: []net.IP{net.ParseIP("192.168.1.1")},
 			AddrIPv6: []net.IP{net.ParseIP("::1")},
 			Port:     8080,
+			Text:     []string{"version=0.1", "load=0.00", "available=false", "blocks="},
 		},
 		{
 			ServiceRecord: zeroconf.ServiceRecord{
@@ -100,12 +101,19 @@ func (suite *UnitTestSuite) TestGetDiscoveredWorkers() {
 			AddrIPv4: []net.IP{net.ParseIP("192.168.1.2")},
 			AddrIPv6: []net.IP{net.ParseIP("::1")},
 			Port:     8080,
+			Text:     []string{"version=0.1", "load=0.00", "available=true", "blocks=a,b,c"},
 		},
 	}
 	discoveredWorkers := []*types.Worker{
 		types.NewWorker(discoveredEntries[0]),
 		types.NewWorker(discoveredEntries[1]),
 	}
+
+	suite.Equal(make([]string, 0), discoveredWorkers[0].Status.Blocks)
+	suite.Equal(
+		[]string{"a", "b", "c"},
+		discoveredWorkers[1].Status.Blocks,
+	)
 
 	mdnsService.SetDiscoveredWorkers(discoveredWorkers)
 

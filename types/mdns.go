@@ -21,7 +21,7 @@ type MDNS struct {
 	server      *zeroconf.Server
 	DNSSDStatus config.DNSSD
 
-	detectedBlocksMap map[string]interfaces.Block
+	blocksMap map[string]interfaces.Block
 
 	discoverWorkersLock sync.Mutex
 	discoveredWorkers   []*Worker
@@ -34,7 +34,7 @@ type MDNS struct {
 func NewMDNS(config config.Config) *MDNS {
 	return &MDNS{
 		DNSSDStatus:         config.DNSSD,
-		detectedBlocksMap:   make(map[string]interfaces.Block),
+		blocksMap:           make(map[string]interfaces.Block),
 		discoveredWorkers:   make([]*Worker, 0),
 		load:                0.0,
 		available:           false,
@@ -70,33 +70,33 @@ func (m *MDNS) GetAvailable() bool {
 	return m.available
 }
 
-func (m *MDNS) SetDetectedBlocks(detectedBlocks map[string]interfaces.Block) {
+func (m *MDNS) SetBlocks(blocks map[string]interfaces.Block) {
 	m.Lock()
 	defer m.Unlock()
 
-	m.detectedBlocksMap = detectedBlocks
+	m.blocksMap = blocks
 }
 
-func (m *MDNS) GetDetectedBlocks() map[string]interfaces.Block {
+func (m *MDNS) GetBlocks() map[string]interfaces.Block {
 	m.Lock()
 	defer m.Unlock()
 
-	return m.detectedBlocksMap
+	return m.blocksMap
 }
 
-func (m *MDNS) GetDetectedBlock(id string) interfaces.Block {
+func (m *MDNS) GetBlock(id string) interfaces.Block {
 	m.Lock()
 	defer m.Unlock()
 
-	return m.detectedBlocksMap[id]
+	return m.blocksMap[id]
 }
 
 func (m *MDNS) GetTXT() []string {
 	m.Lock()
 	defer m.Unlock()
 
-	keys := make([]string, 0, len(m.detectedBlocksMap))
-	for k := range m.detectedBlocksMap {
+	keys := make([]string, 0, len(m.blocksMap))
+	for k := range m.blocksMap {
 		keys = append(keys, k)
 	}
 

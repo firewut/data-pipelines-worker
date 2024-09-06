@@ -66,11 +66,11 @@ type BlockParent struct {
 	Id           string               `json:"id"`
 	Name         string               `json:"name"`
 	Description  string               `json:"description"`
+	Version      string               `json:"version"`
 	SchemaString string               `json:"-"`
 	SchemaPtr    *gojsonschema.Schema `json:"-"`
 	Schema       interface{}          `json:"schema"`
-
-	available bool
+	Available    bool                 `json:"available"`
 }
 
 func (b *BlockParent) GetId() string {
@@ -83,6 +83,10 @@ func (b *BlockParent) GetName() string {
 
 func (b *BlockParent) GetDescription() string {
 	return b.Description
+}
+
+func (b *BlockParent) GetVersion() string {
+	return b.Version
 }
 
 func (b *BlockParent) GetSchema() *gojsonschema.Schema {
@@ -119,6 +123,13 @@ func (b *BlockParent) ValidateSchema(v validators.JSONSchemaValidator) (*gojsons
 	defer b.Unlock()
 
 	return v.ValidateSchema(b.SchemaString)
+}
+
+func (b *BlockParent) GetAvailable() bool {
+	b.Lock()
+	defer b.Unlock()
+
+	return b.Available
 }
 
 func (b *BlockParent) Process(
@@ -182,12 +193,12 @@ func (b *BlockParent) SetAvailable(available bool) {
 	b.Lock()
 	defer b.Unlock()
 
-	b.available = available
+	b.Available = available
 }
 
 func (b *BlockParent) IsAvailable() bool {
 	b.Lock()
 	defer b.Unlock()
 
-	return b.available
+	return b.Available
 }

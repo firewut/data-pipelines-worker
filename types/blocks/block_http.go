@@ -93,6 +93,7 @@ func NewBlockHTTP() *BlockHTTP {
 			Id:          "http_request",
 			Name:        "Request HTTP Resource",
 			Description: "Block to perform request to a URL and save the Response",
+			Version:     "1",
 			SchemaString: `{
         	"type": "object",
 			"properties": {
