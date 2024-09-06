@@ -121,5 +121,7 @@ func NewBlockOpenAIRequestCompletion() *BlockOpenAIRequestCompletion {
 		panic(err)
 	}
 
+	block.SetProcessor(NewProcessorOpenAIRequestCompletion())
+
 	return block
 }

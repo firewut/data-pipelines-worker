@@ -2,10 +2,12 @@ package dataclasses
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/xeipuuv/gojsonschema"
 
+	"data-pipelines-worker/api/schemas"
 	"data-pipelines-worker/types/interfaces"
 	"data-pipelines-worker/types/registries"
 	"data-pipelines-worker/types/validators"
@@ -107,4 +109,47 @@ func (p *PipelineData) GetSchemaString() string {
 
 func (p *PipelineData) GetSchemaPtr() *gojsonschema.Schema {
 	return p.schemaPtr
+}
+
+func (p *PipelineData) StartProcessing(
+	data schemas.PipelineStartInputSchema,
+	storage interfaces.Storage,
+) (uuid.UUID, error) {
+	// Check if the block exists in the pipeline
+	var blockData interfaces.ProcessableBlockData
+	for _, block := range p.Blocks {
+		if block.GetSlug() == data.Block.Slug {
+			blockData = block
+			break
+		}
+	}
+
+	if blockData == nil {
+		return uuid.UUID{}, fmt.Errorf(
+			"block with slug %s not found in pipeline %s",
+			data.Block.Slug,
+			p.Slug,
+		)
+	}
+
+	// Check data.Block.Input not empty
+	if len(data.Block.Input) > 0 {
+		blockData.SetInputData(data.Block.Input)
+	}
+
+	block := blockData.GetBlock()
+	blockProcessor := block.GetProcessor()
+
+	// Start processing
+	result, err := block.Process(blockProcessor, blockData)
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+
+	// Save result
+	if _, err = block.SaveOutput(blockData, result, storage); err != nil {
+		return uuid.UUID{}, err
+	}
+
+	return uuid.New(), nil
 }

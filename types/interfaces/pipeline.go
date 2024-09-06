@@ -3,6 +3,8 @@ package interfaces
 import (
 	"github.com/google/uuid"
 	"github.com/xeipuuv/gojsonschema"
+
+	"data-pipelines-worker/api/schemas"
 )
 
 type PipelineProcessor interface {
@@ -17,4 +19,6 @@ type Pipeline interface {
 	GetBlocks() []ProcessableBlockData
 	GetSchemaString() string
 	GetSchemaPtr() *gojsonschema.Schema
+
+	StartProcessing(schemas.PipelineStartInputSchema, Storage) (uuid.UUID, error)
 }

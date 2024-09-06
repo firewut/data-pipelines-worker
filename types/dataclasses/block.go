@@ -16,7 +16,6 @@ type BlockData struct {
 
 	pipeline interfaces.Pipeline
 	block    interfaces.Block
-	// detected bool
 }
 
 func (b *BlockData) SetPipeline(pipeline interfaces.Pipeline) {
@@ -41,6 +40,10 @@ func (b *BlockData) GetData() interface{} {
 
 func (b *BlockData) SetData(interface{}) {
 	// Do nothing
+}
+
+func (b *BlockData) SetInputData(inputData interface{}) {
+	b.Input = inputData.(map[string]interface{})
 }
 
 func (b *BlockData) GetInputData() interface{} {

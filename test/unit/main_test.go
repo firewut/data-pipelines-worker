@@ -8,9 +8,12 @@ import (
 	"sync"
 	"testing"
 
+	"data-pipelines-worker/api/schemas"
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/config"
+	"data-pipelines-worker/types/dataclasses"
 	"data-pipelines-worker/types/interfaces"
+	"data-pipelines-worker/types/registries"
 
 	"github.com/labstack/gommon/log"
 	"github.com/stretchr/testify/suite"
@@ -126,6 +129,67 @@ func (suite *UnitTestSuite) GetTestPipelineDefinition() []byte {
 	)
 }
 
+func (suite *UnitTestSuite) GetTestPipelineAndInputForProcessing(
+	pipelineSlug string,
+	blockSlug string,
+	successUrl string,
+) (interfaces.Pipeline, schemas.PipelineStartInputSchema) {
+	processingData := schemas.PipelineStartInputSchema{
+		Pipeline: schemas.PipelineInputSchema{
+			Slug: pipelineSlug,
+		},
+		Block: schemas.BlockInputSchema{
+			Slug: blockSlug,
+		},
+	}
+
+	pipeline, err := dataclasses.NewPipelineFromBytes([]byte(
+		fmt.Sprintf(
+			`{
+				"slug": "test-pipeline-slug",
+				"title": "Test Pipeline",
+				"description": "Test Pipeline Description",
+				"blocks": [
+					{
+						"id": "http_request",
+						"slug": "test-block-slug",
+						"description": "Request Local Resourse",
+						"input": {
+							"url": "%s"
+						}
+					}
+				]
+			}`,
+			successUrl,
+		),
+	))
+	suite.Nil(err)
+	suite.NotEmpty(pipeline)
+
+	return pipeline, processingData
+}
+
+func (suite *UnitTestSuite) RegisterTestPipelineAndInputForProcessing(
+	pipelineSlug string,
+	blockSlug string,
+	successUrl string,
+) (interfaces.Pipeline, schemas.PipelineStartInputSchema, *registries.PipelineRegistry) {
+	pipeline, processingData := suite.GetTestPipelineAndInputForProcessing(
+		pipelineSlug,
+		blockSlug,
+		successUrl,
+	)
+
+	registry, err := registries.NewPipelineRegistry(
+		dataclasses.NewPipelineCatalogueLoader(),
+	)
+	suite.Nil(err)
+
+	registry.Register(pipeline)
+
+	return pipeline, processingData, registry
+}
+
 // Storage to simulate no space left on device
 type noSpaceLeftLocalStorage struct{}
 
@@ -147,4 +211,37 @@ func (s *noSpaceLeftLocalStorage) GetObject(bucket, objectName string, filePath 
 
 func (s *noSpaceLeftLocalStorage) GetObjectBytes(directory, fileName string) (*bytes.Buffer, error) {
 	return nil, fmt.Errorf("No space left on device")
+}
+
+type createdFile struct {
+	filePath string
+	data     *bytes.Buffer
+}
+
+type mockLocalStorage struct {
+	createdFilesChan chan createdFile
+}
+
+func (s *mockLocalStorage) ListObjects(bucket string) ([]string, error) {
+	return make([]string, 0), nil
+}
+
+func (s *mockLocalStorage) PutObject(bucket, filePath string) error {
+	return fmt.Errorf("not implemented")
+}
+
+func (s *mockLocalStorage) PutObjectBytes(directory string, buffer *bytes.Buffer) (string, error) {
+	s.createdFilesChan <- createdFile{
+		filePath: directory,
+		data:     buffer,
+	}
+	return "", nil
+}
+
+func (s *mockLocalStorage) GetObject(bucket, objectName string, filePath string) (string, error) {
+	return "", nil
+}
+
+func (s *mockLocalStorage) GetObjectBytes(directory, fileName string) (*bytes.Buffer, error) {
+	return bytes.NewBufferString(textContent), nil
 }

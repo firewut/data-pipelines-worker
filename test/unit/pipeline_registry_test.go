@@ -3,6 +3,10 @@ package unit_test
 import (
 	"data-pipelines-worker/types/dataclasses"
 	"data-pipelines-worker/types/registries"
+	"fmt"
+	"net/http"
+
+	"github.com/google/uuid"
 )
 
 func (suite *UnitTestSuite) TestNewPipelineRegistry() {
@@ -125,4 +129,85 @@ func (suite *UnitTestSuite) TestPipelineRegistryLoadFromCatalogue() {
 			}
 		}
 	}
+}
+
+func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineMissingPipelineTest() {
+	// Given
+	successUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusOK)
+
+	_, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
+		"test-missing-pipeline-slug",
+		"test-block-slug",
+		successUrl,
+	)
+
+	// When
+	processingId, err := registry.StartPipeline(processingData)
+
+	// Then
+	suite.NotNil(err)
+	suite.Empty(processingId)
+	suite.Equal(
+		err,
+		fmt.Errorf(
+			"pipeline with slug %s not found",
+			processingData.Pipeline.Slug,
+		),
+	)
+}
+
+func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineMissingBlockTest() {
+	// Given
+	successUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusOK)
+
+	_, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
+		"test-pipeline-slug",
+		"test-missing-block-slug",
+		successUrl,
+	)
+
+	// When
+	processingId, err := registry.StartPipeline(processingData)
+
+	// Then
+	suite.NotNil(err)
+	suite.Empty(processingId)
+	suite.Equal(
+		err,
+		fmt.Errorf(
+			"block with slug %s not found in pipeline %s",
+			processingData.Block.Slug,
+			processingData.Pipeline.Slug,
+		),
+	)
+}
+
+func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineTest() {
+	// Given
+	mockedResponse := fmt.Sprintf(
+		"Hello, world! Mocked value is %s",
+		uuid.New().String(),
+	)
+	successUrl := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK)
+	_, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
+		"test-pipeline-slug",
+		"test-block-slug",
+		successUrl,
+	)
+	createdFilesChan := make(chan createdFile, 1)
+	mockStorage := &mockLocalStorage{
+		createdFilesChan: createdFilesChan,
+	}
+	registry.SetStorage(mockStorage)
+
+	// When
+	processingId, err := registry.StartPipeline(processingData)
+
+	// Then
+	suite.Nil(err)
+	suite.NotEmpty(processingId)
+
+	createdFile := <-createdFilesChan
+	suite.NotEmpty(createdFile)
+	suite.Equal(mockedResponse, createdFile.data.String())
 }

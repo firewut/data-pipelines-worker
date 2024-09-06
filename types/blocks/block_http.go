@@ -41,7 +41,7 @@ func (d *DetectorHTTP) Detect() bool {
 type ProcessorHTTP struct {
 }
 
-func NewProcessorHTTP(data interfaces.ProcessableBlockData) *ProcessorHTTP {
+func NewProcessorHTTP() *ProcessorHTTP {
 	return &ProcessorHTTP{}
 }
 
@@ -160,6 +160,8 @@ func NewBlockHTTP() *BlockHTTP {
 	if err := block.ApplySchema(block.GetSchemaString()); err != nil {
 		panic(err)
 	}
+
+	block.SetProcessor(NewProcessorHTTP())
 
 	return block
 }

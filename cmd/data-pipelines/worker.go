@@ -56,6 +56,12 @@ func main() {
 	worker.AddHTTPAPIRoute("GET", "/pipelines", handlers.PipelinesHandler(
 		worker.GetPipelineRegistry(),
 	))
+	worker.AddHTTPAPIRoute(
+		"POST", "/pipelines/:slug/start",
+		handlers.PipelineStartHandler(
+			worker.GetPipelineRegistry(),
+		),
+	)
 
 	worker.Start()
 }

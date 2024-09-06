@@ -71,6 +71,8 @@ type BlockParent struct {
 	SchemaPtr    *gojsonschema.Schema `json:"-"`
 	Schema       interface{}          `json:"schema"`
 	Available    bool                 `json:"available"`
+
+	processor interfaces.BlockProcessor
 }
 
 func (b *BlockParent) GetId() string {
@@ -201,4 +203,18 @@ func (b *BlockParent) IsAvailable() bool {
 	defer b.Unlock()
 
 	return b.Available
+}
+
+func (b *BlockParent) SetProcessor(processor interfaces.BlockProcessor) {
+	b.Lock()
+	defer b.Unlock()
+
+	b.processor = processor
+}
+
+func (b *BlockParent) GetProcessor() interfaces.BlockProcessor {
+	b.Lock()
+	defer b.Unlock()
+
+	return b.processor
 }

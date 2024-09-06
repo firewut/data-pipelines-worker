@@ -30,6 +30,9 @@ type Block interface {
 	SetAvailable(bool)
 	IsAvailable() bool
 
+	SetProcessor(BlockProcessor)
+	GetProcessor() BlockProcessor
+
 	Process(BlockProcessor, ProcessableBlockData) (*bytes.Buffer, error)
 	SaveOutput(ProcessableBlockData, *bytes.Buffer, Storage) (string, error)
 }
@@ -48,6 +51,7 @@ type ProcessableBlockData interface {
 	SetData(interface{})
 
 	GetInputData() interface{}
+	SetInputData(interface{})
 
 	GetStringRepresentation() string
 }

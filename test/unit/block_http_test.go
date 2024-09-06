@@ -51,7 +51,7 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessIncorrectInput() {
 	}
 
 	// Process the block
-	result, err := block.Process(&blocks.ProcessorHTTP{}, data)
+	result, err := block.Process(blocks.NewProcessorHTTP(), data)
 	suite.Empty(result)
 	suite.NotNil(err)
 	suite.Contains(
@@ -75,7 +75,7 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessSuccess() {
 	}
 
 	// Process the block
-	result, err := block.Process(&blocks.ProcessorHTTP{}, data)
+	result, err := block.Process(blocks.NewProcessorHTTP(), data)
 	suite.NotNil(result)
 	suite.Nil(err)
 	suite.Equal("Hello, world!\n", result.String())
@@ -96,7 +96,7 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessError() {
 	}
 
 	// Process the block
-	result, err := block.Process(&blocks.ProcessorHTTP{}, data)
+	result, err := block.Process(blocks.NewProcessorHTTP(), data)
 	suite.NotNil(result)
 	suite.NotNil(err)
 	suite.Contains(result.String(), "Server panic")
@@ -132,7 +132,7 @@ func (suite *UnitTestSuite) TestBlockHTTPSaveOutput() {
 	data.SetBlock(block)
 
 	// Process the block
-	result, err := block.Process(&blocks.ProcessorHTTP{}, data)
+	result, err := block.Process(blocks.NewProcessorHTTP(), data)
 	suite.NotNil(result)
 	suite.Nil(err)
 	suite.Equal(httpContent, result.String())
@@ -178,7 +178,7 @@ func (suite *UnitTestSuite) TestBlockHTTPSaveOutputNoSpaceOnDeviceLeft() {
 	data.SetBlock(block)
 
 	// Process the block
-	result, err := block.Process(&blocks.ProcessorHTTP{}, data)
+	result, err := block.Process(blocks.NewProcessorHTTP(), data)
 	suite.NotNil(result)
 	suite.Nil(err)
 	suite.Equal(httpContent, result.String())
