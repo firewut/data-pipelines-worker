@@ -129,11 +129,11 @@ func (suite *UnitTestSuite) GetTestPipelineDefinition() []byte {
 	)
 }
 
-func (suite *UnitTestSuite) GetTestPipelineAndInputForProcessing(
+func (suite *UnitTestSuite) GetTestInputForProcessing(
 	pipelineSlug string,
 	blockSlug string,
-	successUrl string,
-) (interfaces.Pipeline, schemas.PipelineStartInputSchema) {
+	blockInput map[string]interface{},
+) schemas.PipelineStartInputSchema {
 	processingData := schemas.PipelineStartInputSchema{
 		Pipeline: schemas.PipelineInputSchema{
 			Slug: pipelineSlug,
@@ -142,8 +142,45 @@ func (suite *UnitTestSuite) GetTestPipelineAndInputForProcessing(
 			Slug: blockSlug,
 		},
 	}
+	if blockInput != nil {
+		processingData.Block.Input = blockInput
+	}
 
-	pipeline, err := dataclasses.NewPipelineFromBytes([]byte(
+	return processingData
+}
+
+func (suite *UnitTestSuite) GetTestPipeline(pipelineDefinition string) interfaces.Pipeline {
+	pipeline, err := dataclasses.NewPipelineFromBytes([]byte(pipelineDefinition))
+	suite.Nil(err)
+	suite.NotEmpty(pipeline)
+
+	return pipeline
+}
+
+func (suite *UnitTestSuite) RegisterTestPipelineAndInputForProcessing(
+	pipeline interfaces.Pipeline,
+	pipelineSlug string,
+	blockSlug string,
+	blockInput map[string]interface{},
+) (interfaces.Pipeline, schemas.PipelineStartInputSchema, *registries.PipelineRegistry) {
+	processingData := suite.GetTestInputForProcessing(
+		pipelineSlug,
+		blockSlug,
+		blockInput,
+	)
+
+	registry, err := registries.NewPipelineRegistry(
+		dataclasses.NewPipelineCatalogueLoader(),
+	)
+	suite.Nil(err)
+
+	registry.Register(pipeline)
+
+	return pipeline, processingData, registry
+}
+
+func (suite *UnitTestSuite) GetTestPipelineOneBlock(successUrl string) interfaces.Pipeline {
+	return suite.GetTestPipeline(
 		fmt.Sprintf(
 			`{
 				"slug": "test-pipeline-slug",
@@ -162,32 +199,42 @@ func (suite *UnitTestSuite) GetTestPipelineAndInputForProcessing(
 			}`,
 			successUrl,
 		),
-	))
-	suite.Nil(err)
-	suite.NotEmpty(pipeline)
-
-	return pipeline, processingData
+	)
 }
 
-func (suite *UnitTestSuite) RegisterTestPipelineAndInputForProcessing(
-	pipelineSlug string,
-	blockSlug string,
-	successUrl string,
-) (interfaces.Pipeline, schemas.PipelineStartInputSchema, *registries.PipelineRegistry) {
-	pipeline, processingData := suite.GetTestPipelineAndInputForProcessing(
-		pipelineSlug,
-		blockSlug,
-		successUrl,
+func (suite *UnitTestSuite) GetTestPipelineTwoBlocks(firstBlockUrl string) interfaces.Pipeline {
+	return suite.GetTestPipeline(
+		fmt.Sprintf(
+			`{
+				"slug": "test-pipeline-slug-two-blocks",
+				"title": "Test Pipeline",
+				"description": "Test Pipeline Description",
+				"blocks": [
+					{
+						"id": "http_request",
+						"slug": "test-block-first-slug",
+						"description": "Request Local Resourse",
+						"input": {
+							"url": "%s"
+						}
+					},
+					{
+						"id": "http_request",
+						"slug": "test-block-second-slug",
+						"description": "Request Result from First Block",
+						"input_config": {
+							"property": {
+								"url": {
+									"origin": "test-block-first-slug"
+								}
+							}
+						}
+					}
+				]
+			}`,
+			firstBlockUrl,
+		),
 	)
-
-	registry, err := registries.NewPipelineRegistry(
-		dataclasses.NewPipelineCatalogueLoader(),
-	)
-	suite.Nil(err)
-
-	registry.Register(pipeline)
-
-	return pipeline, processingData, registry
 }
 
 // Storage to simulate no space left on device
@@ -220,6 +267,11 @@ type createdFile struct {
 
 type mockLocalStorage struct {
 	createdFilesChan chan createdFile
+
+	// files have content
+	//   key: file path [ <pipeline-slug>/<pipeline-processing-id>/<block-slug>/output.<mimetype> ]
+	//   value: file content
+	files map[string]*bytes.Buffer
 }
 
 func (s *mockLocalStorage) ListObjects(bucket string) ([]string, error) {
