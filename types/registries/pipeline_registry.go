@@ -37,13 +37,13 @@ func NewPipelineRegistry(pipelineCatalogueLoader interfaces.PipelineCatalogueLoa
 	}
 
 	for _, pipeline := range pipelines {
-		registry.Register(pipeline)
+		registry.Add(pipeline)
 	}
 
 	return registry, nil
 }
 
-func (pr *PipelineRegistry) Register(p interfaces.Pipeline) {
+func (pr *PipelineRegistry) Add(p interfaces.Pipeline) {
 	_config := config.GetConfig()
 	registrySchema := _config.Pipeline.SchemaPtr
 	pipelineSchemaLoader := gojsonschema.NewStringLoader(p.GetSchemaString())
@@ -99,6 +99,15 @@ func (pr *PipelineRegistry) Delete(slug string) {
 	defer pr.Unlock()
 
 	delete(pr.Pipelines, slug)
+}
+
+func (pr *PipelineRegistry) DeleteAll() {
+	pr.Lock()
+	defer pr.Unlock()
+
+	for slug := range pr.Pipelines {
+		delete(pr.Pipelines, slug)
+	}
 }
 
 func (pr *PipelineRegistry) Shutdown() {

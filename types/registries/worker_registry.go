@@ -35,32 +35,44 @@ func NewWorkerRegistry() *WorkerRegistry {
 	return registry
 }
 
-func (wr *WorkerRegistry) AddWorker(worker interfaces.Worker) {
+func (wr *WorkerRegistry) Add(worker interfaces.Worker) {
 	wr.Lock()
 	defer wr.Unlock()
 
-	wr.Workers[worker.GetHost()] = worker
+	wr.Workers[worker.GetId()] = worker
 }
 
-func (wr *WorkerRegistry) GetWorker(id string) interfaces.Worker {
+func (wr *WorkerRegistry) Get(id string) interfaces.Worker {
 	wr.Lock()
 	defer wr.Unlock()
 
 	return wr.Workers[id]
 }
 
-func (wr *WorkerRegistry) GetWorkers() map[string]interfaces.Worker {
+func (wr *WorkerRegistry) GetAll() map[string]interfaces.Worker {
 	wr.Lock()
 	defer wr.Unlock()
 
 	return wr.Workers
 }
 
-func (wr *WorkerRegistry) RemoveWorker(id string) {
+func (wr *WorkerRegistry) Delete(id string) {
 	wr.Lock()
 	defer wr.Unlock()
 
 	delete(wr.Workers, id)
+}
+
+func (wr *WorkerRegistry) DeleteAll() {
+	wr.Lock()
+	defer wr.Unlock()
+
+	for id := range wr.Workers {
+		delete(wr.Workers, id)
+	}
+}
+
+func (wr *WorkerRegistry) Shutdown() {
 }
 
 func (wr *WorkerRegistry) ResumeProcessing(

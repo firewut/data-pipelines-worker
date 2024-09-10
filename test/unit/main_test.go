@@ -3,6 +3,7 @@ package unit_test
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -15,6 +16,7 @@ import (
 	"data-pipelines-worker/types/interfaces"
 	"data-pipelines-worker/types/registries"
 
+	"github.com/grandcat/zeroconf"
 	"github.com/labstack/gommon/log"
 	"github.com/stretchr/testify/suite"
 )
@@ -174,7 +176,7 @@ func (suite *UnitTestSuite) RegisterTestPipelineAndInputForProcessing(
 	)
 	suite.Nil(err)
 
-	registry.Register(pipeline)
+	registry.Add(pipeline)
 
 	return pipeline, processingData, registry
 }
@@ -296,4 +298,33 @@ func (s *mockLocalStorage) GetObject(bucket, objectName string, filePath string)
 
 func (s *mockLocalStorage) GetObjectBytes(directory, fileName string) (*bytes.Buffer, error) {
 	return bytes.NewBufferString(textContent), nil
+}
+
+func (s *UnitTestSuite) GetDiscoveredWorkers() []interfaces.Worker {
+	discoveredEntries := []*zeroconf.ServiceEntry{
+		{
+			ServiceRecord: zeroconf.ServiceRecord{
+				Instance: "localhost",
+			},
+			AddrIPv4: []net.IP{net.ParseIP("192.168.1.1")},
+			AddrIPv6: []net.IP{net.ParseIP("::1")},
+			Port:     8080,
+			Text:     []string{"version=0.1", "load=0.00", "available=false", "blocks="},
+		},
+		{
+			ServiceRecord: zeroconf.ServiceRecord{
+				Instance: "remotehost",
+			},
+			AddrIPv4: []net.IP{net.ParseIP("192.168.1.2")},
+			AddrIPv6: []net.IP{net.ParseIP("::1")},
+			Port:     8080,
+			Text:     []string{"version=0.1", "load=0.00", "available=true", "blocks=a,b,c"},
+		},
+	}
+	discoveredWorkers := []interfaces.Worker{
+		dataclasses.NewWorker(discoveredEntries[0]),
+		dataclasses.NewWorker(discoveredEntries[1]),
+	}
+
+	return discoveredWorkers
 }

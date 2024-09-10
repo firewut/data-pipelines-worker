@@ -14,7 +14,7 @@ import (
 )
 
 type PipelineData struct {
-	ID          uuid.UUID                         `json:"-"`
+	Id          uuid.UUID                         `json:"-"`
 	Slug        string                            `json:"slug"`
 	Title       string                            `json:"title"`
 	Description string                            `json:"description"`
@@ -50,7 +50,7 @@ func (p *PipelineData) UnmarshalJSON(data []byte) error {
 	p.schemaPtr = schemaPtr
 
 	// List of Blocks
-	registryBlocks := registries.GetBlockRegistry().GetBlocks()
+	registryBlocks := registries.GetBlockRegistry().GetAll()
 
 	// Convert []BlockData to []interfaces.ProcessableBlockData
 	p.Blocks = make([]interfaces.ProcessableBlockData, len(aux.Blocks))
@@ -63,7 +63,7 @@ func (p *PipelineData) UnmarshalJSON(data []byte) error {
 		p.Blocks[i] = block
 	}
 
-	p.ID = uuid.New()
+	p.Id = uuid.New()
 	return nil
 }
 
@@ -76,15 +76,15 @@ func NewPipelineFromBytes(data []byte) (*PipelineData, error) {
 
 func NewPipelineData() *PipelineData {
 	pipeline := &PipelineData{
-		ID:     uuid.New(),
+		Id:     uuid.New(),
 		Blocks: make([]interfaces.ProcessableBlockData, 0),
 	}
 
 	return pipeline
 }
 
-func (p *PipelineData) GetID() uuid.UUID {
-	return p.ID
+func (p *PipelineData) GetId() string {
+	return p.Id.String()
 }
 
 func (p *PipelineData) GetSlug() string {

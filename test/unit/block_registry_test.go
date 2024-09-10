@@ -11,7 +11,7 @@ func (suite *UnitTestSuite) TestNewBlockRegistry() {
 	blockRegistry := registries.NewBlockRegistry()
 	defer blockRegistry.Shutdown()
 
-	registeredBlocks := blockRegistry.GetBlocks()
+	registeredBlocks := blockRegistry.GetAll()
 	suite.Greater(len(registeredBlocks), 0)
 
 	availableBlocks := blockRegistry.GetAvailableBlocks()
@@ -58,7 +58,7 @@ func (suite *UnitTestSuite) TestDetectBlocks() {
 	blockRegistry := registries.NewBlockRegistry()
 	defer blockRegistry.Shutdown()
 
-	registeredBlocks := blockRegistry.GetBlocks()
+	registeredBlocks := blockRegistry.GetAll()
 	suite.Greater(len(registeredBlocks), 0)
 
 	for _, block := range registeredBlocks {

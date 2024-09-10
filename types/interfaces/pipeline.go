@@ -12,7 +12,7 @@ type PipelineProcessor interface {
 }
 
 type Pipeline interface {
-	GetID() uuid.UUID
+	GetId() string
 	GetSlug() string
 	GetTitle() string
 	GetDescription() string
@@ -21,4 +21,11 @@ type Pipeline interface {
 	GetSchemaPtr() *gojsonschema.Schema
 
 	Process(schemas.PipelineStartInputSchema, Storage) (uuid.UUID, error)
+}
+
+type PipelineCatalogueLoader interface {
+	SetStorage(Storage)
+	GetStorage() Storage
+
+	LoadCatalogue(string) (map[string]Pipeline, error)
 }

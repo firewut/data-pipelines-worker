@@ -31,7 +31,7 @@ func (suite *UnitTestSuite) TestPipelineRegistryRegisterCorrect() {
 	suite.Nil(err)
 	suite.NotEmpty(pipeline.GetBlocks())
 
-	registry.Register(pipeline)
+	registry.Add(pipeline)
 
 	suite.NotEmpty(registry.GetAll())
 }
@@ -51,7 +51,7 @@ func (suite *UnitTestSuite) TestPipelineRegistryRegisterErrorMissingRequiredProp
 	suite.Nil(err)
 
 	suite.Panics(func() {
-		registry.Register(pipeline)
+		registry.Add(pipeline)
 	})
 
 	suite.Empty(registry.Get(pipeline.GetSlug()))
@@ -66,7 +66,7 @@ func (suite *UnitTestSuite) TestPipelineRegistryGet() {
 	pipeline, err := dataclasses.NewPipelineFromBytes(suite.GetTestPipelineDefinition())
 	suite.Nil(err)
 
-	registry.Register(pipeline)
+	registry.Add(pipeline)
 	suite.NotEmpty(registry.GetAll())
 
 	suite.NotEmpty(registry.Get("test"))
@@ -81,7 +81,7 @@ func (suite *UnitTestSuite) TestPipelineRegistryGetAll() {
 	pipeline, err := dataclasses.NewPipelineFromBytes(suite.GetTestPipelineDefinition())
 	suite.Nil(err)
 
-	registry.Register(pipeline)
+	registry.Add(pipeline)
 	suite.NotEmpty(registry.GetAll())
 }
 
@@ -94,7 +94,7 @@ func (suite *UnitTestSuite) TestPipelineRegistryDelete() {
 	pipeline, err := dataclasses.NewPipelineFromBytes(suite.GetTestPipelineDefinition())
 	suite.Nil(err)
 
-	registry.Register(pipeline)
+	registry.Add(pipeline)
 	suite.NotEmpty(registry.Get("test"))
 
 	registry.Delete("test")

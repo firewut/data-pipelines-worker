@@ -1,6 +1,7 @@
 package interfaces
 
 type Worker interface {
+	GetId() string
 	GetHost() string
 	GetIPV4() string
 	GetIPV6() string

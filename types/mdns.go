@@ -32,7 +32,9 @@ type MDNS struct {
 	available bool
 }
 
-func NewMDNS(config config.Config) *MDNS {
+func NewMDNS() *MDNS {
+	config := config.GetConfig()
+
 	return &MDNS{
 		DNSSDStatus:         config.DNSSD,
 		blocksMap:           make(map[string]interfaces.Block),
@@ -218,6 +220,7 @@ func (m *MDNS) SetDiscoveredWorkers(workers []*dataclasses.Worker) {
 	defer m.Unlock()
 
 	m.discoveredWorkers = workers
+
 }
 
 func (m *MDNS) Shutdown() {

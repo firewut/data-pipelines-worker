@@ -4,17 +4,23 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/grandcat/zeroconf"
 
 	"data-pipelines-worker/types/interfaces"
 )
 
 type Worker struct {
+	Id     uuid.UUID               `json:"id"`
 	Host   string                  `json:"host"`
 	IpV4   string                  `json:"ipv4"`
 	IpV6   string                  `json:"ipv6"`
 	Port   int                     `json:"port"`
 	Status interfaces.WorkerStatus `json:"status"`
+}
+
+func (w *Worker) GetId() string {
+	return w.Id.String()
 }
 
 func (w *Worker) GetHost() string {
@@ -70,6 +76,7 @@ func NewWorker(entry *zeroconf.ServiceEntry) *Worker {
 	}
 
 	return &Worker{
+		Id:     uuid.New(),
 		Host:   entry.HostName,
 		Port:   entry.Port,
 		IpV4:   entry.AddrIPv4[0].String(),

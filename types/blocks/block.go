@@ -184,7 +184,7 @@ func (b *BlockParent) SaveOutput(
 	filePath := fmt.Sprintf(
 		"%s/%s/%s/output",
 		pipeline.GetSlug(),
-		pipeline.GetID(),
+		pipeline.GetId(),
 		data.GetSlug(),
 	)
 
