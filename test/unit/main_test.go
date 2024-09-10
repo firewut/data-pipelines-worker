@@ -2,6 +2,7 @@ package unit_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -76,19 +77,36 @@ func (suite *UnitTestSuite) NewDummyBlock(id string) interfaces.Block {
 	}
 }
 
-func (suite *UnitTestSuite) GetMockHTTPServerURL(body string, statusCode int) string {
+func (suite *UnitTestSuite) GetMockHTTPServer(body string, statusCode int, bodyMapping ...map[string]string) *httptest.Server {
 	suite.Lock()
 	defer suite.Unlock()
 
+	// Merge all body mappings into a single map
+	var bodyMap map[string]string
+	if len(bodyMapping) > 0 {
+		bodyMap = bodyMapping[0]
+	} else {
+		bodyMap = make(map[string]string)
+	}
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(statusCode)
-		if body != "" {
+
+		// Check if the requested path is in the bodyMap
+		if responseBody, exists := bodyMap[r.URL.Path]; exists {
+			w.Write([]byte(responseBody))
+		} else if body != "" {
+			// Default body if no specific path is matched
 			w.Write([]byte(body))
 		}
 	}))
 	suite.httpTestServers = append(suite.httpTestServers, server)
 
-	return server.URL
+	return server
+}
+
+func (suite *UnitTestSuite) GetMockHTTPServerURL(body string, statusCode int) string {
+	return suite.GetMockHTTPServer(body, statusCode).URL
 }
 
 func (suite *UnitTestSuite) TearDownTest() {
@@ -103,7 +121,7 @@ func (suite *UnitTestSuite) TearDownTest() {
 
 func (suite *UnitTestSuite) GetTestPipelineDefinition() []byte {
 	return []byte(`{
-			"slug": "test",
+			"slug": "test-pipeline-slug",
 			"title": "Test Pipeline",
 			"description": "This is a test pipeline",
 			"blocks": [
@@ -327,4 +345,20 @@ func (s *UnitTestSuite) GetDiscoveredWorkers() []interfaces.Worker {
 	}
 
 	return discoveredWorkers
+}
+
+func (suite *UnitTestSuite) GetMockServerHandlersResponse(
+	pipelines map[string]interfaces.Pipeline,
+	blocks map[string]interfaces.Block,
+) map[string]string {
+	pipelinesResponse, err := json.Marshal(pipelines)
+	suite.Nil(err)
+
+	blocksResponse, err := json.Marshal(blocks)
+	suite.Nil(err)
+
+	return map[string]string{
+		"/pipelines": string(pipelinesResponse),
+		"/blocks":    string(blocksResponse),
+	}
 }

@@ -69,7 +69,7 @@ func (suite *UnitTestSuite) TestPipelineRegistryGet() {
 	registry.Add(pipeline)
 	suite.NotEmpty(registry.GetAll())
 
-	suite.NotEmpty(registry.Get("test"))
+	suite.NotEmpty(registry.Get("test-pipeline-slug"))
 }
 
 func (suite *UnitTestSuite) TestPipelineRegistryGetAll() {
@@ -95,10 +95,10 @@ func (suite *UnitTestSuite) TestPipelineRegistryDelete() {
 	suite.Nil(err)
 
 	registry.Add(pipeline)
-	suite.NotEmpty(registry.Get("test"))
+	suite.NotEmpty(registry.Get("test-pipeline-slug"))
 
-	registry.Delete("test")
-	suite.Empty(registry.Get("test"))
+	registry.Delete("test-pipeline-slug")
+	suite.Empty(registry.Get("test-pipeline-slug"))
 }
 
 func (suite *UnitTestSuite) TestPipelineRegistryLoadFromCatalogue() {

@@ -1,6 +1,8 @@
 package dataclasses
 
 import (
+	"fmt"
+	"net"
 	"strconv"
 	"strings"
 
@@ -41,6 +43,21 @@ func (w *Worker) GetPort() int {
 
 func (w *Worker) GetStatus() interfaces.WorkerStatus {
 	return w.Status
+}
+
+func (w *Worker) GetAPIEndpoint() string {
+	host := w.GetHost()
+	if host == "" {
+		host = w.GetIPV4()
+	}
+	if host == "" {
+		host = w.GetIPV6()
+	}
+
+	return fmt.Sprintf(
+		"http://%s",
+		net.JoinHostPort(host, strconv.Itoa(w.Port)),
+	)
 }
 
 type WorkerStatus struct {

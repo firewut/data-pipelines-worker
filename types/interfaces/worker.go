@@ -7,6 +7,8 @@ type Worker interface {
 	GetIPV6() string
 	GetPort() int
 	GetStatus() WorkerStatus
+
+	GetAPIEndpoint() string
 }
 
 type WorkerStatus interface {
