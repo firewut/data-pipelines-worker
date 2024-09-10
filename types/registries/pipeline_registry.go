@@ -112,5 +112,16 @@ func (pr *PipelineRegistry) StartPipeline(
 		return uuid.UUID{}, fmt.Errorf("pipeline with slug %s not found", data.Pipeline.Slug)
 	}
 
-	return pipeline.StartProcessing(data, pr.GetStorage())
+	return pipeline.Process(data, pr.GetStorage())
+}
+
+func (pr *PipelineRegistry) ResumePipeline(
+	data schemas.PipelineStartInputSchema,
+) (uuid.UUID, error) {
+	pipeline := pr.Get(data.Pipeline.Slug)
+	if pipeline == nil {
+		return uuid.UUID{}, fmt.Errorf("pipeline with slug %s not found", data.Pipeline.Slug)
+	}
+
+	return pipeline.Process(data, pr.GetStorage())
 }

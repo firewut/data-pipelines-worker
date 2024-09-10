@@ -1,18 +1,40 @@
-package types
+package dataclasses
 
 import (
 	"strconv"
 	"strings"
 
 	"github.com/grandcat/zeroconf"
+
+	"data-pipelines-worker/types/interfaces"
 )
 
 type Worker struct {
-	Host   string        `json:"host"`
-	IpV4   string        `json:"ipv4"`
-	IpV6   string        `json:"ipv6"`
-	Port   int           `json:"port"`
-	Status *WorkerStatus `json:"status"`
+	Host   string                  `json:"host"`
+	IpV4   string                  `json:"ipv4"`
+	IpV6   string                  `json:"ipv6"`
+	Port   int                     `json:"port"`
+	Status interfaces.WorkerStatus `json:"status"`
+}
+
+func (w *Worker) GetHost() string {
+	return w.Host
+}
+
+func (w *Worker) GetIPV4() string {
+	return w.IpV4
+}
+
+func (w *Worker) GetIPV6() string {
+	return w.IpV6
+}
+
+func (w *Worker) GetPort() int {
+	return w.Port
+}
+
+func (w *Worker) GetStatus() interfaces.WorkerStatus {
+	return w.Status
 }
 
 type WorkerStatus struct {
@@ -20,6 +42,22 @@ type WorkerStatus struct {
 	Available bool     `json:"available"`
 	Version   string   `json:"version"`
 	Blocks    []string `json:"blocks"`
+}
+
+func (ws *WorkerStatus) GetLoad() float32 {
+	return ws.Load
+}
+
+func (ws *WorkerStatus) GetAvailable() bool {
+	return ws.Available
+}
+
+func (ws *WorkerStatus) GetVersion() string {
+	return ws.Version
+}
+
+func (ws *WorkerStatus) GetBlocks() []string {
+	return ws.Blocks
 }
 
 func NewWorker(entry *zeroconf.ServiceEntry) *Worker {
@@ -40,7 +78,7 @@ func NewWorker(entry *zeroconf.ServiceEntry) *Worker {
 	}
 }
 
-func NewWorkerStatus(infoFields map[string]interface{}) *WorkerStatus {
+func NewWorkerStatus(infoFields map[string]interface{}) interfaces.WorkerStatus {
 	workerStatus := &WorkerStatus{
 		Load:      0.0,
 		Available: false,

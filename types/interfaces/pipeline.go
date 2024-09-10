@@ -20,5 +20,5 @@ type Pipeline interface {
 	GetSchemaString() string
 	GetSchemaPtr() *gojsonschema.Schema
 
-	StartProcessing(schemas.PipelineStartInputSchema, Storage) (uuid.UUID, error)
+	Process(schemas.PipelineStartInputSchema, Storage) (uuid.UUID, error)
 }

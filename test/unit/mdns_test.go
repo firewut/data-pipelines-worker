@@ -8,6 +8,7 @@ import (
 	"data-pipelines-worker/types"
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/config"
+	"data-pipelines-worker/types/dataclasses"
 	"data-pipelines-worker/types/interfaces"
 )
 
@@ -104,15 +105,15 @@ func (suite *UnitTestSuite) TestGetDiscoveredWorkers() {
 			Text:     []string{"version=0.1", "load=0.00", "available=true", "blocks=a,b,c"},
 		},
 	}
-	discoveredWorkers := []*types.Worker{
-		types.NewWorker(discoveredEntries[0]),
-		types.NewWorker(discoveredEntries[1]),
+	discoveredWorkers := []*dataclasses.Worker{
+		dataclasses.NewWorker(discoveredEntries[0]),
+		dataclasses.NewWorker(discoveredEntries[1]),
 	}
 
-	suite.Equal(make([]string, 0), discoveredWorkers[0].Status.Blocks)
+	suite.Equal(make([]string, 0), discoveredWorkers[0].GetStatus().GetBlocks())
 	suite.Equal(
 		[]string{"a", "b", "c"},
-		discoveredWorkers[1].Status.Blocks,
+		discoveredWorkers[1].GetStatus().GetBlocks(),
 	)
 
 	mdnsService.SetDiscoveredWorkers(discoveredWorkers)
