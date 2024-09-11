@@ -179,6 +179,13 @@ func (wr *WorkerRegistry) QueryWorkerAPI(
 	}
 	defer request.Body.Close()
 
+	if request.StatusCode != http.StatusOK {
+		return fmt.Errorf(
+			"Worker API returned status code %d",
+			request.StatusCode,
+		)
+	}
+
 	err = json.NewDecoder(request.Body).Decode(result)
 	if err != nil {
 		return err

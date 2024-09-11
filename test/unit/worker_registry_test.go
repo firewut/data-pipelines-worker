@@ -1,17 +1,12 @@
 package unit_test
 
 import (
+	"data-pipelines-worker/test/factories"
 	"data-pipelines-worker/types/blocks"
-	"data-pipelines-worker/types/dataclasses"
 	"data-pipelines-worker/types/interfaces"
 	"data-pipelines-worker/types/registries"
 	"fmt"
-	"net"
 	"net/http"
-	"net/url"
-	"strconv"
-
-	"github.com/grandcat/zeroconf"
 )
 
 func (suite *UnitTestSuite) TestNewWorkerRegistry() {
@@ -114,16 +109,19 @@ func (suite *UnitTestSuite) TestGetWorkerRegistry() {
 	)
 }
 
-func (suite *UnitTestSuite) TestGetWorkerRegistryGetValidWorkersExists() {
+func (suite *UnitTestSuite) TestQueryWorkerAPI() {
 	// Given
+	workerRegistry := registries.GetWorkerRegistry()
+
 	pipelineSlug := "test-pipeline-slug"
 	blockId := "test-block-id"
 	block := blocks.NewBlockHTTP()
-	block.SetAvailable(true)
 
-	server := suite.GetMockHTTPServer(
-		"OK",
+	workerServer, workerEntry, err := factories.NewWorkerServer(
+		suite.GetMockHTTPServer,
 		http.StatusOK,
+		true,
+		[]string{blockId},
 		suite.GetMockServerHandlersResponse(
 			map[string]interfaces.Pipeline{
 				pipelineSlug: suite.GetTestPipeline(
@@ -147,75 +145,27 @@ func (suite *UnitTestSuite) TestGetWorkerRegistryGetValidWorkersExists() {
 			map[string]interfaces.Block{blockId: block},
 		),
 	)
-	u, err := url.Parse(server.URL)
-	if err != nil {
-		fmt.Println("Error parsing URL:", err)
-		return
-	}
-	port, err := strconv.Atoi(u.Port())
-	if err != nil {
-		fmt.Println("Error converting port to integer:", err)
-		return
-	}
-
-	workerRegistry := registries.GetWorkerRegistry()
-	discoveredEntries := []*zeroconf.ServiceEntry{
-		{
-			ServiceRecord: zeroconf.ServiceRecord{
-				Instance: "localhost",
-			},
-			HostName: "localhost",
-			AddrIPv4: []net.IP{net.ParseIP("192.168.1.1")},
-			AddrIPv6: []net.IP{net.ParseIP("::1")},
-			Port:     8080,
-			Text: []string{
-				"version=0.1",
-				"load=0.00",
-				"available=false",
-				fmt.Sprintf(
-					"blocks=block_http,%s,block_gpu_image_resize",
-					blockId,
-				),
-			},
-		},
-		{
-			ServiceRecord: zeroconf.ServiceRecord{
-				Instance: "remotehost",
-			},
-			HostName: u.Hostname(),
-			AddrIPv4: []net.IP{net.ParseIP("192.168.1.2")},
-			AddrIPv6: []net.IP{net.ParseIP("::1")},
-			Port:     port,
-			Text: []string{
-				"version=0.1",
-				"load=0.00",
-				"available=true",
-				fmt.Sprintf(
-					"blocks=block_http,%s,block_gpu_image_resize",
-					blockId,
-				),
-			},
-		},
-	}
-	discoveredWorkers := []interfaces.Worker{
-		dataclasses.NewWorker(discoveredEntries[0]),
-		dataclasses.NewWorker(discoveredEntries[1]),
-	}
-	for _, worker := range discoveredWorkers {
-		workerRegistry.Add(worker)
-	}
+	suite.Nil(err)
+	suite.NotNil(workerServer)
+	suite.NotNil(workerEntry)
 
 	// When
-	workers := workerRegistry.GetValidWorkers(
-		pipelineSlug,
-		blockId,
-	)
+	pipelines := make(map[string]interface{})
+	blocks := make(map[string]interface{})
 
-	// Then
-	suite.NotEmpty(workers)
-	suite.Equal(len(workers), 1)
-	suite.Equal(
-		workers[discoveredWorkers[1].GetId()],
-		discoveredWorkers[1],
+	err = workerRegistry.QueryWorkerAPI(
+		workerEntry,
+		"pipelines",
+		&pipelines,
 	)
+	suite.Nil(err)
+	suite.NotEmpty(pipelines)
+
+	err = workerRegistry.QueryWorkerAPI(
+		workerEntry,
+		"blocks",
+		&blocks,
+	)
+	suite.Nil(err)
+	suite.NotEmpty(blocks)
 }

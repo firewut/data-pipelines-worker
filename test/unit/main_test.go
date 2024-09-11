@@ -77,7 +77,11 @@ func (suite *UnitTestSuite) NewDummyBlock(id string) interfaces.Block {
 	}
 }
 
-func (suite *UnitTestSuite) GetMockHTTPServer(body string, statusCode int, bodyMapping ...map[string]string) *httptest.Server {
+func (suite *UnitTestSuite) GetMockHTTPServer(
+	body string,
+	statusCode int,
+	bodyMapping ...map[string]string,
+) *httptest.Server {
 	suite.Lock()
 	defer suite.Unlock()
 
