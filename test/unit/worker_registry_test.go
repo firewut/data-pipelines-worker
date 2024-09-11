@@ -1,12 +1,13 @@
 package unit_test
 
 import (
+	"fmt"
+	"net/http"
+
 	"data-pipelines-worker/test/factories"
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/interfaces"
 	"data-pipelines-worker/types/registries"
-	"fmt"
-	"net/http"
 )
 
 func (suite *UnitTestSuite) TestNewWorkerRegistry() {

@@ -88,57 +88,67 @@ func (wr *WorkerRegistry) ResumeProcessing(
 	return nil
 }
 
-func (wr *WorkerRegistry) GetValidWorkers(
-	pipelineSlug string,
-	blockId string,
-) map[string]interfaces.Worker {
+func (wr *WorkerRegistry) GetAvailableWorkers() map[string]interfaces.Worker {
 	wr.Lock()
 	defer wr.Unlock()
 
-	validWorkers := make(map[string]interfaces.Worker)
+	availableWorkers := make(map[string]interfaces.Worker)
 	for id, worker := range wr.Workers {
 		if worker.GetStatus().GetAvailable() {
-			validWorkers[id] = worker
+			availableWorkers[id] = worker
 		}
 	}
 
-	for id, worker := range validWorkers {
+	return availableWorkers
+}
+
+func (wr *WorkerRegistry) GetWorkersWithBlocksDetected(
+	workers map[string]interfaces.Worker,
+	blockId string,
+) map[string]interfaces.Worker {
+	workersWithBlocks := make(map[string]interfaces.Worker)
+	for id, worker := range workers {
 		workerBlocks := worker.GetStatus().GetBlocks()
-		deleteWorker := true
 		for _, workerBlockId := range workerBlocks {
 			if workerBlockId == blockId {
-				deleteWorker = false
+				workersWithBlocks[id] = worker
 			}
-		}
-		if deleteWorker {
-			delete(validWorkers, id)
 		}
 	}
 
-	for _, worker := range validWorkers {
-		// Check Pipelines
+	return workersWithBlocks
+}
+
+func (wr *WorkerRegistry) GetWorkersWithPipeline(
+	workers map[string]interfaces.Worker,
+	pipelineSlug string,
+) map[string]interfaces.Worker {
+	workersWithPipeline := make(map[string]interfaces.Worker)
+	for id, worker := range workers {
 		workerPipelines, err := wr.GetWorkerPipelines(worker)
 		if err != nil {
-			delete(validWorkers, worker.GetId())
 			continue
 		}
 		for workerPipelineSlug, _ := range workerPipelines {
-			deleteWorker := true
 			if workerPipelineSlug == pipelineSlug {
-				deleteWorker = false
-			}
-			if deleteWorker {
-				delete(validWorkers, worker.GetId())
+				workersWithPipeline[id] = worker
 			}
 		}
+	}
 
-		// Check Blocks
+	return workersWithPipeline
+}
+
+func (wr *WorkerRegistry) GetWorkersWithBlocksAvailable(
+	workers map[string]interfaces.Worker,
+	blockId string,
+) map[string]interfaces.Worker {
+	workersWithBlocksAvailable := make(map[string]interfaces.Worker)
+	for id, worker := range workers {
 		workerBlocks, err := wr.GetWorkerBlocks(worker)
 		if err != nil {
-			delete(validWorkers, worker.GetId())
 			continue
 		}
-		deleteWorker := true
 		for workerBlockId, workerBlock := range workerBlocks {
 			if workerBlockId != blockId {
 				continue
@@ -148,18 +158,25 @@ func (wr *WorkerRegistry) GetValidWorkers(
 					continue
 				}
 				if workerBlockMap["available"].(bool) {
-					deleteWorker = false
+					workersWithBlocksAvailable[id] = worker
 				}
-
 			}
-		}
-		if deleteWorker {
-			delete(validWorkers, worker.GetId())
-			continue
 		}
 	}
 
-	return validWorkers
+	return workersWithBlocksAvailable
+}
+
+func (wr *WorkerRegistry) GetValidWorkers(
+	pipelineSlug string,
+	blockId string,
+) map[string]interfaces.Worker {
+	availableWorkers := wr.GetAvailableWorkers()
+	workersWithBlocks := wr.GetWorkersWithBlocksDetected(availableWorkers, blockId)
+	workersWithPipeline := wr.GetWorkersWithPipeline(workersWithBlocks, pipelineSlug)
+	workersWithBlocksAndPipeline := wr.GetWorkersWithBlocksAvailable(workersWithPipeline, blockId)
+
+	return workersWithBlocksAndPipeline
 }
 
 func (wr *WorkerRegistry) QueryWorkerAPI(
@@ -194,19 +211,13 @@ func (wr *WorkerRegistry) QueryWorkerAPI(
 	return nil
 }
 
-func (wr *WorkerRegistry) GetWorkerPipelines(worker interfaces.Worker) (
-	map[string]interface{},
-	error,
-) {
+func (wr *WorkerRegistry) GetWorkerPipelines(worker interfaces.Worker) (map[string]interface{}, error) {
 	pipelines := make(map[string]interface{})
 	err := wr.QueryWorkerAPI(worker, "pipelines", &pipelines)
 	return pipelines, err
 }
 
-func (wr *WorkerRegistry) GetWorkerBlocks(worker interfaces.Worker) (
-	map[string]interface{},
-	error,
-) {
+func (wr *WorkerRegistry) GetWorkerBlocks(worker interfaces.Worker) (map[string]interface{}, error) {
 	blocks := make(map[string]interface{})
 	err := wr.QueryWorkerAPI(worker, "blocks", &blocks)
 	return blocks, err
