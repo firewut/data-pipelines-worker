@@ -62,6 +62,12 @@ func main() {
 			worker.GetPipelineRegistry(),
 		),
 	)
+	worker.AddHTTPAPIRoute(
+		"POST", "/pipelines/:slug/resume",
+		handlers.PipelineResumeHandler(
+			worker.GetPipelineRegistry(),
+		),
+	)
 
 	worker.Start()
 }

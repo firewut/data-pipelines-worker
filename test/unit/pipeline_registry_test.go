@@ -31,7 +31,7 @@ func (suite *UnitTestSuite) TestPipelineRegistryRegisterCorrect() {
 	suite.Nil(err)
 	suite.NotEmpty(pipeline.GetBlocks())
 
-	registry.Register(pipeline)
+	registry.Add(pipeline)
 
 	suite.NotEmpty(registry.GetAll())
 }
@@ -51,7 +51,7 @@ func (suite *UnitTestSuite) TestPipelineRegistryRegisterErrorMissingRequiredProp
 	suite.Nil(err)
 
 	suite.Panics(func() {
-		registry.Register(pipeline)
+		registry.Add(pipeline)
 	})
 
 	suite.Empty(registry.Get(pipeline.GetSlug()))
@@ -66,10 +66,10 @@ func (suite *UnitTestSuite) TestPipelineRegistryGet() {
 	pipeline, err := dataclasses.NewPipelineFromBytes(suite.GetTestPipelineDefinition())
 	suite.Nil(err)
 
-	registry.Register(pipeline)
+	registry.Add(pipeline)
 	suite.NotEmpty(registry.GetAll())
 
-	suite.NotEmpty(registry.Get("test"))
+	suite.NotEmpty(registry.Get("test-pipeline-slug"))
 }
 
 func (suite *UnitTestSuite) TestPipelineRegistryGetAll() {
@@ -81,7 +81,7 @@ func (suite *UnitTestSuite) TestPipelineRegistryGetAll() {
 	pipeline, err := dataclasses.NewPipelineFromBytes(suite.GetTestPipelineDefinition())
 	suite.Nil(err)
 
-	registry.Register(pipeline)
+	registry.Add(pipeline)
 	suite.NotEmpty(registry.GetAll())
 }
 
@@ -94,11 +94,11 @@ func (suite *UnitTestSuite) TestPipelineRegistryDelete() {
 	pipeline, err := dataclasses.NewPipelineFromBytes(suite.GetTestPipelineDefinition())
 	suite.Nil(err)
 
-	registry.Register(pipeline)
-	suite.NotEmpty(registry.Get("test"))
+	registry.Add(pipeline)
+	suite.NotEmpty(registry.Get("test-pipeline-slug"))
 
-	registry.Delete("test")
-	suite.Empty(registry.Get("test"))
+	registry.Delete("test-pipeline-slug")
+	suite.Empty(registry.Get("test-pipeline-slug"))
 }
 
 func (suite *UnitTestSuite) TestPipelineRegistryLoadFromCatalogue() {
@@ -136,9 +136,10 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineMissingPipelineTest
 	successUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusOK)
 
 	_, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
+		suite.GetTestPipelineOneBlock(successUrl),
 		"test-missing-pipeline-slug",
 		"test-block-slug",
-		successUrl,
+		nil,
 	)
 
 	// When
@@ -161,9 +162,10 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineMissingBlockTest() 
 	successUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusOK)
 
 	_, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
+		suite.GetTestPipelineOneBlock(successUrl),
 		"test-pipeline-slug",
 		"test-missing-block-slug",
-		successUrl,
+		nil,
 	)
 
 	// When
@@ -190,9 +192,10 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineTest() {
 	)
 	successUrl := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK)
 	_, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
+		suite.GetTestPipelineOneBlock(successUrl),
 		"test-pipeline-slug",
 		"test-block-slug",
-		successUrl,
+		nil,
 	)
 	createdFilesChan := make(chan createdFile, 1)
 	mockStorage := &mockLocalStorage{
@@ -210,4 +213,43 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineTest() {
 	createdFile := <-createdFilesChan
 	suite.NotEmpty(createdFile)
 	suite.Equal(mockedResponse, createdFile.data.String())
+}
+
+func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineWithInputTest() {
+	// Given
+	mockedResponse := fmt.Sprintf(
+		"Hello, world! Mocked Overwritten value is %s",
+		uuid.New().String(),
+	)
+	mockedPriorityResponse := fmt.Sprintf(
+		"Hello, world! Mocked Priority value is %s",
+		uuid.New().String(),
+	)
+	successUrl := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK)
+	priorityUrl := suite.GetMockHTTPServerURL(mockedPriorityResponse, http.StatusOK)
+	_, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
+		suite.GetTestPipelineOneBlock(successUrl),
+		"test-pipeline-slug",
+		"test-block-slug",
+		map[string]interface{}{
+			"url": priorityUrl,
+		},
+	)
+	suite.Equal(processingData.Block.Input["url"], priorityUrl)
+	createdFilesChan := make(chan createdFile, 1)
+	mockStorage := &mockLocalStorage{
+		createdFilesChan: createdFilesChan,
+	}
+	registry.SetStorage(mockStorage)
+
+	// When
+	processingId, err := registry.StartPipeline(processingData)
+
+	// Then
+	suite.Nil(err)
+	suite.NotEmpty(processingId)
+
+	createdFile := <-createdFilesChan
+	suite.NotEmpty(createdFile)
+	suite.Equal(mockedPriorityResponse, createdFile.data.String())
 }

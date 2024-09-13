@@ -13,6 +13,7 @@ import (
 	"data-pipelines-worker/types"
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/dataclasses"
+	"data-pipelines-worker/types/interfaces"
 	"data-pipelines-worker/types/registries"
 )
 
@@ -23,12 +24,15 @@ type Server struct {
 
 	echo             *echo.Echo
 	mdns             *types.MDNS
-	pipelineRegistry *registries.PipelineRegistry
-	blockRegistry    *registries.BlockRegistry
+	workerRegistry   interfaces.Registry[interfaces.Worker]
+	pipelineRegistry interfaces.Registry[interfaces.Pipeline]
+	blockRegistry    interfaces.Registry[interfaces.Block]
 }
 
 func NewServer() *Server {
 	_config := config.GetConfig()
+
+	workerRegistry := registries.GetWorkerRegistry()
 
 	pipelineRegistry, err := registries.NewPipelineRegistry(
 		dataclasses.NewPipelineCatalogueLoader(),
@@ -42,8 +46,8 @@ func NewServer() *Server {
 	_echo := echo.New()
 	_echo.HideBanner = true
 
-	mdns := types.NewMDNS(_config)
-	mdns.SetBlocks(blockRegistry.GetBlocks())
+	mdns := types.NewMDNS()
+	mdns.SetBlocks(blockRegistry.GetAll())
 
 	var worker = &Server{
 		host:             _config.HTTPAPIServer.Host,
@@ -51,6 +55,7 @@ func NewServer() *Server {
 		echo:             _echo,
 		mdns:             mdns,
 		config:           _config,
+		workerRegistry:   workerRegistry,
 		pipelineRegistry: pipelineRegistry,
 		blockRegistry:    blockRegistry,
 	}
@@ -114,9 +119,13 @@ func (s *Server) GetConfig() config.Config {
 }
 
 func (s *Server) GetBlockRegistry() *registries.BlockRegistry {
-	return s.blockRegistry
+	return s.blockRegistry.(*registries.BlockRegistry)
 }
 
 func (s *Server) GetPipelineRegistry() *registries.PipelineRegistry {
-	return s.pipelineRegistry
+	return s.pipelineRegistry.(*registries.PipelineRegistry)
+}
+
+func (s *Server) GetWorkerRegistry() *registries.WorkerRegistry {
+	return s.workerRegistry.(*registries.WorkerRegistry)
 }

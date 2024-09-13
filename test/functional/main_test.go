@@ -1,6 +1,7 @@
 package functional_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -13,15 +14,17 @@ import (
 	"data-pipelines-worker/api"
 	"data-pipelines-worker/test/factories"
 	"data-pipelines-worker/types/config"
+	"data-pipelines-worker/types/dataclasses"
+	"data-pipelines-worker/types/interfaces"
 )
 
 type FunctionalTestSuite struct {
 	sync.RWMutex
 
 	suite.Suite
+	server  *api.Server
+	_config config.Config
 
-	server          *api.Server
-	_config         config.Config
 	httpTestServers []*httptest.Server // to mock http requests
 }
 
@@ -62,19 +65,40 @@ func (suite *FunctionalTestSuite) SetupTest() {
 	}
 }
 
-func (suite *FunctionalTestSuite) GetMockHTTPServerURL(body string, statusCode int) string {
+func (suite *FunctionalTestSuite) GetMockHTTPServer(
+	body string,
+	statusCode int,
+	bodyMapping ...map[string]string,
+) *httptest.Server {
 	suite.Lock()
 	defer suite.Unlock()
 
+	// Merge all body mappings into a single map
+	var bodyMap map[string]string
+	if len(bodyMapping) > 0 {
+		bodyMap = bodyMapping[0]
+	} else {
+		bodyMap = make(map[string]string)
+	}
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(statusCode)
-		if body != "" {
+
+		// Check if the requested path is in the bodyMap
+		if responseBody, exists := bodyMap[r.URL.Path]; exists {
+			w.Write([]byte(responseBody))
+		} else if body != "" {
+			// Default body if no specific path is matched
 			w.Write([]byte(body))
 		}
 	}))
 	suite.httpTestServers = append(suite.httpTestServers, server)
 
-	return server.URL
+	return server
+}
+
+func (suite *FunctionalTestSuite) GetMockHTTPServerURL(body string, statusCode int) string {
+	return suite.GetMockHTTPServer(body, statusCode).URL
 }
 
 func (suite *FunctionalTestSuite) TearDownTest() {
@@ -85,4 +109,28 @@ func (suite *FunctionalTestSuite) TearDownTest() {
 		server.Close()
 	}
 	suite.httpTestServers = make([]*httptest.Server, 0)
+}
+
+func (suite *FunctionalTestSuite) GetTestPipeline(pipelineDefinition string) interfaces.Pipeline {
+	pipeline, err := dataclasses.NewPipelineFromBytes([]byte(pipelineDefinition))
+	suite.Nil(err)
+	suite.NotEmpty(pipeline)
+
+	return pipeline
+}
+
+func (suite *FunctionalTestSuite) GetMockServerHandlersResponse(
+	pipelines map[string]interfaces.Pipeline,
+	blocks map[string]interfaces.Block,
+) map[string]string {
+	pipelinesResponse, err := json.Marshal(pipelines)
+	suite.Nil(err)
+
+	blocksResponse, err := json.Marshal(blocks)
+	suite.Nil(err)
+
+	return map[string]string{
+		"/pipelines": string(pipelinesResponse),
+		"/blocks":    string(blocksResponse),
+	}
 }

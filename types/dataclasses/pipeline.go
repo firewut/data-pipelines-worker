@@ -14,7 +14,7 @@ import (
 )
 
 type PipelineData struct {
-	ID          uuid.UUID                         `json:"-"`
+	Id          uuid.UUID                         `json:"-"`
 	Slug        string                            `json:"slug"`
 	Title       string                            `json:"title"`
 	Description string                            `json:"description"`
@@ -50,7 +50,7 @@ func (p *PipelineData) UnmarshalJSON(data []byte) error {
 	p.schemaPtr = schemaPtr
 
 	// List of Blocks
-	registryBlocks := registries.GetBlockRegistry().GetBlocks()
+	registryBlocks := registries.GetBlockRegistry().GetAll()
 
 	// Convert []BlockData to []interfaces.ProcessableBlockData
 	p.Blocks = make([]interfaces.ProcessableBlockData, len(aux.Blocks))
@@ -63,7 +63,7 @@ func (p *PipelineData) UnmarshalJSON(data []byte) error {
 		p.Blocks[i] = block
 	}
 
-	p.ID = uuid.New()
+	p.Id = uuid.New()
 	return nil
 }
 
@@ -76,15 +76,15 @@ func NewPipelineFromBytes(data []byte) (*PipelineData, error) {
 
 func NewPipelineData() *PipelineData {
 	pipeline := &PipelineData{
-		ID:     uuid.New(),
+		Id:     uuid.New(),
 		Blocks: make([]interfaces.ProcessableBlockData, 0),
 	}
 
 	return pipeline
 }
 
-func (p *PipelineData) GetID() uuid.UUID {
-	return p.ID
+func (p *PipelineData) GetId() string {
+	return p.Id.String()
 }
 
 func (p *PipelineData) GetSlug() string {
@@ -111,20 +111,25 @@ func (p *PipelineData) GetSchemaPtr() *gojsonschema.Schema {
 	return p.schemaPtr
 }
 
-func (p *PipelineData) StartProcessing(
+func (p *PipelineData) Process(
 	data schemas.PipelineStartInputSchema,
 	storage interfaces.Storage,
 ) (uuid.UUID, error) {
+	processingId := uuid.New()
+	if data.Pipeline.ProcessingID != nil {
+		processingId, _ = uuid.Parse(*data.Pipeline.ProcessingID)
+	}
+
 	// Check if the block exists in the pipeline
-	var blockData interfaces.ProcessableBlockData
-	for _, block := range p.Blocks {
+	processBlocks := make([]interfaces.ProcessableBlockData, 0)
+	for i, block := range p.Blocks {
 		if block.GetSlug() == data.Block.Slug {
-			blockData = block
+			processBlocks = p.Blocks[i:]
 			break
 		}
 	}
 
-	if blockData == nil {
+	if len(processBlocks) == 0 {
 		return uuid.UUID{}, fmt.Errorf(
 			"block with slug %s not found in pipeline %s",
 			data.Block.Slug,
@@ -132,24 +137,41 @@ func (p *PipelineData) StartProcessing(
 		)
 	}
 
-	// Check data.Block.Input not empty
-	if len(data.Block.Input) > 0 {
-		blockData.SetInputData(data.Block.Input)
+	// Loop through each block
+	for _, blockData := range processBlocks {
+		block := blockData.GetBlock()
+
+		if !block.IsAvailable() {
+			workerRegistry := registries.GetWorkerRegistry()
+
+			if err := workerRegistry.ResumeProcessing(
+				blockData.GetPipeline().GetSlug(),
+				processingId,
+				blockData.GetSlug(),
+			); err != nil {
+				return uuid.UUID{}, err
+			}
+			return processingId, nil
+		}
+
+		// Check data.Block.Input not empty
+		if len(data.Block.Input) > 0 {
+			blockData.SetInputData(data.Block.Input)
+		}
+
+		blockProcessor := block.GetProcessor()
+
+		// Start processing
+		result, err := block.Process(blockProcessor, blockData)
+		if err != nil {
+			return uuid.UUID{}, err
+		}
+
+		// Save result
+		if _, err = block.SaveOutput(blockData, result, storage); err != nil {
+			return uuid.UUID{}, err
+		}
 	}
 
-	block := blockData.GetBlock()
-	blockProcessor := block.GetProcessor()
-
-	// Start processing
-	result, err := block.Process(blockProcessor, blockData)
-	if err != nil {
-		return uuid.UUID{}, err
-	}
-
-	// Save result
-	if _, err = block.SaveOutput(blockData, result, storage); err != nil {
-		return uuid.UUID{}, err
-	}
-
-	return uuid.New(), nil
+	return processingId, nil
 }

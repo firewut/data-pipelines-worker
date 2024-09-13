@@ -7,13 +7,12 @@ import (
 
 	"data-pipelines-worker/types"
 	"data-pipelines-worker/types/blocks"
-	"data-pipelines-worker/types/config"
+	"data-pipelines-worker/types/dataclasses"
 	"data-pipelines-worker/types/interfaces"
 )
 
 func (suite *UnitTestSuite) TestNewMDNS() {
-	_config := config.GetConfig()
-	mdnsService := types.NewMDNS(_config)
+	mdnsService := types.NewMDNS()
 
 	suite.Equal("data-pipelines-worker", mdnsService.DNSSDStatus.ServiceName)
 	suite.Equal("_http._tcp.", mdnsService.DNSSDStatus.ServiceType)
@@ -28,8 +27,7 @@ func (suite *UnitTestSuite) TestNewMDNS() {
 }
 
 func (suite *UnitTestSuite) TestMDNSBlocks() {
-	_config := config.GetConfig()
-	mdnsService := types.NewMDNS(_config)
+	mdnsService := types.NewMDNS()
 
 	suite.Equal(map[string]interfaces.Block{}, mdnsService.GetBlocks())
 
@@ -43,8 +41,7 @@ func (suite *UnitTestSuite) TestMDNSBlocks() {
 }
 
 func (suite *UnitTestSuite) TestMDNSLoad() {
-	_config := config.GetConfig()
-	mdnsService := types.NewMDNS(_config)
+	mdnsService := types.NewMDNS()
 
 	suite.EqualValues(0.0, mdnsService.DNSSDStatus.Load)
 	suite.EqualValues(0.0, mdnsService.GetLoad())
@@ -54,8 +51,7 @@ func (suite *UnitTestSuite) TestMDNSLoad() {
 }
 
 func (suite *UnitTestSuite) TestMDNSAvailable() {
-	_config := config.GetConfig()
-	mdnsService := types.NewMDNS(_config)
+	mdnsService := types.NewMDNS()
 
 	suite.Equal(false, mdnsService.DNSSDStatus.Available)
 	suite.Equal(false, mdnsService.GetAvailable())
@@ -65,8 +61,7 @@ func (suite *UnitTestSuite) TestMDNSAvailable() {
 }
 
 func (suite *UnitTestSuite) TestMDNSGetTXT() {
-	_config := config.GetConfig()
-	mdnsService := types.NewMDNS(_config)
+	mdnsService := types.NewMDNS()
 
 	txt := mdnsService.GetTXT()
 	expected := []string{
@@ -79,8 +74,7 @@ func (suite *UnitTestSuite) TestMDNSGetTXT() {
 }
 
 func (suite *UnitTestSuite) TestGetDiscoveredWorkers() {
-	_config := config.GetConfig()
-	mdnsService := types.NewMDNS(_config)
+	mdnsService := types.NewMDNS()
 
 	suite.Equal(len(mdnsService.GetDiscoveredWorkers()), 0)
 
@@ -104,15 +98,15 @@ func (suite *UnitTestSuite) TestGetDiscoveredWorkers() {
 			Text:     []string{"version=0.1", "load=0.00", "available=true", "blocks=a,b,c"},
 		},
 	}
-	discoveredWorkers := []*types.Worker{
-		types.NewWorker(discoveredEntries[0]),
-		types.NewWorker(discoveredEntries[1]),
+	discoveredWorkers := []*dataclasses.Worker{
+		dataclasses.NewWorker(discoveredEntries[0]),
+		dataclasses.NewWorker(discoveredEntries[1]),
 	}
 
-	suite.Equal(make([]string, 0), discoveredWorkers[0].Status.Blocks)
+	suite.Equal(make([]string, 0), discoveredWorkers[0].GetStatus().GetBlocks())
 	suite.Equal(
 		[]string{"a", "b", "c"},
-		discoveredWorkers[1].Status.Blocks,
+		discoveredWorkers[1].GetStatus().GetBlocks(),
 	)
 
 	mdnsService.SetDiscoveredWorkers(discoveredWorkers)

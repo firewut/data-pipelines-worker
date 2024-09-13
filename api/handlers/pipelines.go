@@ -49,4 +49,19 @@ func PipelineStartHandler(registry *registries.PipelineRegistry) echo.HandlerFun
 	}
 }
 
-// Handler to Proceed processing of a pipeline which has `processing_id`
+// Handler to Resume processing of a pipeline which has `processing_id`
+func PipelineResumeHandler(registry *registries.PipelineRegistry) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var inputData schemas.PipelineStartInputSchema
+		if err := c.Bind(&inputData); err != nil {
+			return c.JSON(http.StatusBadRequest, err.Error())
+		}
+
+		pipeline, err := registry.ResumePipeline(inputData)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, err.Error())
+		}
+
+		return c.JSON(http.StatusOK, pipeline)
+	}
+}

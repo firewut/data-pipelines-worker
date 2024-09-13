@@ -19,6 +19,6 @@ import (
 //     array of blocks.
 func BlocksHandler(registry *registries.BlockRegistry) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		return c.JSON(http.StatusOK, registry.GetBlocks())
+		return c.JSON(http.StatusOK, registry.GetAll())
 	}
 }

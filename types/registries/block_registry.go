@@ -78,7 +78,21 @@ func (br *BlockRegistry) DetectBlocks() {
 	}
 }
 
-func (br *BlockRegistry) GetBlocks() map[string]interfaces.Block {
+func (br *BlockRegistry) Add(block interfaces.Block) {
+	br.Lock()
+	defer br.Unlock()
+
+	br.Blocks[block.GetId()] = block
+}
+
+func (br *BlockRegistry) Get(id string) interfaces.Block {
+	br.Lock()
+	defer br.Unlock()
+
+	return br.Blocks[id]
+}
+
+func (br *BlockRegistry) GetAll() map[string]interfaces.Block {
 	br.Lock()
 	defer br.Unlock()
 
@@ -97,6 +111,22 @@ func (br *BlockRegistry) GetAvailableBlocks() map[string]interfaces.Block {
 	}
 
 	return availableBlocks
+}
+
+func (br *BlockRegistry) Delete(id string) {
+	br.Lock()
+	defer br.Unlock()
+
+	delete(br.Blocks, id)
+}
+
+func (br *BlockRegistry) DeleteAll() {
+	br.Lock()
+	defer br.Unlock()
+
+	for id := range br.Blocks {
+		delete(br.Blocks, id)
+	}
 }
 
 func (br *BlockRegistry) Shutdown() {

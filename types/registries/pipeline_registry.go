@@ -37,13 +37,13 @@ func NewPipelineRegistry(pipelineCatalogueLoader interfaces.PipelineCatalogueLoa
 	}
 
 	for _, pipeline := range pipelines {
-		registry.Register(pipeline)
+		registry.Add(pipeline)
 	}
 
 	return registry, nil
 }
 
-func (pr *PipelineRegistry) Register(p interfaces.Pipeline) {
+func (pr *PipelineRegistry) Add(p interfaces.Pipeline) {
 	_config := config.GetConfig()
 	registrySchema := _config.Pipeline.SchemaPtr
 	pipelineSchemaLoader := gojsonschema.NewStringLoader(p.GetSchemaString())
@@ -101,6 +101,15 @@ func (pr *PipelineRegistry) Delete(slug string) {
 	delete(pr.Pipelines, slug)
 }
 
+func (pr *PipelineRegistry) DeleteAll() {
+	pr.Lock()
+	defer pr.Unlock()
+
+	for slug := range pr.Pipelines {
+		delete(pr.Pipelines, slug)
+	}
+}
+
 func (pr *PipelineRegistry) Shutdown() {
 }
 
@@ -112,5 +121,16 @@ func (pr *PipelineRegistry) StartPipeline(
 		return uuid.UUID{}, fmt.Errorf("pipeline with slug %s not found", data.Pipeline.Slug)
 	}
 
-	return pipeline.StartProcessing(data, pr.GetStorage())
+	return pipeline.Process(data, pr.GetStorage())
+}
+
+func (pr *PipelineRegistry) ResumePipeline(
+	data schemas.PipelineStartInputSchema,
+) (uuid.UUID, error) {
+	pipeline := pr.Get(data.Pipeline.Slug)
+	if pipeline == nil {
+		return uuid.UUID{}, fmt.Errorf("pipeline with slug %s not found", data.Pipeline.Slug)
+	}
+
+	return pipeline.Process(data, pr.GetStorage())
 }

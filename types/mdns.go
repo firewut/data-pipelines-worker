@@ -12,6 +12,7 @@ import (
 	"github.com/grandcat/zeroconf"
 
 	"data-pipelines-worker/types/config"
+	"data-pipelines-worker/types/dataclasses"
 	"data-pipelines-worker/types/interfaces"
 )
 
@@ -24,18 +25,20 @@ type MDNS struct {
 	blocksMap map[string]interfaces.Block
 
 	discoverWorkersLock sync.Mutex
-	discoveredWorkers   []*Worker
+	discoveredWorkers   []*dataclasses.Worker
 	discoverWorkersDone chan bool
 
 	load      float32
 	available bool
 }
 
-func NewMDNS(config config.Config) *MDNS {
+func NewMDNS() *MDNS {
+	config := config.GetConfig()
+
 	return &MDNS{
 		DNSSDStatus:         config.DNSSD,
 		blocksMap:           make(map[string]interfaces.Block),
-		discoveredWorkers:   make([]*Worker, 0),
+		discoveredWorkers:   make([]*dataclasses.Worker, 0),
 		load:                0.0,
 		available:           false,
 		discoverWorkersDone: make(chan bool, 1),
@@ -145,7 +148,7 @@ func (m *MDNS) Announce() {
 	)
 }
 
-func (m *MDNS) GetDiscoveredWorkers() []*Worker {
+func (m *MDNS) GetDiscoveredWorkers() []*dataclasses.Worker {
 	m.Lock()
 	defer m.Unlock()
 
@@ -165,7 +168,7 @@ func (m *MDNS) DiscoverWorkers() {
 				m.discoverWorkersLock.Lock()
 
 				go func(_m *MDNS) {
-					workers := make([]*Worker, 0)
+					workers := make([]*dataclasses.Worker, 0)
 
 					resolver, err := zeroconf.NewResolver(nil)
 					if err != nil {
@@ -187,7 +190,7 @@ func (m *MDNS) DiscoverWorkers() {
 								entry.HostName,
 								entry.Port,
 							)
-							workers = append(workers, NewWorker(entry))
+							workers = append(workers, dataclasses.NewWorker(entry))
 						}
 						_m.SetDiscoveredWorkers(workers)
 					}(entries)
@@ -212,11 +215,12 @@ func (m *MDNS) DiscoverWorkers() {
 	}()
 }
 
-func (m *MDNS) SetDiscoveredWorkers(workers []*Worker) {
+func (m *MDNS) SetDiscoveredWorkers(workers []*dataclasses.Worker) {
 	m.Lock()
 	defer m.Unlock()
 
 	m.discoveredWorkers = workers
+
 }
 
 func (m *MDNS) Shutdown() {
