@@ -6,6 +6,7 @@ import (
 
 	"data-pipelines-worker/types"
 	"data-pipelines-worker/types/dataclasses"
+	"data-pipelines-worker/types/interfaces"
 
 	"github.com/google/uuid"
 )
@@ -44,7 +45,7 @@ func (suite *UnitTestSuite) TestPipelineProcessMissingBlock() {
 	// When
 	processingId, err := pipeline.Process(
 		processingData,
-		types.NewLocalStorage(),
+		[]interfaces.Storage{types.NewLocalStorage("")},
 	)
 
 	// Then
@@ -77,13 +78,15 @@ func (suite *UnitTestSuite) TestPipelineProcess() {
 	mockStorage := &mockLocalStorage{
 		createdFilesChan: createdFilesChan,
 	}
-	registry.SetStorage(mockStorage)
+	registry.SetPipelineResultStorages(
+		[]interfaces.Storage{
+			mockStorage,
+			// types.NewMINIOStorage(),
+		},
+	)
 
 	// When
-	processingId, err := pipeline.Process(
-		processingData,
-		mockStorage,
-	)
+	processingId, err := pipeline.Process(processingData, registry.GetPipelineResultStorages())
 
 	// Then
 	suite.Nil(err)
@@ -116,13 +119,12 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocks() {
 	mockStorage := &mockLocalStorage{
 		createdFilesChan: createdFilesChan,
 	}
-	registry.SetStorage(mockStorage)
+	registry.SetPipelineResultStorages(
+		[]interfaces.Storage{mockStorage},
+	)
 
 	// When
-	processingId, err := pipeline.Process(
-		processingData,
-		mockStorage,
-	)
+	processingId, err := pipeline.Process(processingData, registry.GetPipelineResultStorages())
 
 	// Then
 	suite.Nil(err)

@@ -16,17 +16,19 @@ type PipelineRegistry struct {
 	sync.Mutex
 
 	Pipelines               map[string]interfaces.Pipeline
+	pipelineResultStorages  []interfaces.Storage
 	pipelineCatalogueLoader interfaces.PipelineCatalogueLoader
-	storage                 interfaces.Storage
 }
 
-func NewPipelineRegistry(pipelineCatalogueLoader interfaces.PipelineCatalogueLoader) (*PipelineRegistry, error) {
+func NewPipelineRegistry(
+	pipelineCatalogueLoader interfaces.PipelineCatalogueLoader,
+) (*PipelineRegistry, error) {
 	_config := config.GetConfig()
 
 	registry := &PipelineRegistry{
 		Pipelines:               make(map[string]interfaces.Pipeline),
+		pipelineResultStorages:  make([]interfaces.Storage, 0),
 		pipelineCatalogueLoader: pipelineCatalogueLoader,
-		storage:                 pipelineCatalogueLoader.GetStorage(),
 	}
 
 	pipelines, err := pipelineCatalogueLoader.LoadCatalogue(
@@ -66,18 +68,25 @@ func (pr *PipelineRegistry) Add(p interfaces.Pipeline) {
 	pr.Pipelines[p.GetSlug()] = p
 }
 
-func (pr *PipelineRegistry) SetStorage(storage interfaces.Storage) {
+func (pr *PipelineRegistry) SetPipelineResultStorages(storages []interfaces.Storage) {
 	pr.Lock()
 	defer pr.Unlock()
 
-	pr.storage = storage
+	pr.pipelineResultStorages = storages
 }
 
-func (pr *PipelineRegistry) GetStorage() interfaces.Storage {
+func (pr *PipelineRegistry) GetPipelineResultStorages() []interfaces.Storage {
 	pr.Lock()
 	defer pr.Unlock()
 
-	return pr.storage
+	return pr.pipelineResultStorages
+}
+
+func (pr *PipelineRegistry) AddPipelineResultStorage(storage interfaces.Storage) {
+	pr.Lock()
+	defer pr.Unlock()
+
+	pr.pipelineResultStorages = append(pr.pipelineResultStorages, storage)
 }
 
 func (pr *PipelineRegistry) Get(slug string) interfaces.Pipeline {
@@ -121,7 +130,7 @@ func (pr *PipelineRegistry) StartPipeline(
 		return uuid.UUID{}, fmt.Errorf("pipeline with slug %s not found", data.Pipeline.Slug)
 	}
 
-	return pipeline.Process(data, pr.GetStorage())
+	return pipeline.Process(data, pr.GetPipelineResultStorages())
 }
 
 func (pr *PipelineRegistry) ResumePipeline(
@@ -132,5 +141,5 @@ func (pr *PipelineRegistry) ResumePipeline(
 		return uuid.UUID{}, fmt.Errorf("pipeline with slug %s not found", data.Pipeline.Slug)
 	}
 
-	return pipeline.Process(data, pr.GetStorage())
+	return pipeline.Process(data, pr.GetPipelineResultStorages())
 }

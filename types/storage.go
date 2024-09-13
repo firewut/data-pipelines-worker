@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 
@@ -16,39 +17,58 @@ import (
 	"data-pipelines-worker/types/interfaces"
 )
 
-type LocalStorage struct{}
+type LocalStorage struct {
+	root string
+}
 
-func NewLocalStorage() *LocalStorage {
-	return &LocalStorage{}
+func NewLocalStorage(root string) *LocalStorage {
+	if root == "" {
+		root = os.TempDir()
+	}
+	return &LocalStorage{
+		root: root,
+	}
+}
+
+func (s *LocalStorage) GetStorageDirectory() string {
+	return s.root
 }
 
 func (s *LocalStorage) ListObjects(directory string) ([]string, error) {
 	return []string{}, fmt.Errorf("not implemented")
 }
 
-func (s *LocalStorage) PutObject(directory, localFilePath string) error {
+func (s *LocalStorage) PutObject(directory, localFilePath string, alias string) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (s *LocalStorage) PutObjectBytes(localDirectory string, fileContent *bytes.Buffer) (string, error) {
+func (s *LocalStorage) PutObjectBytes(localDirectory string, fileContent *bytes.Buffer, alias string) (string, error) {
 	mimeType, err := DetectMimeTypeFromBuffer(fileContent)
 	if err != nil {
 		return "", err
 	}
 
-	tmpFile, err := os.CreateTemp("", fmt.Sprintf("output_*%s", mimeType.Extension()))
-	if err != nil {
-		config.GetLogger().Errorf("Failed to create temporary file: %v", err)
-		return "", err
-	}
-	defer tmpFile.Close()
+	// Put file to localDirectory
+	filename := fmt.Sprintf("%s%s", uuid.New(), mimeType.Extension())
+	filePath := filepath.Join(localDirectory, filename)
 
-	_, err = tmpFile.Write(fileContent.Bytes())
-	if err != nil {
-		config.GetLogger().Errorf("Failed to write to temporary file: %v", err)
+	// Ensure the directory exists
+	if err := os.MkdirAll(filepath.Dir(filePath), os.ModePerm); err != nil {
 		return "", err
 	}
-	return tmpFile.Name(), nil
+
+	// Write the file content to the specified path
+	file, err := os.Create(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	if _, err := fileContent.WriteTo(file); err != nil {
+		return "", err
+	}
+
+	return filePath, nil
 }
 
 func (s *LocalStorage) GetObject(directory, fileName string, filePath string) (string, error) {
@@ -72,7 +92,9 @@ func (s *LocalStorage) GetObjectBytes(directory, fileName string) (*bytes.Buffer
 }
 
 type MINIOStorage struct {
-	Client       *minio.Client
+	Client *minio.Client
+
+	bucket       string
 	localStorage interfaces.Storage // Some operations requires local storage
 }
 
@@ -87,16 +109,21 @@ func NewMINIOStorage() *MINIOStorage {
 		},
 	)
 	if err != nil {
-		fmt.Println("Error creating MinIO client:", err)
+		panic(err)
 	}
 
 	return &MINIOStorage{
 		Client:       minioClient,
-		localStorage: NewLocalStorage(),
+		bucket:       storageConfig.Bucket,
+		localStorage: NewLocalStorage(""),
 	}
 }
 
-func (s *MINIOStorage) ListObjects(bucket string) ([]string, error) {
+func (s *MINIOStorage) GetStorageDirectory() string {
+	return s.bucket
+}
+
+func (s *MINIOStorage) ListObjects(string) ([]string, error) {
 	objects := []string{}
 
 	doneCh := make(chan struct{})
@@ -104,7 +131,7 @@ func (s *MINIOStorage) ListObjects(bucket string) ([]string, error) {
 
 	for object := range s.Client.ListObjects(
 		context.Background(),
-		bucket,
+		s.GetStorageDirectory(),
 		minio.ListObjectsOptions{
 			Recursive: true,
 		},
@@ -118,12 +145,25 @@ func (s *MINIOStorage) ListObjects(bucket string) ([]string, error) {
 	return objects, nil
 }
 
-func (s *MINIOStorage) PutObject(bucket, source string) error {
+func (s *MINIOStorage) PutObject(bucket, source string, alias string) error {
 	objectName := filepath.Base(source)
+
+	// Get the file extension
+	sourceExt := filepath.Ext(source)
+
+	// If alias is provided, use it as the object name
+	if alias != "" {
+		objectName = alias
+	}
+
+	// If object name does not have an extension, append the source file extension
+	if filepath.Ext(objectName) == "" {
+		objectName = fmt.Sprintf("%s%s", objectName, sourceExt)
+	}
 
 	_, err := s.Client.FPutObject(
 		context.Background(),
-		bucket,
+		s.GetStorageDirectory(),
 		objectName,
 		source,
 		minio.PutObjectOptions{},
@@ -135,19 +175,23 @@ func (s *MINIOStorage) PutObject(bucket, source string) error {
 	return nil
 }
 
-func (s *MINIOStorage) PutObjectBytes(bucket string, fileContent *bytes.Buffer) (string, error) {
-	localFilePath, err := s.localStorage.PutObjectBytes("", fileContent)
+func (s *MINIOStorage) PutObjectBytes(bucket string, fileContent *bytes.Buffer, alias string) (string, error) {
+	localFilePath, err := s.localStorage.PutObjectBytes("", fileContent, "")
 	if err != nil {
 		return "", err
 	}
 
-	return localFilePath, s.PutObject(bucket, localFilePath)
+	return localFilePath, s.PutObject(s.GetStorageDirectory(), localFilePath, alias)
 }
 
 func (s *MINIOStorage) GetObject(bucket, objectName string, filePath string) (string, error) {
+	if filePath == "" {
+		filePath = filepath.Join(s.localStorage.GetStorageDirectory(), objectName)
+	}
+
 	err := s.Client.FGetObject(
 		context.Background(),
-		bucket,
+		s.GetStorageDirectory(),
 		objectName,
 		filePath,
 		minio.GetObjectOptions{},

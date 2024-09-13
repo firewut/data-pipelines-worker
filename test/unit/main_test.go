@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"sync"
 	"testing"
 
@@ -264,15 +265,19 @@ func (suite *UnitTestSuite) GetTestPipelineTwoBlocks(firstBlockUrl string) inter
 // Storage to simulate no space left on device
 type noSpaceLeftLocalStorage struct{}
 
+func (s *noSpaceLeftLocalStorage) GetStorageDirectory() string {
+	return os.TempDir()
+}
+
 func (s *noSpaceLeftLocalStorage) ListObjects(bucket string) ([]string, error) {
 	return make([]string, 0), nil
 }
 
-func (s *noSpaceLeftLocalStorage) PutObject(bucket, filePath string) error {
+func (s *noSpaceLeftLocalStorage) PutObject(bucket, filePath string, alias string) error {
 	return fmt.Errorf("No space left on device")
 }
 
-func (s *noSpaceLeftLocalStorage) PutObjectBytes(directory string, buffer *bytes.Buffer) (string, error) {
+func (s *noSpaceLeftLocalStorage) PutObjectBytes(directory string, buffer *bytes.Buffer, alias string) (string, error) {
 	return "", fmt.Errorf("No space left on device")
 }
 
@@ -298,15 +303,19 @@ type mockLocalStorage struct {
 	files map[string]*bytes.Buffer
 }
 
+func (s *mockLocalStorage) GetStorageDirectory() string {
+	return os.TempDir()
+}
+
 func (s *mockLocalStorage) ListObjects(bucket string) ([]string, error) {
 	return make([]string, 0), nil
 }
 
-func (s *mockLocalStorage) PutObject(bucket, filePath string) error {
+func (s *mockLocalStorage) PutObject(bucket, filePath string, alias string) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (s *mockLocalStorage) PutObjectBytes(directory string, buffer *bytes.Buffer) (string, error) {
+func (s *mockLocalStorage) PutObjectBytes(directory string, buffer *bytes.Buffer, alias string) (string, error) {
 	s.createdFilesChan <- createdFile{
 		filePath: directory,
 		data:     buffer,

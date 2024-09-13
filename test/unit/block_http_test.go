@@ -9,6 +9,8 @@ import (
 	"os"
 
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
 func (suite *UnitTestSuite) TestBlockHTTP() {
@@ -106,7 +108,7 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessError() {
 	)
 }
 
-func (suite *UnitTestSuite) TestBlockHTTPSaveOutput() {
+func (suite *UnitTestSuite) TestBlockHTTPSaveOutputLocalStorage() {
 	registry, err := registries.NewPipelineRegistry(
 		dataclasses.NewPipelineCatalogueLoader(),
 	)
@@ -114,6 +116,7 @@ func (suite *UnitTestSuite) TestBlockHTTPSaveOutput() {
 
 	pipelineSlug := "YT-CHANNEL-video-generation-block-prompt"
 	pipeline := registry.Get(pipelineSlug)
+	processingId := uuid.New()
 
 	block := blocks.NewBlockHTTP()
 
@@ -141,10 +144,12 @@ func (suite *UnitTestSuite) TestBlockHTTPSaveOutput() {
 	fileName, err := block.SaveOutput(
 		data,
 		result,
-		types.NewLocalStorage(),
+		processingId,
+		types.NewLocalStorage(""),
 	)
 	suite.Nil(err)
 	suite.NotEmpty(fileName)
+	defer os.Remove(fileName)
 
 	// Read file content
 	content, err := os.ReadFile(fileName)
@@ -187,6 +192,7 @@ func (suite *UnitTestSuite) TestBlockHTTPSaveOutputNoSpaceOnDeviceLeft() {
 	fileName, err := block.SaveOutput(
 		data,
 		result,
+		uuid.New(),
 		&noSpaceLeftLocalStorage{},
 	)
 	suite.NotNil(err)

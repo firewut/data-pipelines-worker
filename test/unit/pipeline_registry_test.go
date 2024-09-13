@@ -1,12 +1,14 @@
 package unit_test
 
 import (
-	"data-pipelines-worker/types/dataclasses"
-	"data-pipelines-worker/types/registries"
 	"fmt"
 	"net/http"
 
 	"github.com/google/uuid"
+
+	"data-pipelines-worker/types/dataclasses"
+	"data-pipelines-worker/types/interfaces"
+	"data-pipelines-worker/types/registries"
 )
 
 func (suite *UnitTestSuite) TestNewPipelineRegistry() {
@@ -201,7 +203,9 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineTest() {
 	mockStorage := &mockLocalStorage{
 		createdFilesChan: createdFilesChan,
 	}
-	registry.SetStorage(mockStorage)
+	registry.SetPipelineResultStorages(
+		[]interfaces.Storage{mockStorage},
+	)
 
 	// When
 	processingId, err := registry.StartPipeline(processingData)
@@ -240,7 +244,9 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineWithInputTest() {
 	mockStorage := &mockLocalStorage{
 		createdFilesChan: createdFilesChan,
 	}
-	registry.SetStorage(mockStorage)
+	registry.SetPipelineResultStorages(
+		[]interfaces.Storage{mockStorage},
+	)
 
 	// When
 	processingId, err := registry.StartPipeline(processingData)

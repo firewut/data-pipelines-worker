@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -36,6 +37,15 @@ func NewServer() *Server {
 
 	pipelineRegistry, err := registries.NewPipelineRegistry(
 		dataclasses.NewPipelineCatalogueLoader(),
+	)
+	// Set the pipeline result storages
+	pipelineRegistry.SetPipelineResultStorages(
+		[]interfaces.Storage{
+			types.NewLocalStorage(
+				os.TempDir(),
+			),
+			types.NewMINIOStorage(),
+		},
 	)
 	if err != nil {
 		panic(err)

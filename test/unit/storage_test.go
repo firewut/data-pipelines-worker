@@ -2,10 +2,18 @@ package unit_test
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"github.com/google/uuid"
 
 	"data-pipelines-worker/types"
+)
+
+const (
+	remoteTestBucket = "test-bucket"
 )
 
 func (suite *UnitTestSuite) TestDetectMimeTypeFromBuffer() {
@@ -28,7 +36,7 @@ func (suite *UnitTestSuite) TestDetectMimeTypeFromBuffer() {
 }
 
 func (suite *UnitTestSuite) TestLocalStorageListObjects() {
-	storage := types.NewLocalStorage()
+	storage := types.NewLocalStorage("")
 
 	// Test ListObjects
 	objects, err := storage.ListObjects(os.TempDir())
@@ -37,94 +45,226 @@ func (suite *UnitTestSuite) TestLocalStorageListObjects() {
 }
 
 func (suite *UnitTestSuite) TestLocalStoragePutObject() {
-	storage := types.NewLocalStorage()
+	storage := types.NewLocalStorage("")
 
-	fileContent := bytes.NewBufferString("test-source")
+	fileContent := bytes.NewBufferString(textContent)
 
 	// Test PutObject
-	err := storage.PutObject(
-		os.TempDir(),
-		fileContent.String(),
-	)
+	err := storage.PutObject(os.TempDir(), fileContent.String(), "")
 	suite.NotNil(err)
 }
 
 func (suite *UnitTestSuite) TestLocalStoragePutObjectBytes() {
-	storage := types.NewLocalStorage()
+	storage := types.NewLocalStorage("")
 
-	fileContent := bytes.NewBufferString("test-source")
+	fileContent := bytes.NewBufferString(textContent)
 
 	// Test PutObjectBytes
-	localFileName, err := storage.PutObjectBytes(
-		os.TempDir(),
-		fileContent,
-	)
+	localFileName, err := storage.PutObjectBytes(os.TempDir(), fileContent, "")
 	suite.Nil(err)
 	suite.NotEmpty(localFileName)
 	suite.Contains(localFileName, ".txt")
 }
 
 func (suite *UnitTestSuite) TestLocalStorageGetObjectBytes() {
-	storage := types.NewLocalStorage()
+	// Given
+	storage := types.NewLocalStorage("")
+	fileContent := bytes.NewBufferString(xmlContent)
 
-	fileContent := bytes.NewBufferString("test-source")
+	// When
+	localFileName, err := storage.PutObjectBytes(os.TempDir(), fileContent, "")
 
-	// Test PutObjectBytes
-	localFileName, err := storage.PutObjectBytes(
+	// Then
+	suite.Nil(err)
+	suite.NotEmpty(localFileName)
+	suite.Contains(localFileName, ".xml")
+
+	objectBytes, err := storage.GetObjectBytes(os.TempDir(), filepath.Base(localFileName))
+	suite.Nil(err)
+	suite.Equal(xmlContent, objectBytes.String())
+}
+
+func (suite *UnitTestSuite) TestMiniIOStoragePutObject() {
+	// Given
+	storage := types.NewMINIOStorage()
+
+	localFileName, err := types.NewLocalStorage("").PutObjectBytes(
 		os.TempDir(),
-		fileContent,
+		bytes.NewBufferString(textContent),
+		"",
 	)
 	suite.Nil(err)
 	suite.NotEmpty(localFileName)
 	suite.Contains(localFileName, ".txt")
 
-	objectBytes, err := storage.GetObjectBytes(
-		os.TempDir(),
-		filepath.Base(localFileName),
-	)
+	putObjectAlias := fmt.Sprintf("%s/%s", remoteTestBucket, filepath.Base(localFileName))
+
+	// When
+	err = storage.PutObject(suite._config.Storage.Bucket, localFileName, putObjectAlias)
+
+	// Then
 	suite.Nil(err)
-	suite.Equal(fileContent.String(), objectBytes.String())
+
+	localFilePath, err := storage.GetObject(suite._config.Storage.Bucket, putObjectAlias, localFileName)
+	suite.Nil(err)
+	defer os.Remove(localFilePath)
+
+	downloadedFileContent, err := os.ReadFile(localFilePath)
+	suite.Nil(err)
+	suite.Equal(textContent, string(downloadedFileContent))
 }
 
-func (suite *UnitTestSuite) TestMiniIOStorage() {
+func (suite *UnitTestSuite) TestMiniIOStoragePutObjectBytes() {
+	// Given
 	storage := types.NewMINIOStorage()
 
-	tmpFile, err := os.CreateTemp("/tmp", "test")
-	suite.Nil(err)
-	defer os.Remove(tmpFile.Name())
-	_, err = tmpFile.WriteString("test-source")
-	suite.Nil(err)
+	fileNameNoExt := uuid.New().String()
+	putObjectAlias := fmt.Sprintf("%s/%s", remoteTestBucket, fileNameNoExt)
 
-	// Test PutObject
-	err = storage.PutObject(suite._config.Storage.Bucket, tmpFile.Name())
-	suite.Nil(err)
-
-	// Test PutObjectBytes
-	localFileName, err := storage.PutObjectBytes(
+	// When
+	localFilePath, err := storage.PutObjectBytes(
 		suite._config.Storage.Bucket,
 		bytes.NewBufferString(xmlContent),
+		putObjectAlias,
 	)
+	defer os.Remove(localFilePath)
+
+	// Then
+	suite.Nil(err)
+
+	// Then
+	bucketListing, err := storage.ListObjects(suite._config.Storage.Bucket)
+	suite.Nil(err)
+	suite.NotEmpty(bucketListing)
+
+	var found string
+	for _, object := range bucketListing {
+		if strings.Contains(object, putObjectAlias) {
+			found = object
+			break
+		}
+	}
+	suite.NotEmpty(found)
+	suite.Contains(found, putObjectAlias)
+	suite.Contains(found, ".xml")
+
+	localFile, err := storage.GetObject(suite._config.Storage.Bucket, found, "")
+	suite.Nil(err)
+	defer os.Remove(localFile)
+	suite.Contains(localFile, ".xml")
+
+	downloadedFileContent, err := os.ReadFile(localFile)
+	suite.Nil(err)
+	suite.Equal(xmlContent, string(downloadedFileContent))
+}
+
+func (suite *UnitTestSuite) TestMiniIOStoragePutObjectBytesLongName() {
+	// Given
+	storage := types.NewMINIOStorage()
+
+	fileNameNoExt := uuid.New().String()
+	putObjectAlias := fmt.Sprintf("%s/%s", remoteTestBucket, fileNameNoExt)
+
+	// When
+	localFilePath, err := storage.PutObjectBytes(
+		suite._config.Storage.Bucket,
+		bytes.NewBufferString(xmlContent),
+		putObjectAlias,
+	)
+	defer os.Remove(localFilePath)
+
+	// Then
+	suite.Nil(err)
+
+	// Then
+	bucketListing, err := storage.ListObjects("this-is-ignored")
+	suite.Nil(err)
+	suite.NotEmpty(bucketListing)
+
+	var found string
+	for _, object := range bucketListing {
+		if strings.Contains(object, putObjectAlias) {
+			found = object
+			break
+		}
+	}
+	suite.NotEmpty(found)
+	suite.Contains(found, putObjectAlias)
+	suite.Contains(found, ".xml")
+
+	localFile, err := storage.GetObject(suite._config.Storage.Bucket, found, "")
+	suite.Nil(err)
+	defer os.Remove(localFile)
+	suite.Contains(localFile, ".xml")
+
+	downloadedFileContent, err := os.ReadFile(localFile)
+	suite.Nil(err)
+	suite.Equal(xmlContent, string(downloadedFileContent))
+}
+
+func (suite *UnitTestSuite) TestMiniIOStorageGetObject() {
+	// Given
+	storage := types.NewMINIOStorage()
+
+	localFileName, err := types.NewLocalStorage("").PutObjectBytes(os.TempDir(), bytes.NewBufferString(textContent), "")
 	suite.Nil(err)
 	suite.NotEmpty(localFileName)
-	suite.Contains(localFileName, ".xml")
+	suite.Contains(localFileName, ".txt")
 
-	// Test ListObjects
-	objects, err := storage.ListObjects(suite._config.Storage.Bucket)
-	suite.Nil(err)
-	suite.Contains(objects, filepath.Base(tmpFile.Name()))
-
-	// Test GetObject
-	tmpFile2, err := os.CreateTemp("/tmp", "test-destination")
-	suite.Nil(err)
-	defer os.Remove(tmpFile2.Name())
-
-	_, err = storage.GetObject(suite._config.Storage.Bucket, filepath.Base(tmpFile.Name()), tmpFile2.Name())
+	putObjectAlias := fmt.Sprintf("%s/%s", remoteTestBucket, filepath.Base(localFileName))
+	localFilePath, err := storage.PutObjectBytes(
+		suite._config.Storage.Bucket,
+		bytes.NewBufferString(textContent),
+		putObjectAlias,
+	)
+	defer os.Remove(localFilePath)
 	suite.Nil(err)
 
-	// Check if the content is the same
-	content1, err := os.ReadFile(tmpFile.Name())
+	// When
+	localFile, err := storage.GetObject(suite._config.Storage.Bucket, putObjectAlias, localFileName)
+
+	// Then
 	suite.Nil(err)
-	content2, err := os.ReadFile(tmpFile2.Name())
+	defer os.Remove(localFile)
+
+	downloadedFileContent, err := os.ReadFile(localFile)
 	suite.Nil(err)
-	suite.Equal(content1, content2)
+	suite.Equal(textContent, string(downloadedFileContent))
+	suite.Contains(localFile, ".txt")
+}
+
+func (suite *UnitTestSuite) TestMiniIOStorageListObjects() {
+	// Given
+	storage := types.NewMINIOStorage()
+
+	localFileName, err := types.NewLocalStorage("").PutObjectBytes(os.TempDir(), bytes.NewBufferString(textContent), "")
+	suite.Nil(err)
+	suite.NotEmpty(localFileName)
+	suite.Contains(localFileName, ".txt")
+
+	putObjectAlias := fmt.Sprintf("%s/%s", remoteTestBucket, filepath.Base(localFileName))
+	localFilePath, err := storage.PutObjectBytes(
+		suite._config.Storage.Bucket,
+		bytes.NewBufferString(textContent),
+		putObjectAlias,
+	)
+	defer os.Remove(localFilePath)
+	suite.Nil(err)
+
+	// When
+	bucketListing, err := storage.ListObjects(suite._config.Storage.Bucket)
+
+	// Then
+	suite.Nil(err)
+	suite.NotEmpty(bucketListing)
+
+	found := false
+	for _, object := range bucketListing {
+		if object == putObjectAlias {
+			found = true
+			break
+		}
+	}
+	suite.True(found)
+
 }

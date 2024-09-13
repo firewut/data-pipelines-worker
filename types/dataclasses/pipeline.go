@@ -113,7 +113,7 @@ func (p *PipelineData) GetSchemaPtr() *gojsonschema.Schema {
 
 func (p *PipelineData) Process(
 	data schemas.PipelineStartInputSchema,
-	storage interfaces.Storage,
+	resultStorages []interfaces.Storage,
 ) (uuid.UUID, error) {
 	processingId := uuid.New()
 	if data.Pipeline.ProcessingID != nil {
@@ -168,8 +168,15 @@ func (p *PipelineData) Process(
 		}
 
 		// Save result
-		if _, err = block.SaveOutput(blockData, result, storage); err != nil {
-			return uuid.UUID{}, err
+		for _, resultStorage := range resultStorages {
+			if _, err = block.SaveOutput(
+				blockData,
+				result,
+				processingId,
+				resultStorage,
+			); err != nil {
+				return uuid.UUID{}, err
+			}
 		}
 	}
 
