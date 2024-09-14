@@ -12,4 +12,6 @@ type Storage interface {
 	GetObjectBytes(string, string) (*bytes.Buffer, error)
 
 	GetStorageDirectory() string
+
+	Shutdown()
 }

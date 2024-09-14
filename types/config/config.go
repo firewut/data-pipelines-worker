@@ -53,7 +53,16 @@ type DNSSD struct {
 }
 
 type StorageConfig struct {
-	CredentialsPath string `yaml:"storage_credentials_path" json:"-"`
+	Local LocalStorageConfig `yaml:"local" json:"-"`
+	Minio MinioStorageConfig `yaml:"minio" json:"-"`
+}
+
+type LocalStorageConfig struct {
+	RootPath string `yaml:"root_path" json:"-"`
+}
+
+type MinioStorageConfig struct {
+	CredentialsPath string `yaml:"credentials_path" json:"-"`
 	Bucket          string `yaml:"bucket" json:"bucket"`
 	AccessKey       string `yaml:"accessKey" json:"accessKey"`
 	Api             string `yaml:"api" json:"api"`
@@ -142,8 +151,8 @@ func NewConfig() Config {
 		panic(err)
 	}
 
-	if config.Storage.CredentialsPath != "" {
-		credentailsPath := config.Storage.CredentialsPath
+	if config.Storage.Minio.CredentialsPath != "" {
+		credentailsPath := config.Storage.Minio.CredentialsPath
 		file, err := os.ReadFile(credentailsPath)
 
 		if condition := os.IsNotExist(err); condition {
@@ -158,14 +167,14 @@ func NewConfig() Config {
 			}
 		}
 
-		storageConfig := StorageConfig{
-			CredentialsPath: config.Storage.CredentialsPath,
+		minioStorageConfig := MinioStorageConfig{
+			CredentialsPath: config.Storage.Minio.CredentialsPath,
 		}
-		if err = json.Unmarshal(file, &storageConfig); err != nil {
+		if err = json.Unmarshal(file, &minioStorageConfig); err != nil {
 			panic(err)
 		}
 
-		config.Storage = storageConfig
+		config.Storage.Minio = minioStorageConfig
 	}
 
 	if config.Pipeline.StoragePath != "" {

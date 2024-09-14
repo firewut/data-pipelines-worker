@@ -22,6 +22,11 @@ type BlockData struct {
 	block    interfaces.Block
 }
 
+type BlockInputData struct {
+	Condition bool
+	Value     interface{}
+}
+
 func (b *BlockData) SetPipeline(pipeline interfaces.Pipeline) {
 	b.Lock()
 	defer b.Unlock()
@@ -106,13 +111,27 @@ func (b *BlockData) GetInputConfig() map[string]interface{} {
 	return b.InputConfig
 }
 
+func (b *BlockData) GetInputDataByPriority(
+	blockInputDataConfig []interface{},
+) []map[string]interface{} {
+	for _, item := range blockInputDataConfig {
+		if blockInput, ok := item.(BlockInputData); ok {
+			if blockInput.Condition {
+				return blockInput.Value.([]map[string]interface{})
+			}
+		}
+	}
+
+	return make([]map[string]interface{}, 0)
+}
+
 func (b *BlockData) GetInputDataFromConfig(
 	pipelineResults map[string][]*bytes.Buffer,
-) []map[string]interface{} {
+) ([]map[string]interface{}, error) {
 	inputData := make([]map[string]interface{}, 0)
 
 	if b.GetInputConfig() == nil {
-		return inputData
+		return inputData, nil
 	}
 
 	b.Lock()
@@ -122,7 +141,7 @@ func (b *BlockData) GetInputDataFromConfig(
 
 	// Check if `property` in `input_config` is not empty
 	if _, ok := b.InputConfig["property"]; !ok {
-		return inputData
+		return inputData, nil
 	}
 
 	for property, property_config := range b.InputConfig {
@@ -150,6 +169,11 @@ func (b *BlockData) GetInputDataFromConfig(
 									},
 								)
 							}
+						} else {
+							return inputData, fmt.Errorf(
+								"origin %s not found in pipelineResults",
+								origin,
+							)
 						}
 					}
 				}
@@ -159,5 +183,5 @@ func (b *BlockData) GetInputDataFromConfig(
 		}
 	}
 
-	return inputData
+	return inputData, nil
 }

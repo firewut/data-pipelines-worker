@@ -1,16 +1,17 @@
 package unit_test
 
 import (
-	"data-pipelines-worker/types"
-	"data-pipelines-worker/types/blocks"
-	"data-pipelines-worker/types/dataclasses"
-	"data-pipelines-worker/types/registries"
-	"data-pipelines-worker/types/validators"
 	"os"
 
 	"net/http"
 
 	"github.com/google/uuid"
+
+	"data-pipelines-worker/types"
+	"data-pipelines-worker/types/blocks"
+	"data-pipelines-worker/types/dataclasses"
+	"data-pipelines-worker/types/registries"
+	"data-pipelines-worker/types/validators"
 )
 
 func (suite *UnitTestSuite) TestBlockHTTP() {
@@ -142,7 +143,8 @@ func (suite *UnitTestSuite) TestBlockHTTPSaveOutputLocalStorage() {
 
 	// Save the output
 	fileName, err := block.SaveOutput(
-		data,
+		pipeline.GetSlug(),
+		data.GetSlug(),
 		result,
 		0,
 		processingId,
@@ -191,7 +193,8 @@ func (suite *UnitTestSuite) TestBlockHTTPSaveOutputNoSpaceOnDeviceLeft() {
 
 	// Save the output
 	fileName, err := block.SaveOutput(
-		data,
+		pipeline.GetSlug(),
+		data.GetSlug(),
 		result,
 		0,
 		uuid.New(),

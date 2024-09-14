@@ -163,33 +163,38 @@ func (p *PipelineData) Process(
 			return processingId, nil
 		}
 
-		// Priority of Inputs
-		var blockInputData = make([]map[string]interface{}, 0)
-
-		// Not Important - get from GetInputData
-		if blockData.GetInputData() != nil {
-			blockInputData = []map[string]interface{}{
-				blockData.GetInputData().(map[string]interface{}),
-			}
-		}
-
-		// Important - get from `input_config`
+		var inputConfigValue interface{}
 		if blockData.GetInputConfig() != nil {
-			blockInputData = blockData.GetInputDataFromConfig(
-				pipelineResults,
-			)
-		}
-
-		// Critical - get from request ( function argument `inputData`` )
-		if blockIndex == 0 && inputData.Block.Input != nil {
-			blockInputData = []map[string]interface{}{
-				inputData.Block.Input,
+			var err error
+			inputConfigValue, err = blockData.GetInputDataFromConfig(pipelineResults)
+			if err != nil {
+				return uuid.UUID{}, err
 			}
 		}
+
+		blockInputData := blockData.GetInputDataByPriority(
+			[]interface{}{
+				BlockInputData{
+					Condition: blockIndex == 0 && inputData.Block.Input != nil,
+					Value: []map[string]interface{}{
+						inputData.Block.Input,
+					},
+				},
+				BlockInputData{
+					Condition: blockData.GetInputConfig() != nil,
+					Value:     inputConfigValue,
+				},
+				BlockInputData{
+					Condition: blockData.GetInputData() != nil,
+					Value: []map[string]interface{}{
+						blockData.GetInputData().(map[string]interface{}),
+					},
+				},
+			},
+		)
 
 		pipelineResult := make([]*bytes.Buffer, 0)
 		for _, blockInput := range blockInputData {
-			// Check data.Block.Input not empty
 			blockProcessor := block.GetProcessor()
 
 			// Start processing
@@ -204,9 +209,12 @@ func (p *PipelineData) Process(
 
 			// Save result
 			for _, resultStorage := range resultStorages {
+				dataCopy := bytes.NewBuffer(result.Bytes())
+
 				if _, err = block.SaveOutput(
-					blockData,
-					result,
+					p.GetSlug(),
+					blockData.GetSlug(),
+					dataCopy,
 					blockIndex,
 					processingId,
 					resultStorage,

@@ -35,7 +35,8 @@ type UnitTestSuite struct {
 	_config config.Config
 	_blocks map[string]interfaces.Block
 
-	httpTestServers []*httptest.Server // to mock http requests
+	httpTestServers []*httptest.Server   // to mock http requests
+	storages        []interfaces.Storage // to mock storage
 }
 
 func TestUnitTestSuite(t *testing.T) {
@@ -121,7 +122,12 @@ func (suite *UnitTestSuite) TearDownTest() {
 	for _, server := range suite.httpTestServers {
 		server.Close()
 	}
+	for _, storage := range suite.storages {
+		storage.Shutdown()
+	}
+
 	suite.httpTestServers = make([]*httptest.Server, 0)
+	suite.storages = make([]interfaces.Storage, 0)
 }
 
 func (suite *UnitTestSuite) GetTestPipelineDefinition() []byte {
@@ -289,6 +295,8 @@ func (s *noSpaceLeftLocalStorage) GetObjectBytes(directory, fileName string) (*b
 	return nil, fmt.Errorf("No space left on device")
 }
 
+func (s *noSpaceLeftLocalStorage) Shutdown() {}
+
 type createdFile struct {
 	filePath string
 	data     *bytes.Buffer
@@ -301,6 +309,16 @@ type mockLocalStorage struct {
 	//   key: file path [ <pipeline-slug>/<pipeline-processing-id>/<block-slug>/output.<mimetype> ]
 	//   value: file content
 	files map[string]*bytes.Buffer
+}
+
+func (s *UnitTestSuite) NewMockLocalStorage(numBlocks int) *mockLocalStorage {
+	mockLocalStorage := &mockLocalStorage{
+		createdFilesChan: make(chan createdFile, numBlocks),
+		files:            make(map[string]*bytes.Buffer),
+	}
+	s.storages = append(s.storages, mockLocalStorage)
+
+	return mockLocalStorage
 }
 
 func (s *mockLocalStorage) GetStorageDirectory() string {
@@ -329,6 +347,10 @@ func (s *mockLocalStorage) GetObject(bucket, objectName string, filePath string)
 
 func (s *mockLocalStorage) GetObjectBytes(directory, fileName string) (*bytes.Buffer, error) {
 	return bytes.NewBufferString(textContent), nil
+}
+
+func (s *mockLocalStorage) Shutdown() {
+	close(s.createdFilesChan)
 }
 
 func (s *UnitTestSuite) GetDiscoveredWorkers() []interfaces.Worker {

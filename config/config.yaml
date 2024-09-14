@@ -17,7 +17,10 @@ dns_sd:
   available: no
 
 storage:
-  storage_credentials_path: "./storage_credentials.json"
+  local: 
+    root_path: "/tmp"
+  minio:
+    credentials_path: "./storage_credentials.json"
 
 pipeline:
   pipeline_validation_schema_path: "./pipelines_validation_schema.json"

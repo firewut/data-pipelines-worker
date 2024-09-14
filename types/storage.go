@@ -22,8 +22,17 @@ type LocalStorage struct {
 }
 
 func NewLocalStorage(root string) *LocalStorage {
+	_config := config.GetConfig()
+
 	if root == "" {
-		root = os.TempDir()
+		if _config.Storage.Local.RootPath != "" {
+			if err := os.MkdirAll(_config.Storage.Local.RootPath, 0755); err != nil {
+				panic(err)
+			}
+			root = _config.Storage.Local.RootPath
+		} else {
+			root = os.TempDir()
+		}
 	}
 	return &LocalStorage{
 		root: root,
@@ -91,6 +100,8 @@ func (s *LocalStorage) GetObjectBytes(directory, fileName string) (*bytes.Buffer
 	return buffer, nil
 }
 
+func (s *LocalStorage) Shutdown() {}
+
 type MINIOStorage struct {
 	Client *minio.Client
 
@@ -102,9 +113,9 @@ func NewMINIOStorage() *MINIOStorage {
 	storageConfig := config.GetConfig().Storage
 
 	minioClient, err := minio.New(
-		storageConfig.Url,
+		storageConfig.Minio.Url,
 		&minio.Options{
-			Creds:  credentials.NewStaticV4(storageConfig.AccessKey, storageConfig.SecretKey, ""),
+			Creds:  credentials.NewStaticV4(storageConfig.Minio.AccessKey, storageConfig.Minio.SecretKey, ""),
 			Secure: false, // Set to true if using HTTPS
 		},
 	)
@@ -114,7 +125,7 @@ func NewMINIOStorage() *MINIOStorage {
 
 	return &MINIOStorage{
 		Client:       minioClient,
-		bucket:       storageConfig.Bucket,
+		bucket:       storageConfig.Minio.Bucket,
 		localStorage: NewLocalStorage(""),
 	}
 }
@@ -206,6 +217,8 @@ func (s *MINIOStorage) GetObject(bucket, objectName string, filePath string) (st
 func (s *MINIOStorage) GetObjectBytes(directory, fileName string) (*bytes.Buffer, error) {
 	return nil, fmt.Errorf("not implemented")
 }
+
+func (s *MINIOStorage) Shutdown() {}
 
 func DetectMimeTypeFromBuffer(largeBuffer *bytes.Buffer) (*mimetype.MIME, error) {
 	var detectorBytesLen int64 = 261

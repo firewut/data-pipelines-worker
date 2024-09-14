@@ -100,12 +100,12 @@ func (suite *UnitTestSuite) TestMiniIOStoragePutObject() {
 	putObjectAlias := fmt.Sprintf("%s/%s", remoteTestBucket, filepath.Base(localFileName))
 
 	// When
-	err = storage.PutObject(suite._config.Storage.Bucket, localFileName, putObjectAlias)
+	err = storage.PutObject(suite._config.Storage.Minio.Bucket, localFileName, putObjectAlias)
 
 	// Then
 	suite.Nil(err)
 
-	localFilePath, err := storage.GetObject(suite._config.Storage.Bucket, putObjectAlias, localFileName)
+	localFilePath, err := storage.GetObject(suite._config.Storage.Minio.Bucket, putObjectAlias, localFileName)
 	suite.Nil(err)
 	defer os.Remove(localFilePath)
 
@@ -123,7 +123,7 @@ func (suite *UnitTestSuite) TestMiniIOStoragePutObjectBytes() {
 
 	// When
 	localFilePath, err := storage.PutObjectBytes(
-		suite._config.Storage.Bucket,
+		suite._config.Storage.Minio.Bucket,
 		bytes.NewBufferString(xmlContent),
 		putObjectAlias,
 	)
@@ -133,7 +133,7 @@ func (suite *UnitTestSuite) TestMiniIOStoragePutObjectBytes() {
 	suite.Nil(err)
 
 	// Then
-	bucketListing, err := storage.ListObjects(suite._config.Storage.Bucket)
+	bucketListing, err := storage.ListObjects(suite._config.Storage.Minio.Bucket)
 	suite.Nil(err)
 	suite.NotEmpty(bucketListing)
 
@@ -148,7 +148,7 @@ func (suite *UnitTestSuite) TestMiniIOStoragePutObjectBytes() {
 	suite.Contains(found, putObjectAlias)
 	suite.Contains(found, ".xml")
 
-	localFile, err := storage.GetObject(suite._config.Storage.Bucket, found, "")
+	localFile, err := storage.GetObject(suite._config.Storage.Minio.Bucket, found, "")
 	suite.Nil(err)
 	defer os.Remove(localFile)
 	suite.Contains(localFile, ".xml")
@@ -167,7 +167,7 @@ func (suite *UnitTestSuite) TestMiniIOStoragePutObjectBytesLongName() {
 
 	// When
 	localFilePath, err := storage.PutObjectBytes(
-		suite._config.Storage.Bucket,
+		suite._config.Storage.Minio.Bucket,
 		bytes.NewBufferString(xmlContent),
 		putObjectAlias,
 	)
@@ -192,7 +192,7 @@ func (suite *UnitTestSuite) TestMiniIOStoragePutObjectBytesLongName() {
 	suite.Contains(found, putObjectAlias)
 	suite.Contains(found, ".xml")
 
-	localFile, err := storage.GetObject(suite._config.Storage.Bucket, found, "")
+	localFile, err := storage.GetObject(suite._config.Storage.Minio.Bucket, found, "")
 	suite.Nil(err)
 	defer os.Remove(localFile)
 	suite.Contains(localFile, ".xml")
@@ -213,7 +213,7 @@ func (suite *UnitTestSuite) TestMiniIOStorageGetObject() {
 
 	putObjectAlias := fmt.Sprintf("%s/%s", remoteTestBucket, filepath.Base(localFileName))
 	localFilePath, err := storage.PutObjectBytes(
-		suite._config.Storage.Bucket,
+		suite._config.Storage.Minio.Bucket,
 		bytes.NewBufferString(textContent),
 		putObjectAlias,
 	)
@@ -221,7 +221,7 @@ func (suite *UnitTestSuite) TestMiniIOStorageGetObject() {
 	suite.Nil(err)
 
 	// When
-	localFile, err := storage.GetObject(suite._config.Storage.Bucket, putObjectAlias, localFileName)
+	localFile, err := storage.GetObject(suite._config.Storage.Minio.Bucket, putObjectAlias, localFileName)
 
 	// Then
 	suite.Nil(err)
@@ -244,7 +244,7 @@ func (suite *UnitTestSuite) TestMiniIOStorageListObjects() {
 
 	putObjectAlias := fmt.Sprintf("%s/%s", remoteTestBucket, filepath.Base(localFileName))
 	localFilePath, err := storage.PutObjectBytes(
-		suite._config.Storage.Bucket,
+		suite._config.Storage.Minio.Bucket,
 		bytes.NewBufferString(textContent),
 		putObjectAlias,
 	)
@@ -252,7 +252,7 @@ func (suite *UnitTestSuite) TestMiniIOStorageListObjects() {
 	suite.Nil(err)
 
 	// When
-	bucketListing, err := storage.ListObjects(suite._config.Storage.Bucket)
+	bucketListing, err := storage.ListObjects(suite._config.Storage.Minio.Bucket)
 
 	// Then
 	suite.Nil(err)

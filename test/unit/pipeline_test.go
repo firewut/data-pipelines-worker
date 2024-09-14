@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/google/uuid"
+
 	"data-pipelines-worker/types"
 	"data-pipelines-worker/types/dataclasses"
 	"data-pipelines-worker/types/interfaces"
-
-	"github.com/google/uuid"
 )
 
 func (suite *UnitTestSuite) TestGetPipelinesConfigSchema() {
@@ -119,7 +119,10 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
 		createdFilesChan: createdFilesChan,
 	}
 	registry.SetPipelineResultStorages(
-		[]interfaces.Storage{mockStorage},
+		[]interfaces.Storage{
+			mockStorage,
+			// types.NewMINIOStorage(),
+		},
 	)
 
 	// When
@@ -134,6 +137,56 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
 	suite.Equal(secondBlockInput, createdFileBlock1.data.String())
 
 	createdFileBlock2 := <-createdFilesChan
+	suite.NotEmpty(createdFileBlock2)
+	suite.Equal(mockedSecondBlockResponse, createdFileBlock2.data.String())
+}
+
+func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcessNStorages() {
+	// Given
+	mockedSecondBlockResponse := fmt.Sprintf(
+		"Hello, world! Mocked value is %s",
+		uuid.New().String(),
+	)
+	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK)
+	firstBlockInput := suite.GetMockHTTPServerURL(secondBlockInput, http.StatusOK)
+
+	pipeline, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
+		suite.GetTestPipelineTwoBlocks("NOT URL AT ALL"),
+		"test-pipeline-slug-two-blocks",
+		"test-block-first-slug",
+		map[string]interface{}{
+			"url": firstBlockInput,
+		},
+	)
+	mockStorage1 := suite.NewMockLocalStorage(2)
+	mockStorage2 := suite.NewMockLocalStorage(2)
+	storages := []interfaces.Storage{
+		types.NewLocalStorage(""),
+		mockStorage1,
+		mockStorage2,
+	}
+	registry.SetPipelineResultStorages(storages)
+
+	// When
+	processingId, err := pipeline.Process(processingData, registry.GetPipelineResultStorages())
+
+	// Then
+	suite.Nil(err)
+	suite.NotEmpty(processingId)
+
+	createdFileBlock1 := <-mockStorage1.createdFilesChan
+	suite.NotEmpty(createdFileBlock1)
+	suite.Equal(secondBlockInput, createdFileBlock1.data.String())
+
+	createdFileBlock2 := <-mockStorage1.createdFilesChan
+	suite.NotEmpty(createdFileBlock2)
+	suite.Equal(mockedSecondBlockResponse, createdFileBlock2.data.String())
+
+	createdFileBlock1 = <-mockStorage2.createdFilesChan
+	suite.NotEmpty(createdFileBlock1)
+	suite.Equal(secondBlockInput, createdFileBlock1.data.String())
+
+	createdFileBlock2 = <-mockStorage2.createdFilesChan
 	suite.NotEmpty(createdFileBlock2)
 	suite.Equal(mockedSecondBlockResponse, createdFileBlock2.data.String())
 }

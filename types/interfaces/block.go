@@ -35,7 +35,7 @@ type Block interface {
 	GetProcessor() BlockProcessor
 
 	Process(BlockProcessor, ProcessableBlockData) (*bytes.Buffer, error)
-	SaveOutput(ProcessableBlockData, *bytes.Buffer, int, uuid.UUID, Storage) (string, error)
+	SaveOutput(string, string, *bytes.Buffer, int, uuid.UUID, Storage) (string, error)
 }
 
 type ProcessableBlockData interface {
@@ -54,8 +54,10 @@ type ProcessableBlockData interface {
 	SetData(interface{})
 
 	GetInputData() interface{}
-	GetInputDataFromConfig(map[string][]*bytes.Buffer) []map[string]interface{}
 	SetInputData(interface{})
+
+	GetInputDataByPriority([]interface{}) []map[string]interface{}
+	GetInputDataFromConfig(map[string][]*bytes.Buffer) ([]map[string]interface{}, error)
 
 	GetStringRepresentation() string
 }
