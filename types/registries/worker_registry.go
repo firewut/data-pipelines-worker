@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sync"
 
+	"data-pipelines-worker/api/schemas"
 	"data-pipelines-worker/types/interfaces"
 
 	"github.com/google/uuid"
@@ -82,8 +83,16 @@ func (wr *WorkerRegistry) ResumeProcessing(
 	pipelineSlug string,
 	processingId uuid.UUID,
 	blockId string,
+	blockIndex int,
+	inputData schemas.PipelineStartInputSchema,
 ) error {
 	// validWorkers := wr.GetValidWorkers()
+
+	if blockIndex == 0 {
+		// Respect inputData
+	} else {
+		inputData.Block.Input = make(map[string]interface{})
+	}
 
 	return nil
 }

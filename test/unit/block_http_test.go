@@ -144,6 +144,7 @@ func (suite *UnitTestSuite) TestBlockHTTPSaveOutputLocalStorage() {
 	fileName, err := block.SaveOutput(
 		data,
 		result,
+		0,
 		processingId,
 		types.NewLocalStorage(""),
 	)
@@ -192,6 +193,7 @@ func (suite *UnitTestSuite) TestBlockHTTPSaveOutputNoSpaceOnDeviceLeft() {
 	fileName, err := block.SaveOutput(
 		data,
 		result,
+		0,
 		uuid.New(),
 		&noSpaceLeftLocalStorage{},
 	)

@@ -1,6 +1,7 @@
 package dataclasses
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 
@@ -112,18 +113,21 @@ func (p *PipelineData) GetSchemaPtr() *gojsonschema.Schema {
 }
 
 func (p *PipelineData) Process(
-	data schemas.PipelineStartInputSchema,
+	inputData schemas.PipelineStartInputSchema,
 	resultStorages []interfaces.Storage,
 ) (uuid.UUID, error) {
 	processingId := uuid.New()
-	if data.Pipeline.ProcessingID != nil {
-		processingId, _ = uuid.Parse(*data.Pipeline.ProcessingID)
+
+	if inputData.Pipeline.ProcessingID != uuid.Nil {
+		processingId = inputData.Pipeline.ProcessingID
+	} else {
+		inputData.Pipeline.ProcessingID = processingId
 	}
 
 	// Check if the block exists in the pipeline
 	processBlocks := make([]interfaces.ProcessableBlockData, 0)
 	for i, block := range p.Blocks {
-		if block.GetSlug() == data.Block.Slug {
+		if block.GetSlug() == inputData.Block.Slug {
 			processBlocks = p.Blocks[i:]
 			break
 		}
@@ -132,13 +136,16 @@ func (p *PipelineData) Process(
 	if len(processBlocks) == 0 {
 		return uuid.UUID{}, fmt.Errorf(
 			"block with slug %s not found in pipeline %s",
-			data.Block.Slug,
+			inputData.Block.Slug,
 			p.Slug,
 		)
 	}
 
+	// Visit Shared Storage and Fetch State to pipelineResults
+	pipelineResults := make(map[string][]*bytes.Buffer, 0)
+
 	// Loop through each block
-	for _, blockData := range processBlocks {
+	for blockIndex, blockData := range processBlocks {
 		block := blockData.GetBlock()
 
 		if !block.IsAvailable() {
@@ -148,36 +155,70 @@ func (p *PipelineData) Process(
 				blockData.GetPipeline().GetSlug(),
 				processingId,
 				blockData.GetSlug(),
+				blockIndex,
+				inputData,
 			); err != nil {
 				return uuid.UUID{}, err
 			}
 			return processingId, nil
 		}
 
-		// Check data.Block.Input not empty
-		if len(data.Block.Input) > 0 {
-			blockData.SetInputData(data.Block.Input)
-		}
+		// Priority of Inputs
+		var blockInputData = make([]map[string]interface{}, 0)
 
-		blockProcessor := block.GetProcessor()
-
-		// Start processing
-		result, err := block.Process(blockProcessor, blockData)
-		if err != nil {
-			return uuid.UUID{}, err
-		}
-
-		// Save result
-		for _, resultStorage := range resultStorages {
-			if _, err = block.SaveOutput(
-				blockData,
-				result,
-				processingId,
-				resultStorage,
-			); err != nil {
-				return uuid.UUID{}, err
+		// Not Important - get from GetInputData
+		if blockData.GetInputData() != nil {
+			blockInputData = []map[string]interface{}{
+				blockData.GetInputData().(map[string]interface{}),
 			}
 		}
+
+		// Important - get from `input_config`
+		if blockData.GetInputConfig() != nil {
+			blockInputData = blockData.GetInputDataFromConfig(
+				pipelineResults,
+			)
+		}
+
+		// Critical - get from request ( function argument `inputData`` )
+		if blockIndex == 0 && inputData.Block.Input != nil {
+			blockInputData = []map[string]interface{}{
+				inputData.Block.Input,
+			}
+		}
+
+		pipelineResult := make([]*bytes.Buffer, 0)
+		for _, blockInput := range blockInputData {
+			// Check data.Block.Input not empty
+			blockProcessor := block.GetProcessor()
+
+			// Start processing
+			blockData.SetInputData(blockInput)
+			result, err := block.Process(
+				blockProcessor,
+				blockData,
+			)
+			if err != nil {
+				return uuid.UUID{}, err
+			}
+
+			// Save result
+			for _, resultStorage := range resultStorages {
+				if _, err = block.SaveOutput(
+					blockData,
+					result,
+					blockIndex,
+					processingId,
+					resultStorage,
+				); err != nil {
+					return uuid.UUID{}, err
+				}
+			}
+
+			pipelineResult = append(pipelineResult, result)
+		}
+
+		pipelineResults[blockData.GetSlug()] = pipelineResult
 	}
 
 	return processingId, nil

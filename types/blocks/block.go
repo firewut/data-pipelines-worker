@@ -177,18 +177,20 @@ func (b *BlockParent) Process(
 func (b *BlockParent) SaveOutput(
 	data interfaces.ProcessableBlockData,
 	output *bytes.Buffer,
+	index int,
 	processingId uuid.UUID,
 	storage interfaces.Storage,
 ) (string, error) {
 	// Block output is a file named:
-	// <pipeline-slug>/<processing-id>/<block-slug>/output.<mimetype>
+	// <pipeline-slug>/<processing-id>/<block-slug>/output_{i}.<mimetype>
 
 	pipeline := data.GetPipeline()
 	filePath := fmt.Sprintf(
-		"%s/%s/%s/output",
+		"%s/%s/%s/output_%d",
 		pipeline.GetSlug(),
 		processingId,
 		data.GetSlug(),
+		index,
 	)
 
 	return storage.PutObjectBytes(

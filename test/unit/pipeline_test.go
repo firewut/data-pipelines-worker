@@ -97,14 +97,13 @@ func (suite *UnitTestSuite) TestPipelineProcess() {
 	suite.Equal(mockedResponse, createdFile.data.String())
 }
 
-func (suite *UnitTestSuite) TestPipelineProcessTwoBlocks() {
+func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
 	// Given
 	mockedSecondBlockResponse := fmt.Sprintf(
 		"Hello, world! Mocked value is %s",
 		uuid.New().String(),
 	)
 	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK)
-
 	firstBlockInput := suite.GetMockHTTPServerURL(secondBlockInput, http.StatusOK)
 
 	pipeline, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
@@ -134,7 +133,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocks() {
 	suite.NotEmpty(createdFileBlock1)
 	suite.Equal(secondBlockInput, createdFileBlock1.data.String())
 
-	// createdFileBlock2 := <-createdFilesChan
-	// suite.NotEmpty(createdFileBlock2)
-	// suite.Equal(mockedSecondBlockResponse, createdFileBlock2.data.String())
+	createdFileBlock2 := <-createdFilesChan
+	suite.NotEmpty(createdFileBlock2)
+	suite.Equal(mockedSecondBlockResponse, createdFileBlock2.data.String())
 }
