@@ -57,7 +57,7 @@ type ProcessableBlockData interface {
 	SetInputData(interface{})
 
 	GetInputDataByPriority([]interface{}) []map[string]interface{}
-	GetInputDataFromConfig(map[string][]*bytes.Buffer) ([]map[string]interface{}, error)
+	GetInputConfigData(map[string][]*bytes.Buffer) ([]map[string]interface{}, error)
 
 	GetStringRepresentation() string
 }

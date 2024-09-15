@@ -11,16 +11,16 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/grandcat/zeroconf"
+	"github.com/labstack/gommon/log"
+	"github.com/stretchr/testify/suite"
+
 	"data-pipelines-worker/api/schemas"
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/dataclasses"
 	"data-pipelines-worker/types/interfaces"
 	"data-pipelines-worker/types/registries"
-
-	"github.com/grandcat/zeroconf"
-	"github.com/labstack/gommon/log"
-	"github.com/stretchr/testify/suite"
 )
 
 const (
@@ -396,4 +396,39 @@ func (suite *UnitTestSuite) GetMockServerHandlersResponse(
 		"/pipelines": string(pipelinesResponse),
 		"/blocks":    string(blocksResponse),
 	}
+}
+
+func (suite *UnitTestSuite) GetTestTranscriptionResult() string {
+	return `{
+		"text": "Segment one Content. Segment two Content",
+		"task": "transcribe",
+		"language": "english",
+		"duration": 3,
+		"segments": [
+			{
+				"id": 0,
+				"seek": 0,
+				"start": 0.0,
+				"end": 1,
+				"text": " Segment one Content.",
+				"tokens": [50364],
+				"temperature": 0.0,
+				"avg_logprob": -0.22957643866539001,
+				"compression_ratio": 1.3538461923599243,
+				"no_speech_prob": 0.00005914297071285546
+			},
+			{
+				"id": 1,
+				"seek": 0,
+				"start": 1,
+				"end": 3,
+				"text": " Segment two Content",
+				"tokens": [50962],
+				"temperature": 0.0,
+				"avg_logprob": -0.22957643866539001,
+				"compression_ratio": 1.3538461923599243,
+				"no_speech_prob": 0.00005914297071285546
+			}
+		]
+	}`
 }

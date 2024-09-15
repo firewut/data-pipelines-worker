@@ -166,7 +166,7 @@ func (p *PipelineData) Process(
 		var inputConfigValue interface{}
 		if blockData.GetInputConfig() != nil {
 			var err error
-			inputConfigValue, err = blockData.GetInputDataFromConfig(pipelineResults)
+			inputConfigValue, err = blockData.GetInputConfigData(pipelineResults)
 			if err != nil {
 				return uuid.UUID{}, err
 			}

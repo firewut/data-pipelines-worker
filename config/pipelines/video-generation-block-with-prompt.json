@@ -20,7 +20,7 @@
                 "property": {
                     "message": {
                         "origin": "get-text-content-for-video",
-                        "xpath": "choices[0].message"
+                        "jsonPath": "choices[0].message"
                     }
                 }
             },
@@ -54,7 +54,7 @@
                 "property": {
                     "condition": {
                         "origin": "fetch-text-moderation-decision",
-                        "xpath": "action='declined'"
+                        "jsonPath": "action='declined'"
                     }
                 }
             }
@@ -67,7 +67,7 @@
                 "property": {
                     "text": {
                         "origin": "get-text-content-for-video",
-                        "xpath": "choices[0].message"
+                        "jsonPath": "choices[0].message"
                     }
                 }
             }
@@ -102,7 +102,7 @@
                 "property": {
                     "body": {
                         "origin": "request-tts-transcription",
-                        "xpath": "//segments"
+                        "jsonPath": "//segments"
                     }
                 }
             },
@@ -128,7 +128,7 @@
                 "property": {
                     "url": {
                         "origin": "request-image-for-tts-segment",
-                        "xpath": "//url"
+                        "jsonPath": "//url"
                     }
                 }
             },
@@ -149,7 +149,7 @@
                 "property": {
                     "text": {
                         "origin": "request-image-for-tts-segment",
-                        "xpath": "//segments"
+                        "jsonPath": "//segments"
                     },
                     "image": {
                         "origin": "download-image"
@@ -172,11 +172,11 @@
                 "property": {
                     "start": {
                         "origin": "request-tts-transcription",
-                        "xpath": "//segments[$INDEX]/start"
+                        "jsonPath": "//segments[$INDEX]/start"
                     },
                     "end": {
                         "origin": "request-tts-transcription",
-                        "xpath": "//segments[$INDEX]/end"
+                        "jsonPath": "//segments[$INDEX]/end"
                     },
                     "image": {
                         "origin": "add-transcription-text-to-image"
@@ -244,7 +244,7 @@
                 "property": {
                     "condition": {
                         "origin": "fetch-video-moderation-decision",
-                        "xpath": "action='declined'"
+                        "jsonPath": "action='declined'"
                     }
                 }
             }
@@ -257,7 +257,7 @@
                 "property": {
                     "user_request": {
                         "origin": "get-text-content-for-video",
-                        "xpath": "choices[0].message"
+                        "jsonPath": "choices[0].message"
                     }
                 }
             },
@@ -279,7 +279,7 @@
                 "property": {
                     "user_request": {
                         "origin": "get-text-content-for-video",
-                        "xpath": "choices[0].message"
+                        "jsonPath": "choices[0].message"
                     }
                 }
             },
@@ -301,13 +301,13 @@
                 "property": {
                     "user_request": {
                         "origin": "get-text-content-for-video",
-                        "xpath": "choices[0].message"
+                        "jsonPath": "choices[0].message"
                     }
                 },
                 "format_vars": {
                     "exclude_tags": {
                         "origin": "",
-                        "xpath": ""
+                        "jsonPath": ""
                     }
                 }
             },

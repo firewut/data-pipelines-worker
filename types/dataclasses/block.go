@@ -2,8 +2,11 @@ package dataclasses
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"sync"
+
+	"github.com/oliveagle/jsonpath"
 
 	"data-pipelines-worker/types/interfaces"
 )
@@ -125,9 +128,30 @@ func (b *BlockData) GetInputDataByPriority(
 	return make([]map[string]interface{}, 0)
 }
 
-func (b *BlockData) GetInputDataFromConfig(
+func (b *BlockData) GetInputConfigData(
 	pipelineResults map[string][]*bytes.Buffer,
 ) ([]map[string]interface{}, error) {
+	//  input_config.type = "array"
+	//      the function returns an array of maps
+	//          []map[string]interface{}{
+	//              map[string]interface{}{
+	//    	            "url": "https://localhost:8080",
+	//    	            "body": "hello 1",
+	//    	        },
+	//    	        map[string]interface{}{
+	//    	            "url": "https://localhost:8081",
+	//    	            "body": "hello 2",
+	//    	        }
+	//          }
+	//  input_config.type != "array"
+	//      the function returns an array of maps with one property joined
+	//          []map[string]interface{}{
+	//              map[string]interface{}{
+	//    	            "url": "https://localhost:8080",
+	//    	            "body": "hello 1",
+	//    	        }
+	//          }
+
 	inputData := make([]map[string]interface{}, 0)
 
 	if b.GetInputConfig() == nil {
@@ -143,6 +167,17 @@ func (b *BlockData) GetInputDataFromConfig(
 	if _, ok := b.InputConfig["property"]; !ok {
 		return inputData, nil
 	}
+
+	// Check if `type` in `input_config` is not empty
+	inputTypeArray := false
+	if inputType, ok := b.InputConfig["type"]; ok {
+		switch inputType {
+		case "array":
+			inputTypeArray = true
+		default:
+		}
+	}
+	_ = inputTypeArray
 
 	for property, property_config := range b.InputConfig {
 		if property_config == nil {
@@ -162,11 +197,32 @@ func (b *BlockData) GetInputDataFromConfig(
 					// Check origin in PropertyData exists in pipelineResults
 					if origin, ok := property_config.(map[string]interface{})["origin"].(string); ok {
 						if results, ok := pipelineResults[origin]; ok {
-							for _, result := range results {
+							for _, resultValue := range results {
+								originData := map[string]interface{}{
+									property: resultValue.String(),
+								}
+
+								// jsonPath same level as `origin`
+								if jsonPath, ok := property_config.(map[string]interface{})["jsonPath"].(string); ok {
+									var data interface{}
+									err := json.Unmarshal(resultValue.Bytes(), &data)
+									if err != nil {
+										fmt.Println("Error unmarshaling JSON:", err)
+										return nil, err
+									}
+
+									jsonPathData, err := jsonpath.JsonPathLookup(data, jsonPath)
+									if err != nil {
+										return nil, err
+									}
+
+									originData = map[string]interface{}{
+										property: jsonPathData,
+									}
+								}
+
 								inputData = append(
-									inputData, map[string]interface{}{
-										property: result.String(),
-									},
+									inputData, originData,
 								)
 							}
 						} else {
@@ -183,5 +239,58 @@ func (b *BlockData) GetInputDataFromConfig(
 		}
 	}
 
+	if inputTypeArray {
+		inputData = mergeMaps(inputData)
+	} else {
+		inputDataNotArray := make(map[string]interface{})
+		for _, data := range inputData {
+			for key, value := range data {
+				if _, ok := inputDataNotArray[key]; !ok {
+					inputDataNotArray[key] = value
+				}
+			}
+		}
+
+		return []map[string]interface{}{inputDataNotArray}, nil
+	}
+
 	return inputData, nil
+}
+
+func mergeMaps(maps []map[string]interface{}) []map[string]interface{} {
+	if len(maps) == 0 {
+		return nil
+	}
+
+	// Create a map to group values by keys
+	grouped := make(map[string][]interface{})
+
+	// Collect values by keys
+	for _, m := range maps {
+		for key, value := range m {
+			grouped[key] = append(grouped[key], value)
+		}
+	}
+
+	// Determine the number of result maps
+	numResults := 0
+	for _, values := range grouped {
+		if numResults < len(values) {
+			numResults = len(values)
+		}
+	}
+
+	// Create result maps by combining values at each index
+	results := make([]map[string]interface{}, numResults)
+	for i := 0; i < numResults; i++ {
+		resultMap := make(map[string]interface{})
+		for key, values := range grouped {
+			if i < len(values) {
+				resultMap[key] = values[i]
+			}
+		}
+		results[i] = resultMap
+	}
+
+	return results
 }
