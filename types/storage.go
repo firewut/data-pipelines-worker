@@ -18,6 +18,7 @@ import (
 )
 
 type LocalStorage struct {
+	name string
 	root string
 }
 
@@ -35,8 +36,13 @@ func NewLocalStorage(root string) *LocalStorage {
 		}
 	}
 	return &LocalStorage{
+		name: "local",
 		root: root,
 	}
+}
+
+func (s *LocalStorage) GetStorageName() string {
+	return s.name
 }
 
 func (s *LocalStorage) GetStorageDirectory() string {
@@ -105,6 +111,7 @@ func (s *LocalStorage) Shutdown() {}
 type MINIOStorage struct {
 	Client *minio.Client
 
+	name         string
 	bucket       string
 	localStorage interfaces.Storage // Some operations requires local storage
 }
@@ -127,7 +134,12 @@ func NewMINIOStorage() *MINIOStorage {
 		Client:       minioClient,
 		bucket:       storageConfig.Minio.Bucket,
 		localStorage: NewLocalStorage(""),
+		name:         "minio",
 	}
+}
+
+func (s *MINIOStorage) GetStorageName() string {
+	return s.name
 }
 
 func (s *MINIOStorage) GetStorageDirectory() string {

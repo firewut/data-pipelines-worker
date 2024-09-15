@@ -25,6 +25,7 @@ func GetWorkerRegistry() *WorkerRegistry {
 	return workerRegistryInstance
 }
 
+// WorkerRegistry is a registry for discovered Workers
 type WorkerRegistry struct {
 	sync.Mutex
 

@@ -271,6 +271,9 @@ func (suite *UnitTestSuite) GetTestPipelineTwoBlocks(firstBlockUrl string) inter
 // Storage to simulate no space left on device
 type noSpaceLeftLocalStorage struct{}
 
+func (s *noSpaceLeftLocalStorage) GetStorageName() string {
+	return "mock-no-space-left"
+}
 func (s *noSpaceLeftLocalStorage) GetStorageDirectory() string {
 	return os.TempDir()
 }
@@ -319,6 +322,10 @@ func (s *UnitTestSuite) NewMockLocalStorage(numBlocks int) *mockLocalStorage {
 	s.storages = append(s.storages, mockLocalStorage)
 
 	return mockLocalStorage
+}
+
+func (s *mockLocalStorage) GetStorageName() string {
+	return "mock"
 }
 
 func (s *mockLocalStorage) GetStorageDirectory() string {

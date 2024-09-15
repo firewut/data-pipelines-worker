@@ -3,11 +3,9 @@ package blocks
 import (
 	"bytes"
 	"fmt"
-	"path"
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/xeipuuv/gojsonschema"
 
 	"data-pipelines-worker/types/config"
@@ -172,35 +170,6 @@ func (b *BlockParent) Process(
 	}
 
 	return processor.Process(b, data)
-}
-
-func (b *BlockParent) SaveOutput(
-	pipelineSlug string,
-	blockSlug string,
-	output *bytes.Buffer,
-	index int,
-	processingId uuid.UUID,
-	storage interfaces.Storage,
-) (string, error) {
-	// Block output is a file named:
-	// <pipeline-slug>/<processing-id>/<block-slug>/output_{i}.<mimetype>
-
-	filePath := fmt.Sprintf(
-		"%s/%s/%s/output_%d",
-		pipelineSlug,
-		processingId,
-		blockSlug,
-		index,
-	)
-
-	return storage.PutObjectBytes(
-		path.Join(
-			storage.GetStorageDirectory(),
-			filePath,
-		),
-		output,
-		filePath,
-	)
 }
 
 func (b *BlockParent) SetAvailable(available bool) {

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"sync"
 
-	"github.com/google/uuid"
 	"github.com/xeipuuv/gojsonschema"
 )
 
@@ -35,7 +34,6 @@ type Block interface {
 	GetProcessor() BlockProcessor
 
 	Process(BlockProcessor, ProcessableBlockData) (*bytes.Buffer, error)
-	SaveOutput(string, string, *bytes.Buffer, int, uuid.UUID, Storage) (string, error)
 }
 
 type ProcessableBlockData interface {

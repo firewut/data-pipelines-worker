@@ -3,6 +3,8 @@ package interfaces
 import "bytes"
 
 type Storage interface {
+	GetStorageName() string
+
 	ListObjects(location string) ([]string, error)
 
 	PutObject(destination string, source string, alias string) error

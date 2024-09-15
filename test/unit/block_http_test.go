@@ -1,16 +1,10 @@
 package unit_test
 
 import (
-	"os"
-
 	"net/http"
 
-	"github.com/google/uuid"
-
-	"data-pipelines-worker/types"
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/dataclasses"
-	"data-pipelines-worker/types/registries"
 	"data-pipelines-worker/types/validators"
 )
 
@@ -107,99 +101,4 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessError() {
 		err.Error(),
 		"HTTP request failed with status code: 500",
 	)
-}
-
-func (suite *UnitTestSuite) TestBlockHTTPSaveOutputLocalStorage() {
-	registry, err := registries.NewPipelineRegistry(
-		dataclasses.NewPipelineCatalogueLoader(),
-	)
-	suite.Nil(err)
-
-	pipelineSlug := "YT-CHANNEL-video-generation-block-prompt"
-	pipeline := registry.Get(pipelineSlug)
-	processingId := uuid.New()
-
-	block := blocks.NewBlockHTTP()
-
-	httpContent := "Testing save output method!\n"
-	successUrl := suite.GetMockHTTPServerURL(httpContent, http.StatusOK)
-
-	// Create a mock data
-	data := &dataclasses.BlockData{
-		Id:   "http_request",
-		Slug: "http-request",
-		Input: map[string]interface{}{
-			"url": successUrl,
-		},
-	}
-	data.SetPipeline(pipeline)
-	data.SetBlock(block)
-
-	// Process the block
-	result, err := block.Process(blocks.NewProcessorHTTP(), data)
-	suite.NotNil(result)
-	suite.Nil(err)
-	suite.Equal(httpContent, result.String())
-
-	// Save the output
-	fileName, err := block.SaveOutput(
-		pipeline.GetSlug(),
-		data.GetSlug(),
-		result,
-		0,
-		processingId,
-		types.NewLocalStorage(""),
-	)
-	suite.Nil(err)
-	suite.NotEmpty(fileName)
-	defer os.Remove(fileName)
-
-	// Read file content
-	content, err := os.ReadFile(fileName)
-	suite.Nil(err)
-	suite.Equal(httpContent, string(content))
-}
-
-func (suite *UnitTestSuite) TestBlockHTTPSaveOutputNoSpaceOnDeviceLeft() {
-	registry, err := registries.NewPipelineRegistry(
-		dataclasses.NewPipelineCatalogueLoader(),
-	)
-	suite.Nil(err)
-
-	pipelineSlug := "YT-CHANNEL-video-generation-block-prompt"
-	pipeline := registry.Get(pipelineSlug)
-
-	block := blocks.NewBlockHTTP()
-
-	httpContent := "Testing save output method!\n"
-	successUrl := suite.GetMockHTTPServerURL(httpContent, http.StatusOK)
-
-	// Create a mock data
-	data := &dataclasses.BlockData{
-		Id:   "http_request",
-		Slug: "http-request",
-		Input: map[string]interface{}{
-			"url": successUrl,
-		},
-	}
-	data.SetPipeline(pipeline)
-	data.SetBlock(block)
-
-	// Process the block
-	result, err := block.Process(blocks.NewProcessorHTTP(), data)
-	suite.NotNil(result)
-	suite.Nil(err)
-	suite.Equal(httpContent, result.String())
-
-	// Save the output
-	fileName, err := block.SaveOutput(
-		pipeline.GetSlug(),
-		data.GetSlug(),
-		result,
-		0,
-		uuid.New(),
-		&noSpaceLeftLocalStorage{},
-	)
-	suite.NotNil(err)
-	suite.Empty(fileName)
 }

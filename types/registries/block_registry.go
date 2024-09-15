@@ -22,6 +22,7 @@ func GetBlockRegistry() *BlockRegistry {
 	return blockRegistryInstance
 }
 
+// BlockRegistry is a registry for detected Blocks
 type BlockRegistry struct {
 	sync.Mutex
 

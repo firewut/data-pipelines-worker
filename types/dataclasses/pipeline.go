@@ -1,7 +1,6 @@
 package dataclasses
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 
@@ -9,6 +8,7 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 
 	"data-pipelines-worker/api/schemas"
+	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/interfaces"
 	"data-pipelines-worker/types/registries"
 	"data-pipelines-worker/types/validators"
@@ -141,8 +141,11 @@ func (p *PipelineData) Process(
 		)
 	}
 
-	// Visit Shared Storage and Fetch State to pipelineResults
-	pipelineResults := make(map[string][]*bytes.Buffer, 0)
+	pipelineBlockDataRegistry := registries.NewPipelineBlockDataRegistry(
+		processingId,
+		p.Slug,
+		resultStorages,
+	)
 
 	// Loop through each block
 	for blockIndex, blockData := range processBlocks {
@@ -166,7 +169,9 @@ func (p *PipelineData) Process(
 		var inputConfigValue interface{}
 		if blockData.GetInputConfig() != nil {
 			var err error
-			inputConfigValue, err = blockData.GetInputConfigData(pipelineResults)
+			inputConfigValue, err = blockData.GetInputConfigData(
+				pipelineBlockDataRegistry.GetAll(),
+			)
 			if err != nil {
 				return uuid.UUID{}, err
 			}
@@ -193,8 +198,7 @@ func (p *PipelineData) Process(
 			},
 		)
 
-		pipelineResult := make([]*bytes.Buffer, 0)
-		for _, blockInput := range blockInputData {
+		for blockInputIndex, blockInput := range blockInputData {
 			blockProcessor := block.GetProcessor()
 
 			// Start processing
@@ -207,26 +211,28 @@ func (p *PipelineData) Process(
 				return uuid.UUID{}, err
 			}
 
-			// Save result
-			for _, resultStorage := range resultStorages {
-				dataCopy := bytes.NewBuffer(result.Bytes())
+			// Add result to Registry
+			pipelineBlockDataRegistry.Add(blockData.GetSlug(), result)
 
-				if _, err = block.SaveOutput(
-					p.GetSlug(),
-					blockData.GetSlug(),
-					dataCopy,
-					blockIndex,
-					processingId,
-					resultStorage,
-				); err != nil {
-					return uuid.UUID{}, err
+			// Save result to Storage
+			saveOutputResults := pipelineBlockDataRegistry.SaveOutput(
+				blockData.GetSlug(),
+				blockInputIndex,
+				result,
+			)
+
+			for _, saveOutputResult := range saveOutputResults {
+				if saveOutputResult.Error != nil {
+					config.GetLogger().Errorf(
+						"Error saving output for block %s to storage %s: %s",
+						blockData.GetSlug(),
+						saveOutputResult.Storage.GetStorageName(),
+						saveOutputResult.Error,
+					)
+					return uuid.UUID{}, saveOutputResult.Error
 				}
 			}
-
-			pipelineResult = append(pipelineResult, result)
 		}
-
-		pipelineResults[blockData.GetSlug()] = pipelineResult
 	}
 
 	return processingId, nil

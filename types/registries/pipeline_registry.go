@@ -12,6 +12,7 @@ import (
 	"data-pipelines-worker/types/interfaces"
 )
 
+// PipelineRegistry is a registry for Pipelines from Catalogue
 type PipelineRegistry struct {
 	sync.Mutex
 
