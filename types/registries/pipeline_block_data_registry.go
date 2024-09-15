@@ -15,7 +15,7 @@ type PipelineBlockDataRegistry struct {
 	sync.Mutex
 
 	processingId      uuid.UUID
-	piplineSlug       string
+	pipelineSlug      string
 	storages          []interfaces.Storage
 	pipelineBlockData map[string][]*bytes.Buffer
 }
@@ -34,7 +34,7 @@ func NewPipelineBlockDataRegistry(
 	registry := &PipelineBlockDataRegistry{
 		pipelineBlockData: make(map[string][]*bytes.Buffer),
 		processingId:      processingId,
-		piplineSlug:       pipelineSlug,
+		pipelineSlug:      pipelineSlug,
 		storages:          storages,
 	}
 
@@ -103,7 +103,7 @@ func (r *PipelineBlockDataRegistry) GetPipelineSlug() string {
 	r.Lock()
 	defer r.Unlock()
 
-	return r.piplineSlug
+	return r.pipelineSlug
 }
 
 func (r *PipelineBlockDataRegistry) GetStorages() []interfaces.Storage {
@@ -127,6 +127,42 @@ func (r *PipelineBlockDataRegistry) SetStorages(storages []interfaces.Storage) {
 	r.storages = storages
 }
 
+func (r *PipelineBlockDataRegistry) LoadOutput(blockSlug string) []*bytes.Buffer {
+	blockSlugDirectory := path.Join(
+		r.pipelineSlug,
+		r.processingId.String(),
+		blockSlug,
+	)
+
+	storages := r.GetStorages()
+	for _, storage := range storages {
+		files, err := storage.ListObjects(
+			storage.GetStorageLocation(
+				blockSlugDirectory,
+			),
+		)
+
+		if err != nil {
+			continue
+		}
+
+		for _, file := range files {
+			data, err := storage.GetObjectBytes(
+				storage.GetStorageLocation(
+					file,
+				),
+			)
+			if err != nil {
+				continue
+			}
+
+			r.Add(blockSlug, data)
+		}
+	}
+
+	return r.Get(blockSlug)
+}
+
 // SaveOutput saves the output to all storages
 func (r *PipelineBlockDataRegistry) SaveOutput(
 	blockSlug string,
@@ -139,30 +175,30 @@ func (r *PipelineBlockDataRegistry) SaveOutput(
 	result := make([]PipelineBlockDataRegistrySavedOutput, 0)
 
 	filePath := fmt.Sprintf(
-		"%s/%s/%s/output_%d",
-		r.piplineSlug,
+		"%s/%s/%s",
+		r.pipelineSlug,
 		r.processingId,
 		blockSlug,
-		outputIndex,
 	)
 
 	for _, storage := range r.storages {
 		dataCopy := bytes.NewBuffer(output.Bytes())
 
-		savedFilePath, err := storage.PutObjectBytes(
-			path.Join(
-				storage.GetStorageDirectory(),
-				filePath,
+		destinationStorageLocation, err := storage.PutObjectBytes(
+			storage.GetStorageLocation(
+				path.Join(
+					filePath,
+					fmt.Sprintf("output_%d", outputIndex),
+				),
 			),
 			dataCopy,
-			filePath,
 		)
 
 		result = append(
 			result,
 			PipelineBlockDataRegistrySavedOutput{
 				Storage: storage,
-				Path:    savedFilePath,
+				Path:    destinationStorageLocation.FileName,
 				Error:   err,
 			},
 		)

@@ -166,6 +166,8 @@ func (p *PipelineData) Process(
 			return processingId, nil
 		}
 
+		// pipelineBlockDataRegistry.LoadOutput(blockData.GetSlug())
+
 		var inputConfigValue interface{}
 		if blockData.GetInputConfig() != nil {
 			var err error

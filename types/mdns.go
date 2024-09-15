@@ -129,7 +129,7 @@ func (m *MDNS) Announce() {
 		fmt.Sprintf(
 			"%s-%s",
 			m.DNSSDStatus.ServiceName,
-			uuid.New().String(),
+			uuid.NewString(),
 		),
 		m.DNSSDStatus.ServiceType,
 		m.DNSSDStatus.ServiceDomain,

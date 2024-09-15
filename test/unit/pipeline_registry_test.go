@@ -190,7 +190,7 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineTest() {
 	// Given
 	mockedResponse := fmt.Sprintf(
 		"Hello, world! Mocked value is %s",
-		uuid.New().String(),
+		uuid.NewString(),
 	)
 	successUrl := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK)
 	_, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
@@ -223,11 +223,11 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineWithInputTest() {
 	// Given
 	mockedResponse := fmt.Sprintf(
 		"Hello, world! Mocked Overwritten value is %s",
-		uuid.New().String(),
+		uuid.NewString(),
 	)
 	mockedPriorityResponse := fmt.Sprintf(
 		"Hello, world! Mocked Priority value is %s",
-		uuid.New().String(),
+		uuid.NewString(),
 	)
 	successUrl := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK)
 	priorityUrl := suite.GetMockHTTPServerURL(mockedPriorityResponse, http.StatusOK)

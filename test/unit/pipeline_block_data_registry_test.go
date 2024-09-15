@@ -2,6 +2,7 @@ package unit_test
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 
 	"github.com/google/uuid"
@@ -87,6 +88,75 @@ func (suite *UnitTestSuite) TestNewPipelineBlockDataRegistrySaveOutputLocalStora
 		types.NewLocalStorage(""),
 	}
 	outputString := "Hello, world!"
+	outputIndex := 5
+
+	pipelineBlockDataRegistry := registries.NewPipelineBlockDataRegistry(
+		processingId,
+		pipelineSlug,
+		storages,
+	)
+	suite.NotNil(pipelineBlockDataRegistry)
+	suite.Equal(
+		processingId,
+		pipelineBlockDataRegistry.GetProcessingId(),
+	)
+	suite.Equal(
+		pipelineSlug,
+		pipelineBlockDataRegistry.GetPipelineSlug(),
+	)
+
+	// When
+	saveOutputResults := pipelineBlockDataRegistry.SaveOutput(
+		blockSlug, outputIndex, bytes.NewBufferString(outputString),
+	)
+
+	// Then
+	for _, saveOutputResult := range saveOutputResults {
+		suite.Equal("local", saveOutputResult.Storage.GetStorageName())
+		suite.NotEmpty(saveOutputResult.Path)
+		suite.Nil(saveOutputResult.Error)
+
+		suite.Contains(
+			saveOutputResult.Path,
+			fmt.Sprintf(
+				"%s/%s/%s/output_%d.txt",
+				pipelineSlug,
+				processingId,
+				blockSlug,
+				outputIndex,
+			),
+		)
+
+		// defer os.Remove(saveOutputResult.Path)
+		// Read file content
+		fileContent, err := saveOutputResult.Storage.GetObjectBytes(
+			saveOutputResult.Storage.GetStorageLocation(
+				saveOutputResult.Path,
+			),
+		)
+		suite.Nil(err)
+		suite.Equal(outputString, fileContent.String())
+
+		// Read file content using Registry Methods
+		filesContent := pipelineBlockDataRegistry.LoadOutput(blockSlug)
+		suite.NotEmpty(filesContent)
+		suite.Equal(outputString, filesContent[0].String())
+
+		filesContent = pipelineBlockDataRegistry.Get(blockSlug)
+		suite.NotEmpty(filesContent)
+		suite.Equal(outputString, filesContent[0].String())
+	}
+}
+
+func (suite *UnitTestSuite) TestNewPipelineBlockDataRegistrySaveOutputMinioStorage() {
+	// Given
+	processingId := uuid.New()
+	pipelineSlug := "test-pipeline-slug"
+	blockSlug := "test-block-slug"
+	storages := []interfaces.Storage{
+		types.NewMINIOStorage(),
+	}
+	outputString := "Hello, world!"
 
 	pipelineBlockDataRegistry := registries.NewPipelineBlockDataRegistry(
 		processingId,
@@ -110,15 +180,20 @@ func (suite *UnitTestSuite) TestNewPipelineBlockDataRegistrySaveOutputLocalStora
 
 	// Then
 	for _, saveOutputResult := range saveOutputResults {
-		suite.Equal("local", saveOutputResult.Storage.GetStorageName())
+		suite.Equal("minio", saveOutputResult.Storage.GetStorageName())
 		suite.NotEmpty(saveOutputResult.Path)
 		suite.Nil(saveOutputResult.Error)
 
 		defer os.Remove(saveOutputResult.Path)
-		// Read file content
-		fileContent, err := saveOutputResult.Storage.GetObjectBytes("", saveOutputResult.Path)
-		suite.Nil(err)
-		suite.Equal(outputString, fileContent.String())
+
+		// Read file content using Registry Methods
+		filesContent := pipelineBlockDataRegistry.LoadOutput(blockSlug)
+		suite.NotEmpty(filesContent)
+		suite.Equal(outputString, filesContent[0].String())
+
+		filesContent = pipelineBlockDataRegistry.Get(blockSlug)
+		suite.NotEmpty(filesContent)
+		suite.Equal(outputString, filesContent[0].String())
 	}
 }
 

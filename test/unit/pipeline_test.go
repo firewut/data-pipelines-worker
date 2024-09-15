@@ -65,7 +65,7 @@ func (suite *UnitTestSuite) TestPipelineProcess() {
 	// Given
 	mockedResponse := fmt.Sprintf(
 		"Hello, world! Mocked value is %s",
-		uuid.New().String(),
+		uuid.NewString(),
 	)
 	successUrl := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK)
 	pipeline, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
@@ -101,7 +101,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
 	// Given
 	mockedSecondBlockResponse := fmt.Sprintf(
 		"Hello, world! Mocked value is %s",
-		uuid.New().String(),
+		uuid.NewString(),
 	)
 	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK)
 	firstBlockInput := suite.GetMockHTTPServerURL(secondBlockInput, http.StatusOK)
@@ -145,7 +145,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcessNStorages() {
 	// Given
 	mockedSecondBlockResponse := fmt.Sprintf(
 		"Hello, world! Mocked value is %s",
-		uuid.New().String(),
+		uuid.NewString(),
 	)
 	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK)
 	firstBlockInput := suite.GetMockHTTPServerURL(secondBlockInput, http.StatusOK)

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 
@@ -278,24 +279,35 @@ func (s *noSpaceLeftLocalStorage) GetStorageDirectory() string {
 	return os.TempDir()
 }
 
-func (s *noSpaceLeftLocalStorage) ListObjects(bucket string) ([]string, error) {
+func (s *noSpaceLeftLocalStorage) GetStorageLocation(fileName string) interfaces.StorageLocation {
+	return interfaces.StorageLocation{
+		LocalDirectory: s.GetStorageDirectory(),
+		FileName:       fileName,
+	}
+}
+
+func (s *noSpaceLeftLocalStorage) ListObjects(source interfaces.StorageLocation) ([]string, error) {
 	return make([]string, 0), nil
 }
 
-func (s *noSpaceLeftLocalStorage) PutObject(bucket, filePath string, alias string) error {
+func (s *noSpaceLeftLocalStorage) PutObject(source interfaces.StorageLocation, destination interfaces.StorageLocation) error {
 	return fmt.Errorf("No space left on device")
 }
 
-func (s *noSpaceLeftLocalStorage) PutObjectBytes(directory string, buffer *bytes.Buffer, alias string) (string, error) {
-	return "", fmt.Errorf("No space left on device")
+func (s *noSpaceLeftLocalStorage) PutObjectBytes(destination interfaces.StorageLocation, content *bytes.Buffer) (interfaces.StorageLocation, error) {
+	return interfaces.StorageLocation{}, fmt.Errorf("No space left on device")
 }
 
-func (s *noSpaceLeftLocalStorage) GetObject(bucket, objectName string, filePath string) (string, error) {
-	return "", fmt.Errorf("No space left on device")
+func (s *noSpaceLeftLocalStorage) GetObject(source interfaces.StorageLocation, destination interfaces.StorageLocation) error {
+	return fmt.Errorf("No space left on device")
 }
 
-func (s *noSpaceLeftLocalStorage) GetObjectBytes(directory, fileName string) (*bytes.Buffer, error) {
+func (s *noSpaceLeftLocalStorage) GetObjectBytes(source interfaces.StorageLocation) (*bytes.Buffer, error) {
 	return nil, fmt.Errorf("No space left on device")
+}
+
+func (s *noSpaceLeftLocalStorage) DeleteObject(location interfaces.StorageLocation) error {
+	return nil
 }
 
 func (s *noSpaceLeftLocalStorage) Shutdown() {}
@@ -306,6 +318,8 @@ type createdFile struct {
 }
 
 type mockLocalStorage struct {
+	sync.Mutex
+
 	createdFilesChan chan createdFile
 
 	// files have content
@@ -332,28 +346,45 @@ func (s *mockLocalStorage) GetStorageDirectory() string {
 	return os.TempDir()
 }
 
-func (s *mockLocalStorage) ListObjects(bucket string) ([]string, error) {
+func (s *mockLocalStorage) GetStorageLocation(fileName string) interfaces.StorageLocation {
+	return interfaces.StorageLocation{
+		LocalDirectory: s.GetStorageDirectory(),
+		FileName:       fileName,
+	}
+}
+
+func (s *mockLocalStorage) ListObjects(source interfaces.StorageLocation) ([]string, error) {
 	return make([]string, 0), nil
 }
 
-func (s *mockLocalStorage) PutObject(bucket, filePath string, alias string) error {
+func (s *mockLocalStorage) PutObject(source interfaces.StorageLocation, destination interfaces.StorageLocation) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (s *mockLocalStorage) PutObjectBytes(directory string, buffer *bytes.Buffer, alias string) (string, error) {
+func (s *mockLocalStorage) PutObjectBytes(destination interfaces.StorageLocation, content *bytes.Buffer) (interfaces.StorageLocation, error) {
+	s.Lock()
+	defer s.Unlock()
+
 	s.createdFilesChan <- createdFile{
-		filePath: directory,
-		data:     buffer,
+		filePath: filepath.Join(destination.LocalDirectory, destination.FileName),
+		data:     content,
 	}
-	return "", nil
+	return interfaces.StorageLocation{
+		LocalDirectory: destination.LocalDirectory,
+		FileName:       destination.FileName,
+	}, nil
 }
 
-func (s *mockLocalStorage) GetObject(bucket, objectName string, filePath string) (string, error) {
-	return "", nil
+func (s *mockLocalStorage) GetObject(source interfaces.StorageLocation, destination interfaces.StorageLocation) error {
+	return nil
 }
 
-func (s *mockLocalStorage) GetObjectBytes(directory, fileName string) (*bytes.Buffer, error) {
+func (s *mockLocalStorage) GetObjectBytes(source interfaces.StorageLocation) (*bytes.Buffer, error) {
 	return bytes.NewBufferString(textContent), nil
+}
+
+func (s *mockLocalStorage) DeleteObject(location interfaces.StorageLocation) error {
+	return nil
 }
 
 func (s *mockLocalStorage) Shutdown() {

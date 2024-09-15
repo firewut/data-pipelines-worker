@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -49,49 +50,113 @@ func (s *LocalStorage) GetStorageDirectory() string {
 	return s.root
 }
 
-func (s *LocalStorage) ListObjects(directory string) ([]string, error) {
-	return []string{}, fmt.Errorf("not implemented")
+func (s *LocalStorage) GetStorageLocation(fileName string) interfaces.StorageLocation {
+	return interfaces.StorageLocation{
+		LocalDirectory: s.GetStorageDirectory(),
+		FileName:       fileName,
+	}
 }
 
-func (s *LocalStorage) PutObject(directory, localFilePath string, alias string) error {
-	return fmt.Errorf("not implemented")
-}
+func (s *LocalStorage) ListObjects(location interfaces.StorageLocation) ([]string, error) {
+	objects := []string{}
 
-func (s *LocalStorage) PutObjectBytes(localDirectory string, fileContent *bytes.Buffer, alias string) (string, error) {
-	mimeType, err := DetectMimeTypeFromBuffer(fileContent)
+	files, err := os.ReadDir(location.LocalDirectory)
 	if err != nil {
-		return "", err
+		log.Fatal(err)
 	}
 
-	// Put file to localDirectory
-	filename := fmt.Sprintf("%s%s", uuid.New(), mimeType.Extension())
-	filePath := filepath.Join(localDirectory, filename)
+	for _, file := range files {
+		objects = append(
+			objects,
+			filepath.Join(
+				location.LocalDirectory,
+				file.Name(),
+			),
+		)
+	}
+
+	return objects, nil
+}
+
+func (s *LocalStorage) PutObject(
+	source interfaces.StorageLocation,
+	destination interfaces.StorageLocation,
+) error {
+	// Ensure destination directory exists
+	if err := os.MkdirAll(destination.LocalDirectory, os.ModePerm); err != nil {
+		return err
+	}
+
+	data, err := os.ReadFile(filepath.Join(source.LocalDirectory, source.FileName))
+	if err != nil {
+		fmt.Println("Error reading file:", err)
+		return err
+	}
+
+	err = os.WriteFile(filepath.Join(destination.LocalDirectory, destination.FileName), data, 0644)
+	if err != nil {
+		fmt.Println("Error writing file:", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *LocalStorage) PutObjectBytes(
+	destination interfaces.StorageLocation,
+	content *bytes.Buffer,
+) (
+	interfaces.StorageLocation,
+	error,
+) {
+	// PutObjectBytes(localDirectory string, fileContent *bytes.Buffer, alias string)
+	mimeType, err := DetectMimeTypeFromBuffer(content)
+	if err != nil {
+		return interfaces.StorageLocation{}, err
+	}
+
+	if destination.FileName == "" {
+		destination.FileName = uuid.NewString()
+	}
+
+	// Replace the file extension with the detected one
+	destination.FileName = destination.FileName[:len(destination.FileName)-len(filepath.Ext(destination.FileName))]
+	destination.FileName = fmt.Sprintf("%s%s", destination.FileName, mimeType.Extension())
 
 	// Ensure the directory exists
-	if err := os.MkdirAll(filepath.Dir(filePath), os.ModePerm); err != nil {
-		return "", err
+	if err := os.MkdirAll(destination.LocalDirectory, os.ModePerm); err != nil {
+		return interfaces.StorageLocation{}, err
 	}
 
+	localFile := filepath.Join(destination.LocalDirectory, destination.FileName)
 	// Write the file content to the specified path
-	file, err := os.Create(filePath)
+	file, err := os.Create(localFile)
 	if err != nil {
-		return "", err
+		return interfaces.StorageLocation{}, err
 	}
 	defer file.Close()
 
-	if _, err := fileContent.WriteTo(file); err != nil {
-		return "", err
+	if _, err := content.WriteTo(file); err != nil {
+		return interfaces.StorageLocation{}, err
 	}
 
-	return filePath, nil
+	return interfaces.StorageLocation{
+		LocalDirectory: destination.LocalDirectory,
+		FileName:       destination.FileName,
+	}, nil
 }
 
-func (s *LocalStorage) GetObject(directory, fileName string, filePath string) (string, error) {
-	return "", nil
+func (s *LocalStorage) GetObject(
+	source interfaces.StorageLocation,
+	destination interfaces.StorageLocation,
+) error {
+	return nil
 }
 
-func (s *LocalStorage) GetObjectBytes(directory, fileName string) (*bytes.Buffer, error) {
-	file, err := os.Open(filepath.Join(directory, fileName))
+func (s *LocalStorage) GetObjectBytes(source interfaces.StorageLocation) (*bytes.Buffer, error) {
+	file, err := os.Open(
+		filepath.Join(source.LocalDirectory, source.FileName),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -104,6 +169,12 @@ func (s *LocalStorage) GetObjectBytes(directory, fileName string) (*bytes.Buffer
 	}
 
 	return buffer, nil
+}
+
+func (s *LocalStorage) DeleteObject(location interfaces.StorageLocation) error {
+	return os.Remove(
+		filepath.Join(location.LocalDirectory, location.FileName),
+	)
 }
 
 func (s *LocalStorage) Shutdown() {}
@@ -146,7 +217,14 @@ func (s *MINIOStorage) GetStorageDirectory() string {
 	return s.bucket
 }
 
-func (s *MINIOStorage) ListObjects(string) ([]string, error) {
+func (s *MINIOStorage) GetStorageLocation(fileName string) interfaces.StorageLocation {
+	return interfaces.StorageLocation{
+		Bucket:   s.GetStorageDirectory(),
+		FileName: fileName,
+	}
+}
+
+func (s *MINIOStorage) ListObjects(location interfaces.StorageLocation) ([]string, error) {
 	objects := []string{}
 
 	doneCh := make(chan struct{})
@@ -168,27 +246,29 @@ func (s *MINIOStorage) ListObjects(string) ([]string, error) {
 	return objects, nil
 }
 
-func (s *MINIOStorage) PutObject(bucket, source string, alias string) error {
-	objectName := filepath.Base(source)
-
-	// Get the file extension
-	sourceExt := filepath.Ext(source)
-
-	// If alias is provided, use it as the object name
-	if alias != "" {
-		objectName = alias
-	}
-
-	// If object name does not have an extension, append the source file extension
-	if filepath.Ext(objectName) == "" {
-		objectName = fmt.Sprintf("%s%s", objectName, sourceExt)
+func (s *MINIOStorage) PutObject(
+	source interfaces.StorageLocation,
+	destination interfaces.StorageLocation,
+) error {
+	// Get the file extension of Source
+	if filepath.Ext(destination.FileName) == "" {
+		// Get the file extension of Source from the file content
+		content, err := s.localStorage.GetObjectBytes(source)
+		if err != nil {
+			return err
+		}
+		mimeType, err := DetectMimeTypeFromBuffer(content)
+		if err != nil {
+			return err
+		}
+		destination.FileName = fmt.Sprintf("%s%s", destination.FileName, mimeType.Extension())
 	}
 
 	_, err := s.Client.FPutObject(
 		context.Background(),
 		s.GetStorageDirectory(),
-		objectName,
-		source,
+		destination.FileName,
+		filepath.Join(source.LocalDirectory, source.FileName),
 		minio.PutObjectOptions{},
 	)
 	if err != nil {
@@ -198,36 +278,61 @@ func (s *MINIOStorage) PutObject(bucket, source string, alias string) error {
 	return nil
 }
 
-func (s *MINIOStorage) PutObjectBytes(bucket string, fileContent *bytes.Buffer, alias string) (string, error) {
-	localFilePath, err := s.localStorage.PutObjectBytes("", fileContent, "")
-	if err != nil {
-		return "", err
-	}
-
-	return localFilePath, s.PutObject(s.GetStorageDirectory(), localFilePath, alias)
-}
-
-func (s *MINIOStorage) GetObject(bucket, objectName string, filePath string) (string, error) {
-	if filePath == "" {
-		filePath = filepath.Join(s.localStorage.GetStorageDirectory(), objectName)
-	}
-
-	err := s.Client.FGetObject(
-		context.Background(),
-		s.GetStorageDirectory(),
-		objectName,
-		filePath,
-		minio.GetObjectOptions{},
+func (s *MINIOStorage) PutObjectBytes(
+	destination interfaces.StorageLocation,
+	content *bytes.Buffer,
+) (
+	interfaces.StorageLocation,
+	error,
+) {
+	// Save the file to the local storage
+	localStorage, err := s.localStorage.PutObjectBytes(
+		interfaces.StorageLocation{
+			LocalDirectory: s.localStorage.GetStorageDirectory(),
+			FileName:       uuid.NewString(),
+		},
+		content,
 	)
 	if err != nil {
-		return "", err
+		return interfaces.StorageLocation{}, err
 	}
 
-	return filePath, nil
+	return localStorage, s.PutObject(localStorage, destination)
 }
 
-func (s *MINIOStorage) GetObjectBytes(directory, fileName string) (*bytes.Buffer, error) {
-	return nil, fmt.Errorf("not implemented")
+func (s *MINIOStorage) GetObject(
+	source interfaces.StorageLocation,
+	destination interfaces.StorageLocation,
+) error {
+	return s.Client.FGetObject(
+		context.Background(),
+		s.GetStorageDirectory(),
+		source.FileName,
+		filepath.Join(destination.LocalDirectory, destination.FileName),
+		minio.GetObjectOptions{},
+	)
+}
+
+func (s *MINIOStorage) GetObjectBytes(source interfaces.StorageLocation) (*bytes.Buffer, error) {
+	destination := interfaces.StorageLocation{
+		LocalDirectory: s.localStorage.GetStorageDirectory(),
+		FileName:       uuid.NewString(),
+	}
+	err := s.GetObject(source, destination)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.localStorage.GetObjectBytes(destination)
+}
+
+func (s *MINIOStorage) DeleteObject(location interfaces.StorageLocation) error {
+	return s.Client.RemoveObject(
+		context.Background(),
+		s.GetStorageDirectory(),
+		location.FileName,
+		minio.RemoveObjectOptions{},
+	)
 }
 
 func (s *MINIOStorage) Shutdown() {}
