@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"sync"
 	"testing"
 
@@ -36,8 +35,10 @@ type UnitTestSuite struct {
 	_config config.Config
 	_blocks map[string]interfaces.Block
 
-	httpTestServers []*httptest.Server   // to mock http requests
-	storages        []interfaces.Storage // to mock storage
+	// mock http requests
+	httpTestServers []*httptest.Server
+	// mock storages
+	storages []interfaces.Storage
 }
 
 func TestUnitTestSuite(t *testing.T) {
@@ -53,6 +54,8 @@ func (suite *UnitTestSuite) SetupSuite() {
 
 	suite._config = config.GetConfig()
 	suite._blocks = make(map[string]interfaces.Block)
+	suite.httpTestServers = make([]*httptest.Server, 0)
+	suite.storages = make([]interfaces.Storage, 0)
 }
 
 func (suite *UnitTestSuite) TearDownSuite() {
@@ -61,6 +64,8 @@ func (suite *UnitTestSuite) TearDownSuite() {
 func (suite *UnitTestSuite) SetupTest() {
 	// Make Mock HTTP Server for each URL Block Detector
 	_config := config.GetConfig()
+	_config.Storage.Local.RootPath = os.TempDir()
+
 	for blockId, blockConfig := range _config.Blocks {
 		if blockConfig.Detector.Conditions["url"] != nil {
 			successUrl := suite.GetMockHTTPServerURL("Mocked Response OK", http.StatusOK)
@@ -279,23 +284,20 @@ func (s *noSpaceLeftLocalStorage) GetStorageDirectory() string {
 	return os.TempDir()
 }
 
-func (s *noSpaceLeftLocalStorage) GetStorageLocation(fileName string) interfaces.StorageLocation {
-	return interfaces.StorageLocation{
-		LocalDirectory: s.GetStorageDirectory(),
-		FileName:       fileName,
-	}
+func (s *noSpaceLeftLocalStorage) NewStorageLocation(fileName string) interfaces.StorageLocation {
+	return dataclasses.NewStorageLocation(s, s.GetStorageDirectory(), "", fileName)
 }
 
-func (s *noSpaceLeftLocalStorage) ListObjects(source interfaces.StorageLocation) ([]string, error) {
-	return make([]string, 0), nil
+func (s *noSpaceLeftLocalStorage) ListObjects(source interfaces.StorageLocation) ([]interfaces.StorageLocation, error) {
+	return make([]interfaces.StorageLocation, 0), nil
 }
 
-func (s *noSpaceLeftLocalStorage) PutObject(source interfaces.StorageLocation, destination interfaces.StorageLocation) error {
-	return fmt.Errorf("No space left on device")
+func (s *noSpaceLeftLocalStorage) PutObject(source interfaces.StorageLocation, destination interfaces.StorageLocation) (interfaces.StorageLocation, error) {
+	return s.NewStorageLocation(""), fmt.Errorf("No space left on device")
 }
 
 func (s *noSpaceLeftLocalStorage) PutObjectBytes(destination interfaces.StorageLocation, content *bytes.Buffer) (interfaces.StorageLocation, error) {
-	return interfaces.StorageLocation{}, fmt.Errorf("No space left on device")
+	return s.NewStorageLocation(""), fmt.Errorf("No space left on device")
 }
 
 func (s *noSpaceLeftLocalStorage) GetObject(source interfaces.StorageLocation, destination interfaces.StorageLocation) error {
@@ -308,6 +310,10 @@ func (s *noSpaceLeftLocalStorage) GetObjectBytes(source interfaces.StorageLocati
 
 func (s *noSpaceLeftLocalStorage) DeleteObject(location interfaces.StorageLocation) error {
 	return nil
+}
+
+func (s *noSpaceLeftLocalStorage) LocationExists(location interfaces.StorageLocation) bool {
+	return false
 }
 
 func (s *noSpaceLeftLocalStorage) Shutdown() {}
@@ -346,19 +352,16 @@ func (s *mockLocalStorage) GetStorageDirectory() string {
 	return os.TempDir()
 }
 
-func (s *mockLocalStorage) GetStorageLocation(fileName string) interfaces.StorageLocation {
-	return interfaces.StorageLocation{
-		LocalDirectory: s.GetStorageDirectory(),
-		FileName:       fileName,
-	}
+func (s *mockLocalStorage) NewStorageLocation(fileName string) interfaces.StorageLocation {
+	return dataclasses.NewStorageLocation(s, s.GetStorageDirectory(), "", fileName)
 }
 
-func (s *mockLocalStorage) ListObjects(source interfaces.StorageLocation) ([]string, error) {
-	return make([]string, 0), nil
+func (s *mockLocalStorage) ListObjects(source interfaces.StorageLocation) ([]interfaces.StorageLocation, error) {
+	return make([]interfaces.StorageLocation, 0), nil
 }
 
-func (s *mockLocalStorage) PutObject(source interfaces.StorageLocation, destination interfaces.StorageLocation) error {
-	return fmt.Errorf("not implemented")
+func (s *mockLocalStorage) PutObject(source interfaces.StorageLocation, destination interfaces.StorageLocation) (interfaces.StorageLocation, error) {
+	return s.NewStorageLocation(""), fmt.Errorf("not implemented")
 }
 
 func (s *mockLocalStorage) PutObjectBytes(destination interfaces.StorageLocation, content *bytes.Buffer) (interfaces.StorageLocation, error) {
@@ -366,13 +369,10 @@ func (s *mockLocalStorage) PutObjectBytes(destination interfaces.StorageLocation
 	defer s.Unlock()
 
 	s.createdFilesChan <- createdFile{
-		filePath: filepath.Join(destination.LocalDirectory, destination.FileName),
+		filePath: destination.GetFilePath(),
 		data:     content,
 	}
-	return interfaces.StorageLocation{
-		LocalDirectory: destination.LocalDirectory,
-		FileName:       destination.FileName,
-	}, nil
+	return destination, nil
 }
 
 func (s *mockLocalStorage) GetObject(source interfaces.StorageLocation, destination interfaces.StorageLocation) error {
@@ -385,6 +385,14 @@ func (s *mockLocalStorage) GetObjectBytes(source interfaces.StorageLocation) (*b
 
 func (s *mockLocalStorage) DeleteObject(location interfaces.StorageLocation) error {
 	return nil
+}
+
+func (s *mockLocalStorage) LocationExists(location interfaces.StorageLocation) bool {
+	s.Lock()
+	defer s.Unlock()
+
+	_, exists := s.files[location.GetFilePath()]
+	return exists
 }
 
 func (s *mockLocalStorage) Shutdown() {

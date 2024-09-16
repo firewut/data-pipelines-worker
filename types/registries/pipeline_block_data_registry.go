@@ -21,9 +21,8 @@ type PipelineBlockDataRegistry struct {
 }
 
 type PipelineBlockDataRegistrySavedOutput struct {
-	Storage interfaces.Storage
-	Path    string
-	Error   error
+	StorageLocation interfaces.StorageLocation
+	Error           error
 }
 
 func NewPipelineBlockDataRegistry(
@@ -128,7 +127,8 @@ func (r *PipelineBlockDataRegistry) SetStorages(storages []interfaces.Storage) {
 }
 
 func (r *PipelineBlockDataRegistry) LoadOutput(blockSlug string) []*bytes.Buffer {
-	blockSlugDirectory := path.Join(
+	// Warning: This is relative to the storage Bucket and LocalDirectory
+	blockSlugOutputCatalogue := path.Join(
 		r.pipelineSlug,
 		r.processingId.String(),
 		blockSlug,
@@ -136,23 +136,17 @@ func (r *PipelineBlockDataRegistry) LoadOutput(blockSlug string) []*bytes.Buffer
 
 	storages := r.GetStorages()
 	for _, storage := range storages {
-		files, err := storage.ListObjects(
-			storage.GetStorageLocation(
-				blockSlugDirectory,
-			),
-		)
+		blockDataLocation := storage.NewStorageLocation(blockSlugOutputCatalogue)
+		objects, err := storage.ListObjects(blockDataLocation)
 
-		if err != nil {
+		if err != nil || len(objects) == 0 {
 			continue
 		}
 
-		for _, file := range files {
-			data, err := storage.GetObjectBytes(
-				storage.GetStorageLocation(
-					file,
-				),
-			)
+		for _, object := range objects {
+			data, err := storage.GetObjectBytes(object)
 			if err != nil {
+				fmt.Println(">>", object, " | ", err)
 				continue
 			}
 
@@ -185,7 +179,7 @@ func (r *PipelineBlockDataRegistry) SaveOutput(
 		dataCopy := bytes.NewBuffer(output.Bytes())
 
 		destinationStorageLocation, err := storage.PutObjectBytes(
-			storage.GetStorageLocation(
+			storage.NewStorageLocation(
 				path.Join(
 					filePath,
 					fmt.Sprintf("output_%d", outputIndex),
@@ -197,9 +191,8 @@ func (r *PipelineBlockDataRegistry) SaveOutput(
 		result = append(
 			result,
 			PipelineBlockDataRegistrySavedOutput{
-				Storage: storage,
-				Path:    destinationStorageLocation.FileName,
-				Error:   err,
+				StorageLocation: destinationStorageLocation,
+				Error:           err,
 			},
 		)
 	}

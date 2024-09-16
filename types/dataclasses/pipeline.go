@@ -228,7 +228,7 @@ func (p *PipelineData) Process(
 					config.GetLogger().Errorf(
 						"Error saving output for block %s to storage %s: %s",
 						blockData.GetSlug(),
-						saveOutputResult.Storage.GetStorageName(),
+						saveOutputResult.StorageLocation.GetStorageName(),
 						saveOutputResult.Error,
 					)
 					return uuid.UUID{}, saveOutputResult.Error

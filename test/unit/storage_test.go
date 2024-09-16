@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 
 	"data-pipelines-worker/types"
-	"data-pipelines-worker/types/interfaces"
 )
 
 const (
@@ -36,23 +35,81 @@ func (suite *UnitTestSuite) TestDetectMimeTypeFromBuffer() {
 	}
 }
 
-func (suite *UnitTestSuite) TestLocalStorageListObjects() {
+func (suite *UnitTestSuite) TestLocalStorageListObjectsViaDirectory() {
 	// Given
 	storage := types.NewLocalStorage("")
 
-	// When
-	objects, err := storage.ListObjects(
-		interfaces.StorageLocation{
-			LocalDirectory: os.TempDir(),
-		},
+	tempDir, err := os.MkdirTemp(
+		"",
+		"test-nested-directory-*",
 	)
+	suite.Nil(err)
+	suite.NotNil(tempDir)
+	defer os.RemoveAll(tempDir)
+
+	tempFile, err := os.CreateTemp(tempDir, "tempfile-*.txt")
+	if err != nil {
+		fmt.Println("Error creating temporary file:", err)
+		return
+	}
+	defer tempFile.Close()
+
+	localLocation := storage.NewStorageLocation("")
+	localLocation.SetLocalDirectory(tempDir)
+
+	// When
+	objects, err := storage.ListObjects(localLocation)
 
 	// Then
 	suite.Nil(err)
 	suite.NotEmpty(objects)
+	for _, object := range objects {
+		suite.Contains(object.GetFilePath(), filepath.Base(tempFile.Name()))
+
+		info, err := os.Stat(object.GetFilePath())
+		suite.Nil(err)
+		suite.False(info.IsDir())
+	}
 }
 
-func (suite *UnitTestSuite) TestLocalStoragePutObject() {
+func (suite *UnitTestSuite) TestLocalStorageListObjectsViaFileName() {
+	// Given
+	storage := types.NewLocalStorage("")
+
+	tempDir, err := os.MkdirTemp(
+		"",
+		"test-nested-directory-*",
+	)
+	suite.Nil(err)
+	suite.NotNil(tempDir)
+	defer os.RemoveAll(tempDir)
+
+	tempFile, err := os.CreateTemp(tempDir, "tempfile-*.txt")
+	if err != nil {
+		fmt.Println("Error creating temporary file:", err)
+		return
+	}
+	defer tempFile.Close()
+
+	localLocation := storage.NewStorageLocation(tempFile.Name())
+	localLocation.SetLocalDirectory("")
+
+	// When
+	objects, err := storage.ListObjects(localLocation)
+
+	// Then
+	suite.Nil(err)
+	suite.NotEmpty(objects)
+	for _, object := range objects {
+		suite.Contains(object.GetFilePath(), filepath.Base(tempFile.Name()))
+
+		info, err := os.Stat(object.GetFilePath())
+		suite.Nil(err)
+		suite.False(info.IsDir())
+	}
+}
+
+func (suite *UnitTestSuite) TestLocalStoragePutObjectWithExt() {
 	// Given
 	fileContent := bytes.NewBufferString(textContent)
 	oldFileName := fmt.Sprintf("%s.txt", uuid.NewString())
@@ -61,7 +118,7 @@ func (suite *UnitTestSuite) TestLocalStoragePutObject() {
 
 	file, err := os.Create(
 		filepath.Join(
-			os.TempDir(),
+			storage.GetStorageDirectory(),
 			oldFileName,
 		),
 	)
@@ -70,25 +127,67 @@ func (suite *UnitTestSuite) TestLocalStoragePutObject() {
 	_, err = file.Write(fileContent.Bytes())
 	suite.Nil(err)
 
-	source := interfaces.StorageLocation{
-		LocalDirectory: os.TempDir(),
-		FileName:       oldFileName,
-	}
-	destination := interfaces.StorageLocation{
-		LocalDirectory: os.TempDir(),
-		FileName:       newFileName,
-	}
+	source := storage.NewStorageLocation(oldFileName)
+	destination := storage.NewStorageLocation(newFileName)
 
 	// When
-	err = storage.PutObject(source, destination)
+	destinationWithExtension, err := storage.PutObject(source, destination)
 
 	// Then
 	suite.Nil(err)
-	defer storage.DeleteObject(destination)
-	defer storage.DeleteObject(source)
+	defer destination.Delete()
+	defer source.Delete()
+	defer destinationWithExtension.Delete()
 
 	// Ensure the new file exists and has the same content
-	newFile, err := os.ReadFile(filepath.Join(os.TempDir(), newFileName))
+	newFile, err := os.ReadFile(
+		filepath.Join(
+			storage.GetStorageDirectory(),
+			newFileName,
+		),
+	)
+	suite.Nil(err)
+	suite.Equal(textContent, string(newFile))
+}
+
+func (suite *UnitTestSuite) TestLocalStoragePutObjectWithoutExt() {
+	// Given
+	fileContent := bytes.NewBufferString(textContent)
+	oldFileName := uuid.NewString()
+	newFileName := uuid.NewString()
+	storage := types.NewLocalStorage("")
+
+	file, err := os.Create(
+		filepath.Join(
+			storage.GetStorageDirectory(),
+			oldFileName,
+		),
+	)
+	suite.Nil(err)
+	defer file.Close()
+	_, err = file.Write(fileContent.Bytes())
+	suite.Nil(err)
+
+	source := storage.NewStorageLocation(oldFileName)
+	destination := storage.NewStorageLocation(newFileName)
+
+	// When
+	destinationWithExtension, err := storage.PutObject(source, destination)
+
+	// Then
+	suite.Nil(err)
+	suite.NotContains(destinationWithExtension.GetFileName(), ".txt")
+	defer destination.Delete()
+	defer source.Delete()
+	defer destinationWithExtension.Delete()
+
+	// Ensure the new file exists and has the same content
+	newFile, err := os.ReadFile(
+		filepath.Join(
+			storage.GetStorageDirectory(),
+			newFileName,
+		),
+	)
 	suite.Nil(err)
 	suite.Equal(textContent, string(newFile))
 }
@@ -98,42 +197,69 @@ func (suite *UnitTestSuite) TestLocalStoragePutObjectBytes() {
 	storage := types.NewLocalStorage("")
 
 	fileContent := bytes.NewBufferString(textContent)
+	destinationLocation := storage.NewStorageLocation("")
 
 	// When
-	storageLocation, err := storage.PutObjectBytes(
-		storage.GetStorageLocation(""),
-		fileContent,
-	)
+	storageLocation, err := storage.PutObjectBytes(destinationLocation, fileContent)
 
 	// Then
 	suite.Nil(err)
-	defer storage.DeleteObject(storageLocation)
+	defer storageLocation.Delete()
+	defer destinationLocation.Delete()
 
-	suite.NotEmpty(storageLocation.FileName)
-	suite.Contains(storageLocation.FileName, ".txt")
+	suite.NotEmpty(storageLocation.GetFileName())
+	suite.Contains(storageLocation.GetFileName(), ".txt")
 }
 
 func (suite *UnitTestSuite) TestLocalStorageGetObjectBytes() {
 	// Given
 	storage := types.NewLocalStorage("")
 	fileContent := bytes.NewBufferString(xmlContent)
+	destination := storage.NewStorageLocation("")
 
 	// When
-	storageLocation, err := storage.PutObjectBytes(
-		storage.GetStorageLocation(""),
-		fileContent,
-	)
+	storageLocation, err := storage.PutObjectBytes(destination, fileContent)
 
 	// Then
 	suite.Nil(err)
-	defer storage.DeleteObject(storageLocation)
+	defer storageLocation.Delete()
+	defer destination.Delete()
 
-	suite.NotEmpty(storageLocation.FileName)
-	suite.Contains(storageLocation.FileName, ".xml")
+	suite.NotEmpty(storageLocation.GetFileName())
+	suite.Contains(storageLocation.GetFileName(), ".xml")
 
 	objectBytes, err := storage.GetObjectBytes(storageLocation)
 	suite.Nil(err)
 	suite.Equal(xmlContent, objectBytes.String())
+}
+
+func (suite *UnitTestSuite) TestLocalStorageDeleteObject() {
+	// Given
+	storage := types.NewLocalStorage("")
+	fileContent := bytes.NewBufferString(textContent)
+	destination := storage.NewStorageLocation("")
+
+	storageLocation, err := storage.PutObjectBytes(destination, fileContent)
+	suite.Nil(err)
+	suite.True(storageLocation.Exists())
+	defer destination.Delete()
+
+	// When
+	err = storage.DeleteObject(storageLocation)
+
+	// Then
+	suite.Nil(err)
+	suite.False(storageLocation.Exists())
+}
+
+func (suite *UnitTestSuite) TestLocalStorageShutDown() {
+	// Given
+	storage := types.NewLocalStorage("")
+
+	// When
+	storage.Shutdown()
+
+	// Then
 }
 
 func (suite *UnitTestSuite) TestMiniIOStoragePutObject() {
@@ -142,58 +268,40 @@ func (suite *UnitTestSuite) TestMiniIOStoragePutObject() {
 
 	localStorage := types.NewLocalStorage("")
 	localStorageLocation, err := localStorage.PutObjectBytes(
-		localStorage.GetStorageLocation(""),
+		localStorage.NewStorageLocation(""),
 		bytes.NewBufferString(textContent),
 	)
 	suite.Nil(err)
-	defer localStorage.DeleteObject(localStorageLocation)
+	defer localStorageLocation.Delete()
 
-	suite.NotEmpty(localStorageLocation.FileName)
-	suite.Contains(localStorageLocation.FileName, ".txt")
+	suite.NotEmpty(localStorageLocation.GetFileName())
+	suite.Contains(localStorageLocation.GetFileName(), ".txt")
 
-	remoteStorageLocation := storage.GetStorageLocation(
+	remoteStorageLocation := storage.NewStorageLocation(
 		filepath.Join(
 			minioTestFolder,
-			localStorageLocation.FileName,
+			localStorageLocation.GetFileName(),
 		),
 	)
 
 	// When
-	err = storage.PutObject(
+	remoteStorageDestinationLocation, err := storage.PutObject(
 		localStorageLocation,
 		remoteStorageLocation,
 	)
 
 	// Then
 	suite.Nil(err)
-	defer storage.DeleteObject(remoteStorageLocation)
+	defer remoteStorageLocation.Delete()
+	defer remoteStorageDestinationLocation.Delete()
 }
 
 func (suite *UnitTestSuite) TestMiniIOStoragePutObjectBytes() {
 	// Given
 	storage := types.NewMINIOStorage()
-	localStorage := types.NewLocalStorage("")
+
 	fileNameWithoutExt := uuid.NewString()
-
-	// When
-	localStorageLocation, err := storage.PutObjectBytes(
-		storage.GetStorageLocation(
-			filepath.Join(minioTestFolder, fileNameWithoutExt),
-		),
-		bytes.NewBufferString(xmlContent),
-	)
-
-	// Then
-	suite.Nil(err)
-	defer localStorage.DeleteObject(localStorageLocation)
-}
-
-func (suite *UnitTestSuite) TestMiniIOStoragePutObjectBytesLongName() {
-	// Given
-	storage := types.NewMINIOStorage()
-	localStorage := types.NewLocalStorage("")
-	fileNameWithoutExt := strings.Repeat("a", 100) + uuid.NewString()
-	destinationLocation := storage.GetStorageLocation(
+	destinationLocation := storage.NewStorageLocation(
 		filepath.Join(minioTestFolder, fileNameWithoutExt),
 	)
 
@@ -205,8 +313,30 @@ func (suite *UnitTestSuite) TestMiniIOStoragePutObjectBytesLongName() {
 
 	// Then
 	suite.Nil(err)
-	defer localStorage.DeleteObject(localStorageLocation)
-	defer storage.DeleteObject(destinationLocation)
+	defer destinationLocation.Delete()
+	defer localStorageLocation.Delete()
+}
+
+func (suite *UnitTestSuite) TestMiniIOStoragePutObjectBytesLongName() {
+	// Given
+	storage := types.NewMINIOStorage()
+
+	fileNameWithoutExt := strings.Repeat("a", 100) + uuid.NewString()
+	destinationLocation := storage.NewStorageLocation(
+		filepath.Join(minioTestFolder, fileNameWithoutExt),
+	)
+
+	// When
+	destinationWithExtension, err := storage.PutObjectBytes(
+		destinationLocation,
+		bytes.NewBufferString(xmlContent),
+	)
+
+	// Then
+	suite.Nil(err)
+	suite.Contains(destinationWithExtension.GetFileName(), ".xml")
+	defer destinationLocation.Delete()
+	defer destinationWithExtension.Delete()
 }
 
 func (suite *UnitTestSuite) TestMiniIOStorageGetObject() {
@@ -214,18 +344,18 @@ func (suite *UnitTestSuite) TestMiniIOStorageGetObject() {
 	storage := types.NewMINIOStorage()
 	localStorage := types.NewLocalStorage("")
 	localStorageLocation, err := localStorage.PutObjectBytes(
-		localStorage.GetStorageLocation(""),
+		localStorage.NewStorageLocation(""),
 		bytes.NewBufferString(textContent),
 	)
 	suite.Nil(err)
-	defer localStorage.DeleteObject(localStorageLocation)
-	suite.NotEmpty(localStorageLocation.FileName)
-	suite.Contains(localStorageLocation.FileName, ".txt")
+	defer localStorageLocation.Delete()
+	suite.NotEmpty(localStorageLocation.GetFileName())
+	suite.Contains(localStorageLocation.GetFileName(), ".txt")
 
-	remoteStorageLocation := storage.GetStorageLocation(
+	remoteStorageLocation := storage.NewStorageLocation(
 		filepath.Join(
 			minioTestFolder,
-			filepath.Base(localStorageLocation.FileName),
+			filepath.Base(localStorageLocation.GetFileName()),
 		),
 	)
 	localStorageLocation2, err := storage.PutObjectBytes(
@@ -233,19 +363,19 @@ func (suite *UnitTestSuite) TestMiniIOStorageGetObject() {
 		bytes.NewBufferString(textContent),
 	)
 	suite.Nil(err)
-	defer localStorage.DeleteObject(localStorageLocation2)
-	defer storage.DeleteObject(remoteStorageLocation)
+	defer localStorageLocation2.Delete()
+	defer remoteStorageLocation.Delete()
 
-	receivedFileLocalStorageLocation := localStorage.GetStorageLocation(
-		remoteStorageLocation.FileName,
+	receivedFileLocalStorageLocation := localStorage.NewStorageLocation(
+		remoteStorageLocation.GetFileName(),
 	)
 
 	// When
 	err = storage.GetObject(
-		storage.GetStorageLocation(
+		storage.NewStorageLocation(
 			filepath.Join(
 				minioTestFolder,
-				filepath.Base(localStorageLocation.FileName),
+				filepath.Base(localStorageLocation.GetFileName()),
 			),
 		),
 		receivedFileLocalStorageLocation,
@@ -253,17 +383,17 @@ func (suite *UnitTestSuite) TestMiniIOStorageGetObject() {
 
 	// Then
 	suite.Nil(err)
-	defer localStorage.DeleteObject(receivedFileLocalStorageLocation)
+	defer receivedFileLocalStorageLocation.Delete()
 
 	downloadedFileContent, err := os.ReadFile(
 		filepath.Join(
-			receivedFileLocalStorageLocation.LocalDirectory,
-			receivedFileLocalStorageLocation.FileName,
+			receivedFileLocalStorageLocation.GetLocalDirectory(),
+			receivedFileLocalStorageLocation.GetFileName(),
 		),
 	)
 	suite.Nil(err)
 	suite.Equal(textContent, string(downloadedFileContent))
-	suite.Contains(receivedFileLocalStorageLocation.FileName, ".txt")
+	suite.Contains(receivedFileLocalStorageLocation.GetFileName(), ".txt")
 }
 
 func (suite *UnitTestSuite) TestMiniIOStorageGetObjectBytes() {
@@ -271,18 +401,18 @@ func (suite *UnitTestSuite) TestMiniIOStorageGetObjectBytes() {
 	storage := types.NewMINIOStorage()
 	localStorage := types.NewLocalStorage("")
 	localStorageLocation, err := localStorage.PutObjectBytes(
-		localStorage.GetStorageLocation(""),
+		localStorage.NewStorageLocation(""),
 		bytes.NewBufferString(textContent),
 	)
 	suite.Nil(err)
-	defer localStorage.DeleteObject(localStorageLocation)
-	suite.NotEmpty(localStorageLocation.FileName)
-	suite.Contains(localStorageLocation.FileName, ".txt")
+	defer localStorageLocation.Delete()
+	suite.NotEmpty(localStorageLocation.GetFileName())
+	suite.Contains(localStorageLocation.GetFileName(), ".txt")
 
-	remoteStorageLocation := storage.GetStorageLocation(
+	remoteStorageLocation := storage.NewStorageLocation(
 		filepath.Join(
 			minioTestFolder,
-			filepath.Base(localStorageLocation.FileName),
+			filepath.Base(localStorageLocation.GetFileName()),
 		),
 	)
 	localStorageLocation2, err := storage.PutObjectBytes(
@@ -290,15 +420,15 @@ func (suite *UnitTestSuite) TestMiniIOStorageGetObjectBytes() {
 		bytes.NewBufferString(textContent),
 	)
 	suite.Nil(err)
-	defer localStorage.DeleteObject(localStorageLocation2)
-	defer storage.DeleteObject(remoteStorageLocation)
+	defer localStorageLocation2.Delete()
+	defer remoteStorageLocation.Delete()
 
 	// When
 	downloadedFileContent, err := storage.GetObjectBytes(
-		storage.GetStorageLocation(
+		storage.NewStorageLocation(
 			filepath.Join(
 				minioTestFolder,
-				filepath.Base(localStorageLocation.FileName),
+				filepath.Base(localStorageLocation.GetFileName()),
 			),
 		),
 	)
@@ -314,31 +444,31 @@ func (suite *UnitTestSuite) TestMiniIOStorageListObjects() {
 
 	localStorage := types.NewLocalStorage("")
 	localStorageLocation, err := localStorage.PutObjectBytes(
-		localStorage.GetStorageLocation(""),
+		localStorage.NewStorageLocation(""),
 		bytes.NewBufferString(textContent),
 	)
 	suite.Nil(err)
-	defer localStorage.DeleteObject(localStorageLocation)
+	defer localStorageLocation.Delete()
 
-	suite.NotEmpty(localStorageLocation.FileName)
-	suite.Contains(localStorageLocation.FileName, ".txt")
+	suite.NotEmpty(localStorageLocation.GetFileName())
+	suite.Contains(localStorageLocation.GetFileName(), ".txt")
 
-	remoteStorageLocation := storage.GetStorageLocation(
+	remoteStorageLocation := storage.NewStorageLocation(
 		filepath.Join(
 			minioTestFolder,
-			localStorageLocation.FileName,
+			localStorageLocation.GetFileName(),
 		),
 	)
-	err = storage.PutObject(
+	_, err = storage.PutObject(
 		localStorageLocation,
 		remoteStorageLocation,
 	)
 	suite.Nil(err)
-	defer storage.DeleteObject(remoteStorageLocation)
+	defer remoteStorageLocation.Delete()
 
 	// When
 	bucketListing, err := storage.ListObjects(
-		storage.GetStorageLocation(minioTestFolder),
+		storage.NewStorageLocation(minioTestFolder),
 	)
 
 	// Then
@@ -347,10 +477,56 @@ func (suite *UnitTestSuite) TestMiniIOStorageListObjects() {
 
 	found := false
 	for _, object := range bucketListing {
-		if strings.Contains(object, localStorageLocation.FileName) {
+		if strings.Contains(object.GetFileName(), localStorageLocation.GetFileName()) {
 			found = true
 			break
 		}
 	}
 	suite.True(found)
+}
+
+func (suite *UnitTestSuite) TestMiniIOStorageDeleteObject() {
+	// Given
+	storage := types.NewMINIOStorage()
+
+	localStorage := types.NewLocalStorage("")
+	localStorageLocation, err := localStorage.PutObjectBytes(
+		localStorage.NewStorageLocation(""),
+		bytes.NewBufferString(textContent),
+	)
+	suite.Nil(err)
+	defer localStorageLocation.Delete()
+
+	suite.NotEmpty(localStorageLocation.GetFileName())
+	suite.Contains(localStorageLocation.GetFileName(), ".txt")
+
+	remoteStorageLocation := storage.NewStorageLocation(
+		filepath.Join(
+			minioTestFolder,
+			localStorageLocation.GetFileName(),
+		),
+	)
+	_, err = storage.PutObject(
+		localStorageLocation,
+		remoteStorageLocation,
+	)
+	suite.Nil(err)
+	suite.True(remoteStorageLocation.Exists())
+
+	// When
+	err = storage.DeleteObject(remoteStorageLocation)
+
+	// Then
+	suite.Nil(err)
+	suite.False(remoteStorageLocation.Exists())
+}
+
+func (suite *UnitTestSuite) TestMinioStorageShutDown() {
+	// Given
+	storage := types.NewMINIOStorage()
+
+	// When
+	storage.Shutdown()
+
+	// Then
 }

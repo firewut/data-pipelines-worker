@@ -3,7 +3,7 @@ package unit_test
 import (
 	"bytes"
 	"fmt"
-	"os"
+	"path/filepath"
 
 	"github.com/google/uuid"
 
@@ -90,6 +90,20 @@ func (suite *UnitTestSuite) TestNewPipelineBlockDataRegistrySaveOutputLocalStora
 	outputString := "Hello, world!"
 	outputIndex := 5
 
+	fileNamePattern := filepath.Join(
+		pipelineSlug,
+		processingId.String(),
+		blockSlug,
+		fmt.Sprintf(
+			"output_%d.txt",
+			outputIndex,
+		),
+	)
+	filePathPattern := filepath.Join(
+		storages[0].GetStorageDirectory(),
+		fileNamePattern,
+	)
+
 	pipelineBlockDataRegistry := registries.NewPipelineBlockDataRegistry(
 		processingId,
 		pipelineSlug,
@@ -111,29 +125,28 @@ func (suite *UnitTestSuite) TestNewPipelineBlockDataRegistrySaveOutputLocalStora
 	)
 
 	// Then
+	suite.NotEmpty(saveOutputResults)
 	for _, saveOutputResult := range saveOutputResults {
-		suite.Equal("local", saveOutputResult.Storage.GetStorageName())
-		suite.NotEmpty(saveOutputResult.Path)
+		suite.NotNil(saveOutputResult.StorageLocation)
+
+		suite.Equal(
+			"local",
+			saveOutputResult.StorageLocation.GetStorage().GetStorageName(),
+		)
 		suite.Nil(saveOutputResult.Error)
 
-		suite.Contains(
-			saveOutputResult.Path,
-			fmt.Sprintf(
-				"%s/%s/%s/output_%d.txt",
-				pipelineSlug,
-				processingId,
-				blockSlug,
-				outputIndex,
-			),
+		suite.Equal(
+			fileNamePattern,
+			saveOutputResult.StorageLocation.GetFileName(),
+		)
+		suite.Equal(
+			filePathPattern,
+			saveOutputResult.StorageLocation.GetFilePath(),
 		)
 
-		// defer os.Remove(saveOutputResult.Path)
-		// Read file content
-		fileContent, err := saveOutputResult.Storage.GetObjectBytes(
-			saveOutputResult.Storage.GetStorageLocation(
-				saveOutputResult.Path,
-			),
-		)
+		defer saveOutputResult.StorageLocation.Delete()
+
+		fileContent, err := saveOutputResult.StorageLocation.GetObjectBytes()
 		suite.Nil(err)
 		suite.Equal(outputString, fileContent.String())
 
@@ -180,11 +193,11 @@ func (suite *UnitTestSuite) TestNewPipelineBlockDataRegistrySaveOutputMinioStora
 
 	// Then
 	for _, saveOutputResult := range saveOutputResults {
-		suite.Equal("minio", saveOutputResult.Storage.GetStorageName())
-		suite.NotEmpty(saveOutputResult.Path)
+		suite.Equal("minio", saveOutputResult.StorageLocation.GetStorageName())
+		suite.NotEmpty(saveOutputResult.StorageLocation.GetFilePath())
 		suite.Nil(saveOutputResult.Error)
 
-		defer os.Remove(saveOutputResult.Path)
+		defer saveOutputResult.StorageLocation.Delete()
 
 		// Read file content using Registry Methods
 		filesContent := pipelineBlockDataRegistry.LoadOutput(blockSlug)
@@ -229,8 +242,7 @@ func (suite *UnitTestSuite) TestNewPipelineBlockDataRegistrySaveOutputNoSpaceOnD
 
 	// Then
 	for _, saveOutputResult := range saveOutputResults {
-		suite.Equal("mock-no-space-left", saveOutputResult.Storage.GetStorageName())
-		suite.Empty(saveOutputResult.Path)
+		suite.Equal("mock-no-space-left", saveOutputResult.StorageLocation.GetStorageName())
 		suite.NotNil(saveOutputResult.Error)
 	}
 }

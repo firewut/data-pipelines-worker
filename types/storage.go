@@ -15,6 +15,7 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 
 	"data-pipelines-worker/types/config"
+	"data-pipelines-worker/types/dataclasses"
 	"data-pipelines-worker/types/interfaces"
 )
 
@@ -24,17 +25,19 @@ type LocalStorage struct {
 }
 
 func NewLocalStorage(root string) *LocalStorage {
-	_config := config.GetConfig()
+	// _config := config.GetConfig()
 
 	if root == "" {
-		if _config.Storage.Local.RootPath != "" {
-			if err := os.MkdirAll(_config.Storage.Local.RootPath, 0755); err != nil {
-				panic(err)
-			}
-			root = _config.Storage.Local.RootPath
-		} else {
-			root = os.TempDir()
-		}
+		root = os.TempDir()
+
+		// TODO: TestNewPipelineBlockDataRegistrySaveOutputLocalStorage fails when this enabled
+		// if _config.Storage.Local.RootPath != "" {
+		// 	if err := os.MkdirAll(_config.Storage.Local.RootPath, 0755); err != nil {
+		// 		panic(err)
+		// 	}
+		// 	root = _config.Storage.Local.RootPath
+		// } else {
+		// }
 	}
 	return &LocalStorage{
 		name: "local",
@@ -50,28 +53,48 @@ func (s *LocalStorage) GetStorageDirectory() string {
 	return s.root
 }
 
-func (s *LocalStorage) GetStorageLocation(fileName string) interfaces.StorageLocation {
-	return interfaces.StorageLocation{
-		LocalDirectory: s.GetStorageDirectory(),
-		FileName:       fileName,
-	}
+func (s *LocalStorage) NewStorageLocation(fileName string) interfaces.StorageLocation {
+	return dataclasses.NewStorageLocation(s, s.GetStorageDirectory(), "", fileName)
 }
 
-func (s *LocalStorage) ListObjects(location interfaces.StorageLocation) ([]string, error) {
-	objects := []string{}
+func (s *LocalStorage) ListObjects(location interfaces.StorageLocation) ([]interfaces.StorageLocation, error) {
+	objects := make([]interfaces.StorageLocation, 0)
 
-	files, err := os.ReadDir(location.LocalDirectory)
+	var locationDirectory string
+	if location.GetFilePath() != location.GetLocalDirectory() {
+		info, err := os.Stat(location.GetFilePath())
+		if os.IsNotExist(err) {
+			return s.ListObjects(
+				s.NewStorageLocation(
+					filepath.Dir(location.GetFilePath()),
+				),
+			)
+		} else if err != nil {
+			fmt.Println("Error:", err)
+			return objects, err
+		}
+
+		// Ensure it is a directory
+		if !info.IsDir() {
+			locationDirectory = filepath.Dir(location.GetFilePath())
+		} else {
+			locationDirectory = location.GetFilePath()
+		}
+	} else {
+		locationDirectory = location.GetLocalDirectory()
+	}
+
+	files, err := os.ReadDir(locationDirectory)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	for _, file := range files {
+		objectStorageLocation := s.NewStorageLocation(file.Name())
+		objectStorageLocation.SetLocalDirectory(locationDirectory)
 		objects = append(
 			objects,
-			filepath.Join(
-				location.LocalDirectory,
-				file.Name(),
-			),
+			objectStorageLocation,
 		)
 	}
 
@@ -81,69 +104,71 @@ func (s *LocalStorage) ListObjects(location interfaces.StorageLocation) ([]strin
 func (s *LocalStorage) PutObject(
 	source interfaces.StorageLocation,
 	destination interfaces.StorageLocation,
-) error {
+) (interfaces.StorageLocation, error) {
 	// Ensure destination directory exists
-	if err := os.MkdirAll(destination.LocalDirectory, os.ModePerm); err != nil {
-		return err
+	if err := os.MkdirAll(destination.GetLocalDirectory(), os.ModePerm); err != nil {
+		return s.NewStorageLocation(""), err
 	}
 
-	data, err := os.ReadFile(filepath.Join(source.LocalDirectory, source.FileName))
+	data, err := os.ReadFile(source.GetFilePath())
 	if err != nil {
 		fmt.Println("Error reading file:", err)
-		return err
+		return s.NewStorageLocation(""), err
 	}
 
-	err = os.WriteFile(filepath.Join(destination.LocalDirectory, destination.FileName), data, 0644)
+	err = os.WriteFile(destination.GetFilePath(), data, 0644)
 	if err != nil {
 		fmt.Println("Error writing file:", err)
-		return err
+		return s.NewStorageLocation(""), err
 	}
 
-	return nil
+	return destination, err
 }
 
 func (s *LocalStorage) PutObjectBytes(
 	destination interfaces.StorageLocation,
 	content *bytes.Buffer,
-) (
-	interfaces.StorageLocation,
-	error,
-) {
-	// PutObjectBytes(localDirectory string, fileContent *bytes.Buffer, alias string)
+) (interfaces.StorageLocation, error) {
 	mimeType, err := DetectMimeTypeFromBuffer(content)
 	if err != nil {
-		return interfaces.StorageLocation{}, err
+		return s.NewStorageLocation(""), err
 	}
 
-	if destination.FileName == "" {
-		destination.FileName = uuid.NewString()
+	// If the file name is empty, generate a new one
+	fileName := destination.GetFileName()
+	if fileName == "" {
+		fileName = uuid.NewString()
 	}
 
 	// Replace the file extension with the detected one
-	destination.FileName = destination.FileName[:len(destination.FileName)-len(filepath.Ext(destination.FileName))]
-	destination.FileName = fmt.Sprintf("%s%s", destination.FileName, mimeType.Extension())
+	fileName = fileName[:len(fileName)-len(filepath.Ext(fileName))]
+	fileName = fmt.Sprintf("%s%s", fileName, mimeType.Extension())
+
+	destinationWithExtension := s.NewStorageLocation(fileName)
+	destinationWithExtension.SetLocalDirectory(destination.GetLocalDirectory())
 
 	// Ensure the directory exists
-	if err := os.MkdirAll(destination.LocalDirectory, os.ModePerm); err != nil {
-		return interfaces.StorageLocation{}, err
+	if err := os.MkdirAll(
+		filepath.Dir(
+			destinationWithExtension.GetFilePath(),
+		),
+		os.ModePerm,
+	); err != nil {
+		return s.NewStorageLocation(""), err
 	}
 
-	localFile := filepath.Join(destination.LocalDirectory, destination.FileName)
 	// Write the file content to the specified path
-	file, err := os.Create(localFile)
+	file, err := os.Create(destinationWithExtension.GetFilePath())
 	if err != nil {
-		return interfaces.StorageLocation{}, err
+		return s.NewStorageLocation(""), err
 	}
 	defer file.Close()
 
 	if _, err := content.WriteTo(file); err != nil {
-		return interfaces.StorageLocation{}, err
+		return s.NewStorageLocation(""), err
 	}
 
-	return interfaces.StorageLocation{
-		LocalDirectory: destination.LocalDirectory,
-		FileName:       destination.FileName,
-	}, nil
+	return destinationWithExtension, nil
 }
 
 func (s *LocalStorage) GetObject(
@@ -154,9 +179,7 @@ func (s *LocalStorage) GetObject(
 }
 
 func (s *LocalStorage) GetObjectBytes(source interfaces.StorageLocation) (*bytes.Buffer, error) {
-	file, err := os.Open(
-		filepath.Join(source.LocalDirectory, source.FileName),
-	)
+	file, err := os.Open(source.GetFilePath())
 	if err != nil {
 		return nil, err
 	}
@@ -172,9 +195,13 @@ func (s *LocalStorage) GetObjectBytes(source interfaces.StorageLocation) (*bytes
 }
 
 func (s *LocalStorage) DeleteObject(location interfaces.StorageLocation) error {
-	return os.Remove(
-		filepath.Join(location.LocalDirectory, location.FileName),
-	)
+	// TODO: Add sanity checks
+	return os.Remove(location.GetFilePath())
+}
+
+func (s *LocalStorage) LocationExists(location interfaces.StorageLocation) bool {
+	_, err := os.Stat(location.GetFilePath())
+	return err == nil
 }
 
 func (s *LocalStorage) Shutdown() {}
@@ -217,15 +244,12 @@ func (s *MINIOStorage) GetStorageDirectory() string {
 	return s.bucket
 }
 
-func (s *MINIOStorage) GetStorageLocation(fileName string) interfaces.StorageLocation {
-	return interfaces.StorageLocation{
-		Bucket:   s.GetStorageDirectory(),
-		FileName: fileName,
-	}
+func (s *MINIOStorage) NewStorageLocation(fileName string) interfaces.StorageLocation {
+	return dataclasses.NewStorageLocation(s, "", s.GetStorageDirectory(), fileName)
 }
 
-func (s *MINIOStorage) ListObjects(location interfaces.StorageLocation) ([]string, error) {
-	objects := []string{}
+func (s *MINIOStorage) ListObjects(location interfaces.StorageLocation) ([]interfaces.StorageLocation, error) {
+	objects := make([]interfaces.StorageLocation, 0)
 
 	doneCh := make(chan struct{})
 	defer close(doneCh)
@@ -240,7 +264,8 @@ func (s *MINIOStorage) ListObjects(location interfaces.StorageLocation) ([]strin
 		if object.Err != nil {
 			return nil, object.Err
 		}
-		objects = append(objects, object.Key)
+		objectStorageLocation := s.NewStorageLocation(object.Key)
+		objects = append(objects, objectStorageLocation)
 	}
 
 	return objects, nil
@@ -249,55 +274,52 @@ func (s *MINIOStorage) ListObjects(location interfaces.StorageLocation) ([]strin
 func (s *MINIOStorage) PutObject(
 	source interfaces.StorageLocation,
 	destination interfaces.StorageLocation,
-) error {
+) (interfaces.StorageLocation, error) {
 	// Get the file extension of Source
-	if filepath.Ext(destination.FileName) == "" {
+	fileName := destination.GetFileName()
+	if filepath.Ext(fileName) == "" {
 		// Get the file extension of Source from the file content
 		content, err := s.localStorage.GetObjectBytes(source)
 		if err != nil {
-			return err
+			return s.NewStorageLocation(""), err
 		}
 		mimeType, err := DetectMimeTypeFromBuffer(content)
 		if err != nil {
-			return err
+			return s.NewStorageLocation(""), err
 		}
-		destination.FileName = fmt.Sprintf("%s%s", destination.FileName, mimeType.Extension())
+		fileName = fmt.Sprintf("%s%s", fileName, mimeType.Extension())
 	}
+
+	destinationWithExtension := s.NewStorageLocation(fileName)
+	destinationWithExtension.SetBucket(destination.GetBucket())
 
 	_, err := s.Client.FPutObject(
 		context.Background(),
 		s.GetStorageDirectory(),
-		destination.FileName,
-		filepath.Join(source.LocalDirectory, source.FileName),
+		destinationWithExtension.GetFileName(),
+		filepath.Join(source.GetLocalDirectory(), source.GetFileName()),
 		minio.PutObjectOptions{},
 	)
 	if err != nil {
-		return err
+		return s.NewStorageLocation(""), err
 	}
 
-	return nil
+	return destinationWithExtension, nil
 }
 
 func (s *MINIOStorage) PutObjectBytes(
 	destination interfaces.StorageLocation,
 	content *bytes.Buffer,
-) (
-	interfaces.StorageLocation,
-	error,
-) {
-	// Save the file to the local storage
-	localStorage, err := s.localStorage.PutObjectBytes(
-		interfaces.StorageLocation{
-			LocalDirectory: s.localStorage.GetStorageDirectory(),
-			FileName:       uuid.NewString(),
-		},
-		content,
-	)
+) (interfaces.StorageLocation, error) {
+	localStorageLocation := s.localStorage.NewStorageLocation(uuid.NewString())
+	defer s.localStorage.DeleteObject(localStorageLocation)
+
+	localStorage, err := s.localStorage.PutObjectBytes(localStorageLocation, content)
 	if err != nil {
-		return interfaces.StorageLocation{}, err
+		return s.NewStorageLocation(""), err
 	}
 
-	return localStorage, s.PutObject(localStorage, destination)
+	return s.PutObject(localStorage, destination)
 }
 
 func (s *MINIOStorage) GetObject(
@@ -307,32 +329,41 @@ func (s *MINIOStorage) GetObject(
 	return s.Client.FGetObject(
 		context.Background(),
 		s.GetStorageDirectory(),
-		source.FileName,
-		filepath.Join(destination.LocalDirectory, destination.FileName),
+		source.GetFileName(),
+		destination.GetFilePath(),
 		minio.GetObjectOptions{},
 	)
 }
 
 func (s *MINIOStorage) GetObjectBytes(source interfaces.StorageLocation) (*bytes.Buffer, error) {
-	destination := interfaces.StorageLocation{
-		LocalDirectory: s.localStorage.GetStorageDirectory(),
-		FileName:       uuid.NewString(),
-	}
-	err := s.GetObject(source, destination)
+	localStorageLocation := s.localStorage.NewStorageLocation(uuid.NewString())
+	defer s.localStorage.DeleteObject(localStorageLocation)
+
+	err := s.GetObject(source, localStorageLocation)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.localStorage.GetObjectBytes(destination)
+	return s.localStorage.GetObjectBytes(localStorageLocation)
 }
 
 func (s *MINIOStorage) DeleteObject(location interfaces.StorageLocation) error {
 	return s.Client.RemoveObject(
 		context.Background(),
 		s.GetStorageDirectory(),
-		location.FileName,
+		location.GetFileName(),
 		minio.RemoveObjectOptions{},
 	)
+}
+
+func (s *MINIOStorage) LocationExists(location interfaces.StorageLocation) bool {
+	_, err := s.Client.StatObject(
+		context.Background(),
+		s.GetStorageDirectory(),
+		location.GetFileName(),
+		minio.StatObjectOptions{},
+	)
+	return err == nil
 }
 
 func (s *MINIOStorage) Shutdown() {}

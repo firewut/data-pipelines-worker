@@ -2,15 +2,24 @@ package interfaces
 
 import "bytes"
 
-// StorageLocation represents a location in a storage
-type StorageLocation struct {
-	// LocalDirectory is the root directory of the storage
-	LocalDirectory string
-	// Bucket is the name of the bucket
-	Bucket string
-	// FileName is the name of the file
-	// e.g. <pipeline-slug>/<processing-id>/<block-slug>/output_{i}.<mimetype>
-	FileName string
+type StorageLocation interface {
+	GetStorage() Storage
+
+	GetBucket() string
+	GetLocalDirectory() string
+	GetFileName() string
+
+	SetBucket(string)
+	SetLocalDirectory(string)
+	SetFileName(string)
+
+	GetFilePath() string
+
+	// Storage methods wrappers
+	Exists() bool
+	Delete() error
+	GetObjectBytes() (*bytes.Buffer, error)
+	GetStorageName() string
 }
 
 type Storage interface {
@@ -19,13 +28,13 @@ type Storage interface {
 
 	// GetStorageDirectory returns the root directory of the storage
 	GetStorageDirectory() string
-	GetStorageLocation(fileName string) StorageLocation
+	NewStorageLocation(fileName string) StorageLocation
 
 	// ListObjects returns a list of objects in the given location
-	ListObjects(StorageLocation) ([]string, error)
+	ListObjects(StorageLocation) ([]StorageLocation, error)
 
 	// PutObject copies a file from source to destination
-	PutObject(source StorageLocation, destination StorageLocation) error
+	PutObject(source StorageLocation, destination StorageLocation) (StorageLocation, error)
 	// PutObjectBytes copies a file from a buffer to destination
 	PutObjectBytes(destination StorageLocation, content *bytes.Buffer) (StorageLocation, error)
 	// GetObject
@@ -35,6 +44,9 @@ type Storage interface {
 
 	// DeleteObject deletes a file
 	DeleteObject(location StorageLocation) error
+
+	// LocationExists checks if a location exists
+	LocationExists(location StorageLocation) bool
 
 	// Shutdown closes the storage connection
 	Shutdown()
