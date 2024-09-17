@@ -11,6 +11,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/grandcat/zeroconf"
 	"github.com/labstack/gommon/log"
 	"github.com/stretchr/testify/suite"
@@ -446,6 +447,8 @@ func (s *UnitTestSuite) GetDiscoveredWorkers() []interfaces.Worker {
 func (suite *UnitTestSuite) GetMockServerHandlersResponse(
 	pipelines map[string]interfaces.Pipeline,
 	blocks map[string]interfaces.Block,
+	startProcessingId uuid.UUID,
+	resumeProcessingId uuid.UUID,
 ) map[string]string {
 	pipelinesResponse, err := json.Marshal(pipelines)
 	suite.Nil(err)
@@ -453,10 +456,30 @@ func (suite *UnitTestSuite) GetMockServerHandlersResponse(
 	blocksResponse, err := json.Marshal(blocks)
 	suite.Nil(err)
 
-	return map[string]string{
-		"/pipelines": string(pipelinesResponse),
-		"/blocks":    string(blocksResponse),
+	mockedResponses := map[string]string{}
+
+	for _, pipeline := range pipelines {
+		startProcessingIdResponse, err := json.Marshal(
+			schemas.PipelineResumeOutputSchema{
+				ProcessingID: startProcessingId,
+			},
+		)
+		suite.Nil(err)
+		resumeProcessingIdResponse, err := json.Marshal(
+			schemas.PipelineResumeOutputSchema{
+				ProcessingID: resumeProcessingId,
+			},
+		)
+		suite.Nil(err)
+
+		mockedResponses[fmt.Sprintf("/pipelines/%s/start", pipeline.GetSlug())] = string(startProcessingIdResponse)
+		mockedResponses[fmt.Sprintf("/pipelines/%s/resume", pipeline.GetSlug())] = string(resumeProcessingIdResponse)
 	}
+
+	mockedResponses["/pipelines"] = string(pipelinesResponse)
+	mockedResponses["/blocks"] = string(blocksResponse)
+
+	return mockedResponses
 }
 
 func (suite *UnitTestSuite) GetTestTranscriptionResult() string {

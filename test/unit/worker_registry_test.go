@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/google/uuid"
+
+	"data-pipelines-worker/api/schemas"
 	"data-pipelines-worker/test/factories"
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/interfaces"
@@ -110,7 +113,7 @@ func (suite *UnitTestSuite) TestGetWorkerRegistry() {
 	)
 }
 
-func (suite *UnitTestSuite) TestQueryWorkerAPI() {
+func (suite *UnitTestSuite) TestWorkerRegistryQueryWorkerAPI() {
 	// Given
 	workerRegistry := registries.GetWorkerRegistry()
 
@@ -144,6 +147,8 @@ func (suite *UnitTestSuite) TestQueryWorkerAPI() {
 				),
 			},
 			map[string]interfaces.Block{blockId: block},
+			uuid.New(),
+			uuid.New(),
 		),
 	)
 	suite.Nil(err)
@@ -157,6 +162,7 @@ func (suite *UnitTestSuite) TestQueryWorkerAPI() {
 	err = workerRegistry.QueryWorkerAPI(
 		workerEntry,
 		"pipelines",
+		"GET",
 		&pipelines,
 	)
 	suite.Nil(err)
@@ -165,8 +171,121 @@ func (suite *UnitTestSuite) TestQueryWorkerAPI() {
 	err = workerRegistry.QueryWorkerAPI(
 		workerEntry,
 		"blocks",
+		"GET",
 		&blocks,
 	)
 	suite.Nil(err)
 	suite.NotEmpty(blocks)
+}
+
+func (suite *UnitTestSuite) TestWorkerRegistryGetValidWorkers() {
+	// Given
+	workerRegistry := registries.GetWorkerRegistry()
+
+	pipelineSlug := "test-pipeline-slug"
+	blockId := "test-block-id"
+	block := blocks.NewBlockHTTP()
+	block.SetAvailable(true)
+
+	workerServer, workerEntry, err := factories.NewWorkerServer(
+		suite.GetMockHTTPServer,
+		http.StatusOK,
+		true,
+		[]string{blockId},
+		suite.GetMockServerHandlersResponse(
+			map[string]interfaces.Pipeline{
+				pipelineSlug: suite.GetTestPipeline(
+					fmt.Sprintf(`{
+							"slug": "%s",
+							"title": "Test Pipeline",
+							"description": "Test Pipeline Description",
+							"blocks": [
+								{
+									"id": "%s",
+									"slug": "test-block-slug",
+									"description": "Do something"
+								}
+							]
+						}`,
+						pipelineSlug,
+						blockId,
+					),
+				),
+			},
+			map[string]interfaces.Block{blockId: block},
+			uuid.New(),
+			uuid.New(),
+		),
+	)
+	suite.Nil(err)
+	suite.NotNil(workerServer)
+	suite.NotNil(workerEntry)
+
+	workerRegistry.Add(workerEntry)
+
+	// When
+	validWorkers := workerRegistry.GetValidWorkers(pipelineSlug, blockId)
+
+	// Then
+	suite.NotEmpty(validWorkers)
+	suite.Equal(1, len(validWorkers))
+	suite.Equal(workerEntry, validWorkers[workerEntry.GetId()])
+}
+
+func (suite *UnitTestSuite) TestWorkerRegistryResumeProcessing() {
+	// Given
+	workerRegistry := registries.GetWorkerRegistry()
+
+	pipelineSlug := "test-pipeline-slug"
+	blockId := "test-block-id"
+	block := blocks.NewBlockHTTP()
+	block.SetAvailable(true)
+	processingId := uuid.New()
+
+	workerServer, workerEntry, err := factories.NewWorkerServer(
+		suite.GetMockHTTPServer,
+		http.StatusOK,
+		true,
+		[]string{blockId},
+		suite.GetMockServerHandlersResponse(
+			map[string]interfaces.Pipeline{
+				pipelineSlug: suite.GetTestPipeline(
+					fmt.Sprintf(`{
+							"slug": "%s",
+							"title": "Test Pipeline",
+							"description": "Test Pipeline Description",
+							"blocks": [
+								{
+									"id": "%s",
+									"slug": "test-block-slug",
+									"description": "Do something"
+								}
+							]
+						}`,
+						pipelineSlug,
+						blockId,
+					),
+				),
+			},
+			map[string]interfaces.Block{blockId: block},
+			uuid.New(),
+			processingId,
+		),
+	)
+	suite.Nil(err)
+	suite.NotNil(workerServer)
+	suite.NotNil(workerEntry)
+
+	workerRegistry.Add(workerEntry)
+
+	// When
+	err = workerRegistry.ResumeProcessing(
+		pipelineSlug,
+		processingId,
+		blockId,
+		schemas.PipelineStartInputSchema{},
+	)
+
+	// Then
+	suite.Nil(err)
 }

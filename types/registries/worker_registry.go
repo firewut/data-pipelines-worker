@@ -84,15 +84,27 @@ func (wr *WorkerRegistry) ResumeProcessing(
 	pipelineSlug string,
 	processingId uuid.UUID,
 	blockId string,
-	blockIndex int,
 	inputData schemas.PipelineStartInputSchema,
 ) error {
-	// validWorkers := wr.GetValidWorkers()
+	validWorkers := wr.GetValidWorkers(pipelineSlug, blockId)
+	if len(validWorkers) == 0 {
+		return fmt.Errorf(
+			"no valid workers found for pipeline %s and block %s",
+			pipelineSlug,
+			blockId,
+		)
+	}
 
-	if blockIndex == 0 {
-		// Respect inputData
-	} else {
-		inputData.Block.Input = make(map[string]interface{})
+	for _, validWorker := range validWorkers {
+		err := wr.ResumeProcessingAtWorker(
+			validWorker,
+			pipelineSlug,
+			processingId,
+			inputData,
+		)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -192,28 +204,37 @@ func (wr *WorkerRegistry) GetValidWorkers(
 func (wr *WorkerRegistry) QueryWorkerAPI(
 	worker interfaces.Worker,
 	path string,
+	method string,
 	result interface{},
 ) error {
-	request, err := http.Get(
+	request, err := http.NewRequest(
+		method,
 		fmt.Sprintf(
 			"%s/%s",
 			worker.GetAPIEndpoint(),
 			path,
 		),
+		nil, // Use a different io.Reader if you need to send a body
 	)
 	if err != nil {
 		return err
 	}
-	defer request.Body.Close()
 
-	if request.StatusCode != http.StatusOK {
+	client := &http.Client{}
+	response, err := client.Do(request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
 		return fmt.Errorf(
-			"Worker API returned status code %d",
-			request.StatusCode,
+			"worker API returned status code %d",
+			response.StatusCode,
 		)
 	}
 
-	err = json.NewDecoder(request.Body).Decode(result)
+	err = json.NewDecoder(response.Body).Decode(result)
 	if err != nil {
 		return err
 	}
@@ -223,12 +244,42 @@ func (wr *WorkerRegistry) QueryWorkerAPI(
 
 func (wr *WorkerRegistry) GetWorkerPipelines(worker interfaces.Worker) (map[string]interface{}, error) {
 	pipelines := make(map[string]interface{})
-	err := wr.QueryWorkerAPI(worker, "pipelines", &pipelines)
+	err := wr.QueryWorkerAPI(worker, "pipelines", "GET", &pipelines)
 	return pipelines, err
 }
 
 func (wr *WorkerRegistry) GetWorkerBlocks(worker interfaces.Worker) (map[string]interface{}, error) {
 	blocks := make(map[string]interface{})
-	err := wr.QueryWorkerAPI(worker, "blocks", &blocks)
+	err := wr.QueryWorkerAPI(worker, "blocks", "GET", &blocks)
 	return blocks, err
+}
+
+func (wr *WorkerRegistry) ResumeProcessingAtWorker(
+	worker interfaces.Worker,
+	pipelineSlug string,
+	processingId uuid.UUID,
+	inputData schemas.PipelineStartInputSchema,
+) error {
+	var pipelineResumeOutput schemas.PipelineResumeOutputSchema
+	if err := wr.QueryWorkerAPI(
+		worker,
+		fmt.Sprintf(
+			"pipelines/%s/resume",
+			pipelineSlug,
+		),
+		"POST",
+		&pipelineResumeOutput,
+	); err != nil {
+		return err
+	}
+
+	if pipelineResumeOutput.ProcessingID != processingId {
+		return fmt.Errorf(
+			"worker %s returned different processing ID %s",
+			worker.GetId(),
+			pipelineResumeOutput.ProcessingID,
+		)
+	}
+
+	return nil
 }

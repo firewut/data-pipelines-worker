@@ -169,7 +169,6 @@ func (p *PipelineData) Process(
 				blockData.GetPipeline().GetSlug(),
 				processingId,
 				blockData.GetSlug(),
-				blockIndex,
 				inputData,
 			); err != nil {
 				return uuid.UUID{}, err

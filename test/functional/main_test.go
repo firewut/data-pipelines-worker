@@ -2,16 +2,19 @@ package functional_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/labstack/gommon/log"
 	"github.com/stretchr/testify/suite"
 
 	"data-pipelines-worker/api"
+	"data-pipelines-worker/api/schemas"
 	"data-pipelines-worker/test/factories"
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/dataclasses"
@@ -122,6 +125,8 @@ func (suite *FunctionalTestSuite) GetTestPipeline(pipelineDefinition string) int
 func (suite *FunctionalTestSuite) GetMockServerHandlersResponse(
 	pipelines map[string]interfaces.Pipeline,
 	blocks map[string]interfaces.Block,
+	startProcessingId uuid.UUID,
+	resumeProcessingId uuid.UUID,
 ) map[string]string {
 	pipelinesResponse, err := json.Marshal(pipelines)
 	suite.Nil(err)
@@ -129,8 +134,28 @@ func (suite *FunctionalTestSuite) GetMockServerHandlersResponse(
 	blocksResponse, err := json.Marshal(blocks)
 	suite.Nil(err)
 
-	return map[string]string{
-		"/pipelines": string(pipelinesResponse),
-		"/blocks":    string(blocksResponse),
+	mockedResponses := map[string]string{}
+
+	for _, pipeline := range pipelines {
+		startProcessingIdResponse, err := json.Marshal(
+			schemas.PipelineResumeOutputSchema{
+				ProcessingID: startProcessingId,
+			},
+		)
+		suite.Nil(err)
+		resumeProcessingIdResponse, err := json.Marshal(
+			schemas.PipelineResumeOutputSchema{
+				ProcessingID: resumeProcessingId,
+			},
+		)
+		suite.Nil(err)
+
+		mockedResponses[fmt.Sprintf("/pipelines/%s/start", pipeline.GetSlug())] = string(startProcessingIdResponse)
+		mockedResponses[fmt.Sprintf("/pipelines/%s/resume", pipeline.GetSlug())] = string(resumeProcessingIdResponse)
 	}
+
+	mockedResponses["/pipelines"] = string(pipelinesResponse)
+	mockedResponses["/blocks"] = string(blocksResponse)
+
+	return mockedResponses
 }

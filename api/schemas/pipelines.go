@@ -22,17 +22,12 @@ type PipelineStartInputSchema struct {
 	Block    BlockInputSchema    `json:"block"`
 }
 
-// func (p PipelineStartInputSchema) DeepCopy() (PipelineStartInputSchema, error) {
-// 	var destination PipelineStartInputSchema
+// PipelineStartOutputSchema represents the structure of the output JSON.
+type PipelineStartOutputSchema struct {
+	ProcessingID uuid.UUID `json:"processing_id"`
+}
 
-// 	jsonContent, err := json.Marshal(p)
-// 	if err != nil {
-// 		return destination, err
-// 	}
-// 	err = json.Unmarshal(jsonContent, &destination)
-// 	if err != nil {
-// 		return destination, err
-// 	}
-
-// 	return destination, nil
-// }
+// PipelineResumeOutputSchema represents the structure of the input JSON.
+type PipelineResumeOutputSchema struct {
+	ProcessingID uuid.UUID `json:"processing_id"`
+}

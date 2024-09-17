@@ -5,8 +5,10 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/grandcat/zeroconf"
 
+	"data-pipelines-worker/api/schemas"
 	"data-pipelines-worker/test/factories"
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/dataclasses"
@@ -47,6 +49,8 @@ func (suite *FunctionalTestSuite) TestGetWorkerPipelines() {
 				),
 			},
 			map[string]interfaces.Block{},
+			uuid.New(),
+			uuid.New(),
 		),
 	)
 	suite.Nil(err)
@@ -106,6 +110,8 @@ func (suite *FunctionalTestSuite) TestGetWorkerBlocks() {
 					),
 				},
 				map[string]interfaces.Block{blockId: block},
+				uuid.New(),
+				uuid.New(),
 			),
 		)
 		suite.Nil(err)
@@ -128,7 +134,7 @@ func (suite *FunctionalTestSuite) TestGetWorkerBlocks() {
 	}
 }
 
-func (suite *FunctionalTestSuite) TestGetWorkerRegistryGetValidWorkersExists() {
+func (suite *FunctionalTestSuite) TestWorkerRegistryGetValidWorkers() {
 	// Given
 	workerRegistry := registries.GetWorkerRegistry()
 
@@ -163,6 +169,8 @@ func (suite *FunctionalTestSuite) TestGetWorkerRegistryGetValidWorkersExists() {
 				),
 			},
 			map[string]interfaces.Block{blockId: block},
+			uuid.New(),
+			uuid.New(),
 		),
 	)
 	suite.Nil(err)
@@ -207,4 +215,90 @@ func (suite *FunctionalTestSuite) TestGetWorkerRegistryGetValidWorkersExists() {
 		workers[discoveredWorkers[1].GetId()],
 		discoveredWorkers[1],
 	)
+}
+
+func (suite *FunctionalTestSuite) TestWorkerRegistryResumeProcessing() {
+	// This is updated copy/paste of Unit TestSuite TestWorkerRegistryResumeProcessing
+
+	// Given
+	workerRegistry := registries.GetWorkerRegistry()
+
+	pipelineSlug := "test-pipeline-slug"
+	blockId := "test-block-id"
+	block := blocks.NewBlockHTTP()
+	block.SetAvailable(true)
+	processingId := uuid.New()
+
+	workerServer, workerEntry, err := factories.NewWorkerServer(
+		suite.GetMockHTTPServer,
+		http.StatusOK,
+		true,
+		[]string{blockId},
+		suite.GetMockServerHandlersResponse(
+			map[string]interfaces.Pipeline{
+				pipelineSlug: suite.GetTestPipeline(
+					fmt.Sprintf(`{
+							"slug": "%s",
+							"title": "Test Pipeline",
+							"description": "Test Pipeline Description",
+							"blocks": [
+								{
+									"id": "%s",
+									"slug": "test-block-slug",
+									"description": "Do something"
+								}
+							]
+						}`,
+						pipelineSlug,
+						blockId,
+					),
+				),
+			},
+			map[string]interfaces.Block{blockId: block},
+			uuid.New(),
+			processingId,
+		),
+	)
+	suite.Nil(err)
+	suite.NotNil(workerServer)
+	suite.NotNil(workerEntry)
+
+	discoveredEntries := []*zeroconf.ServiceEntry{
+		{
+			ServiceRecord: zeroconf.ServiceRecord{
+				Instance: "localhost",
+			},
+			HostName: "localhost",
+			AddrIPv4: []net.IP{net.ParseIP("192.168.1.1")},
+			AddrIPv6: []net.IP{net.ParseIP("::1")},
+			Port:     8080,
+			Text: []string{
+				"version=0.1",
+				"load=0.00",
+				"available=false",
+				fmt.Sprintf(
+					"blocks=block_http,%s,block_gpu_image_resize",
+					blockId,
+				),
+			},
+		},
+	}
+	discoveredWorkers := []interfaces.Worker{
+		dataclasses.NewWorker(discoveredEntries[0]),
+		workerEntry,
+	}
+	for _, worker := range discoveredWorkers {
+		workerRegistry.Add(worker)
+	}
+
+	// When
+	err = workerRegistry.ResumeProcessing(
+		pipelineSlug,
+		processingId,
+		blockId,
+		schemas.PipelineStartInputSchema{},
+	)
+
+	// Then
+	suite.Nil(err)
 }

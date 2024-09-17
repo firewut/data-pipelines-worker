@@ -40,12 +40,17 @@ func PipelineStartHandler(registry *registries.PipelineRegistry) echo.HandlerFun
 			return c.JSON(http.StatusBadRequest, err.Error())
 		}
 
-		pipeline, err := registry.StartPipeline(inputData)
+		processingId, err := registry.StartPipeline(inputData)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, err.Error())
 		}
 
-		return c.JSON(http.StatusOK, pipeline)
+		return c.JSON(
+			http.StatusOK,
+			schemas.PipelineStartOutputSchema{
+				ProcessingID: processingId,
+			},
+		)
 	}
 }
 
@@ -57,11 +62,16 @@ func PipelineResumeHandler(registry *registries.PipelineRegistry) echo.HandlerFu
 			return c.JSON(http.StatusBadRequest, err.Error())
 		}
 
-		pipeline, err := registry.ResumePipeline(inputData)
+		processingId, err := registry.ResumePipeline(inputData)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, err.Error())
 		}
 
-		return c.JSON(http.StatusOK, pipeline)
+		return c.JSON(
+			http.StatusOK,
+			schemas.PipelineResumeOutputSchema{
+				ProcessingID: processingId,
+			},
+		)
 	}
 }
