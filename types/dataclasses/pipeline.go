@@ -125,9 +125,12 @@ func (p *PipelineData) Process(
 	}
 
 	// Check if the block exists in the pipeline
+	pipelineBlocks := p.GetBlocks()
+	processedBlocks := make([]interfaces.ProcessableBlockData, 0)
 	processBlocks := make([]interfaces.ProcessableBlockData, 0)
-	for i, block := range p.Blocks {
+	for i, block := range pipelineBlocks {
 		if block.GetSlug() == inputData.Block.Slug {
+			processedBlocks = p.Blocks[:i]
 			processBlocks = p.Blocks[i:]
 			break
 		}
@@ -147,8 +150,16 @@ func (p *PipelineData) Process(
 		resultStorages,
 	)
 
+	// Prepare results of previous Pipeline execution
+	// e.g. if previous Worker passed request to this worker
+	for _, blockData := range processedBlocks {
+		pipelineBlockDataRegistry.LoadOutput(blockData.GetSlug())
+	}
+
 	// Loop through each block
-	for blockIndex, blockData := range processBlocks {
+	for blockRelativeIndex, blockData := range processBlocks {
+		blockIndex := blockRelativeIndex + len(processedBlocks)
+
 		block := blockData.GetBlock()
 
 		if !block.IsAvailable() {
@@ -166,8 +177,6 @@ func (p *PipelineData) Process(
 			return processingId, nil
 		}
 
-		// pipelineBlockDataRegistry.LoadOutput(blockData.GetSlug())
-
 		var inputConfigValue interface{}
 		if blockData.GetInputConfig() != nil {
 			var err error
@@ -182,7 +191,10 @@ func (p *PipelineData) Process(
 		blockInputData := blockData.GetInputDataByPriority(
 			[]interface{}{
 				BlockInputData{
-					Condition: blockIndex == 0 && inputData.Block.Input != nil,
+					Condition: (blockRelativeIndex == 0 ||
+						blockIndex == 0) &&
+						inputData.Block.Input != nil &&
+						len(inputData.Block.Input) > 0,
 					Value: []map[string]interface{}{
 						inputData.Block.Input,
 					},

@@ -1,6 +1,7 @@
 package unit_test
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 
@@ -74,14 +75,10 @@ func (suite *UnitTestSuite) TestPipelineProcess() {
 		"test-block-slug",
 		nil,
 	)
-	createdFilesChan := make(chan createdFile, 1)
-	mockStorage := &mockLocalStorage{
-		createdFilesChan: createdFilesChan,
-	}
+	mockStorage := suite.NewMockLocalStorage(1)
 	registry.SetPipelineResultStorages(
 		[]interfaces.Storage{
 			mockStorage,
-			// types.NewMINIOStorage(),
 		},
 	)
 
@@ -92,7 +89,7 @@ func (suite *UnitTestSuite) TestPipelineProcess() {
 	suite.Nil(err)
 	suite.NotEmpty(processingId)
 
-	createdFile := <-createdFilesChan
+	createdFile := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(createdFile)
 	suite.Equal(mockedResponse, createdFile.data.String())
 }
@@ -114,14 +111,11 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
 			"url": firstBlockInput,
 		},
 	)
-	createdFilesChan := make(chan createdFile, 2)
-	mockStorage := &mockLocalStorage{
-		createdFilesChan: createdFilesChan,
-	}
+	mockStorage := suite.NewMockLocalStorage(2)
+
 	registry.SetPipelineResultStorages(
 		[]interfaces.Storage{
 			mockStorage,
-			// types.NewMINIOStorage(),
 		},
 	)
 
@@ -132,11 +126,11 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
 	suite.Nil(err)
 	suite.NotEmpty(processingId)
 
-	createdFileBlock1 := <-createdFilesChan
+	createdFileBlock1 := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(createdFileBlock1)
 	suite.Equal(secondBlockInput, createdFileBlock1.data.String())
 
-	createdFileBlock2 := <-createdFilesChan
+	createdFileBlock2 := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(createdFileBlock2)
 	suite.Equal(mockedSecondBlockResponse, createdFileBlock2.data.String())
 }
@@ -189,4 +183,106 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcessNStorages() {
 	createdFileBlock2 = <-mockStorage2.createdFilesChan
 	suite.NotEmpty(createdFileBlock2)
 	suite.Equal(mockedSecondBlockResponse, createdFileBlock2.data.String())
+}
+
+func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlockInputPassed() {
+	// Given
+	processingId := uuid.New()
+	mockedSecondBlockResponse := fmt.Sprintf(
+		"Hello, world! Mocked value is %s",
+		uuid.NewString(),
+	)
+	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK)
+
+	pipeline, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
+		suite.GetTestPipelineTwoBlocks("NOT URL AT ALL"),
+		"test-pipeline-slug-two-blocks",
+		"test-block-second-slug",
+		map[string]interface{}{
+			"url": secondBlockInput,
+		},
+	)
+	processingData.Pipeline.ProcessingID = processingId
+
+	mockStorage := suite.NewMockLocalStorage(2)
+	mockStorage.AddFile(
+		mockStorage.NewStorageLocation(
+			fmt.Sprintf(
+				"%s/%s/%s/%s",
+				"test-pipeline-slug-two-blocks",
+				processingId.String(),
+				"test-block-first-slug",
+				"output_1.txt",
+			),
+		),
+		bytes.NewBufferString(
+			"this value must be ignored since URL is passed in Request",
+		),
+	)
+
+	registry.SetPipelineResultStorages(
+		[]interfaces.Storage{
+			mockStorage,
+		},
+	)
+
+	// When
+	processingId, err := pipeline.Process(processingData, registry.GetPipelineResultStorages())
+
+	// Then
+	suite.Nil(err)
+	suite.NotEmpty(processingId)
+
+	createdFileBlock1 := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(createdFileBlock1)
+	suite.Equal(mockedSecondBlockResponse, createdFileBlock1.data.String())
+}
+
+func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlockInputMissing() {
+	// Given
+	processingId := uuid.New()
+	mockedSecondBlockResponse := fmt.Sprintf(
+		"Hello, world! Mocked value is %s",
+		uuid.NewString(),
+	)
+	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK)
+
+	pipeline, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
+		suite.GetTestPipelineTwoBlocks("NOT URL AT ALL"),
+		"test-pipeline-slug-two-blocks",
+		"test-block-second-slug",
+		map[string]interface{}{},
+	)
+	processingData.Pipeline.ProcessingID = processingId
+
+	mockStorage := suite.NewMockLocalStorage(2)
+	mockStorage.AddFile(
+		mockStorage.NewStorageLocation(
+			fmt.Sprintf(
+				"%s/%s/%s/%s",
+				"test-pipeline-slug-two-blocks",
+				processingId.String(),
+				"test-block-first-slug",
+				"output_1.txt",
+			),
+		),
+		bytes.NewBufferString(secondBlockInput),
+	)
+
+	registry.SetPipelineResultStorages(
+		[]interfaces.Storage{
+			mockStorage,
+		},
+	)
+
+	// When
+	processingId, err := pipeline.Process(processingData, registry.GetPipelineResultStorages())
+
+	// Then
+	suite.Nil(err)
+	suite.NotEmpty(processingId)
+
+	createdFileBlock1 := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(createdFileBlock1)
+	suite.Equal(mockedSecondBlockResponse, createdFileBlock1.data.String())
 }

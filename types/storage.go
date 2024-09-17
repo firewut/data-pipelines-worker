@@ -70,7 +70,6 @@ func (s *LocalStorage) ListObjects(location interfaces.StorageLocation) ([]inter
 				),
 			)
 		} else if err != nil {
-			fmt.Println("Error:", err)
 			return objects, err
 		}
 
@@ -112,13 +111,11 @@ func (s *LocalStorage) PutObject(
 
 	data, err := os.ReadFile(source.GetFilePath())
 	if err != nil {
-		fmt.Println("Error reading file:", err)
 		return s.NewStorageLocation(""), err
 	}
 
 	err = os.WriteFile(destination.GetFilePath(), data, 0644)
 	if err != nil {
-		fmt.Println("Error writing file:", err)
 		return s.NewStorageLocation(""), err
 	}
 

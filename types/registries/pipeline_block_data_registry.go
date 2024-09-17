@@ -14,9 +14,12 @@ import (
 type PipelineBlockDataRegistry struct {
 	sync.Mutex
 
-	processingId      uuid.UUID
-	pipelineSlug      string
-	storages          []interfaces.Storage
+	processingId uuid.UUID
+	pipelineSlug string
+	storages     []interfaces.Storage
+
+	// TODO: Follow Registry interface and replace []*bytes.Buffer
+	//	withth interfaces.StorageLocation
 	pipelineBlockData map[string][]*bytes.Buffer
 }
 
@@ -40,10 +43,7 @@ func NewPipelineBlockDataRegistry(
 	return registry
 }
 
-func (r *PipelineBlockDataRegistry) Add(
-	blockSlug string,
-	data *bytes.Buffer,
-) {
+func (r *PipelineBlockDataRegistry) Add(blockSlug string, data *bytes.Buffer) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -54,9 +54,7 @@ func (r *PipelineBlockDataRegistry) Add(
 	r.pipelineBlockData[blockSlug] = append(r.pipelineBlockData[blockSlug], data)
 }
 
-func (r *PipelineBlockDataRegistry) Get(
-	blockSlug string,
-) []*bytes.Buffer {
+func (r *PipelineBlockDataRegistry) Get(blockSlug string) []*bytes.Buffer {
 	r.Lock()
 	defer r.Unlock()
 
@@ -70,9 +68,7 @@ func (r *PipelineBlockDataRegistry) GetAll() map[string][]*bytes.Buffer {
 	return r.pipelineBlockData
 }
 
-func (r *PipelineBlockDataRegistry) Delete(
-	blockSlug string,
-) {
+func (r *PipelineBlockDataRegistry) Delete(blockSlug string) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -146,7 +142,6 @@ func (r *PipelineBlockDataRegistry) LoadOutput(blockSlug string) []*bytes.Buffer
 		for _, object := range objects {
 			data, err := storage.GetObjectBytes(object)
 			if err != nil {
-				fmt.Println(">>", object, " | ", err)
 				continue
 			}
 

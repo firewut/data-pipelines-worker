@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"data-pipelines-worker/api/schemas"
+	"data-pipelines-worker/types"
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/dataclasses"
@@ -327,17 +328,17 @@ type mockLocalStorage struct {
 	sync.Mutex
 
 	createdFilesChan chan createdFile
-
-	// files have content
-	//   key: file path [ <pipeline-slug>/<pipeline-processing-id>/<block-slug>/output.<mimetype> ]
-	//   value: file content
-	files map[string]*bytes.Buffer
+	storage          interfaces.Storage
+	locations        []interfaces.StorageLocation
 }
 
 func (s *UnitTestSuite) NewMockLocalStorage(numBlocks int) *mockLocalStorage {
 	mockLocalStorage := &mockLocalStorage{
 		createdFilesChan: make(chan createdFile, numBlocks),
-		files:            make(map[string]*bytes.Buffer),
+		storage: types.NewLocalStorage(
+			os.TempDir(),
+		),
+		locations: make([]interfaces.StorageLocation, 0),
 	}
 	s.storages = append(s.storages, mockLocalStorage)
 
@@ -345,23 +346,29 @@ func (s *UnitTestSuite) NewMockLocalStorage(numBlocks int) *mockLocalStorage {
 }
 
 func (s *mockLocalStorage) GetStorageName() string {
-	return "mock"
+	return "mock-via-local"
 }
 
 func (s *mockLocalStorage) GetStorageDirectory() string {
-	return os.TempDir()
+	return s.storage.GetStorageDirectory()
 }
 
 func (s *mockLocalStorage) NewStorageLocation(fileName string) interfaces.StorageLocation {
-	return dataclasses.NewStorageLocation(s, s.GetStorageDirectory(), "", fileName)
+	s.Lock()
+	defer s.Unlock()
+
+	storageLocation := s.storage.NewStorageLocation(fileName)
+	s.locations = append(s.locations, storageLocation)
+
+	return storageLocation
 }
 
 func (s *mockLocalStorage) ListObjects(source interfaces.StorageLocation) ([]interfaces.StorageLocation, error) {
-	return make([]interfaces.StorageLocation, 0), nil
+	return s.storage.ListObjects(source)
 }
 
 func (s *mockLocalStorage) PutObject(source interfaces.StorageLocation, destination interfaces.StorageLocation) (interfaces.StorageLocation, error) {
-	return s.NewStorageLocation(""), fmt.Errorf("not implemented")
+	return s.storage.PutObject(source, destination)
 }
 
 func (s *mockLocalStorage) PutObjectBytes(destination interfaces.StorageLocation, content *bytes.Buffer) (interfaces.StorageLocation, error) {
@@ -370,33 +377,41 @@ func (s *mockLocalStorage) PutObjectBytes(destination interfaces.StorageLocation
 
 	s.createdFilesChan <- createdFile{
 		filePath: destination.GetFilePath(),
-		data:     content,
+		data:     bytes.NewBuffer(content.Bytes()),
 	}
-	return destination, nil
+
+	return s.storage.PutObjectBytes(destination, content)
 }
 
 func (s *mockLocalStorage) GetObject(source interfaces.StorageLocation, destination interfaces.StorageLocation) error {
-	return nil
+	return s.storage.GetObject(source, destination)
 }
 
 func (s *mockLocalStorage) GetObjectBytes(source interfaces.StorageLocation) (*bytes.Buffer, error) {
-	return bytes.NewBufferString(textContent), nil
+	return s.storage.GetObjectBytes(source)
 }
 
 func (s *mockLocalStorage) DeleteObject(location interfaces.StorageLocation) error {
-	return nil
+	return s.storage.DeleteObject(location)
 }
 
 func (s *mockLocalStorage) LocationExists(location interfaces.StorageLocation) bool {
-	s.Lock()
-	defer s.Unlock()
+	return s.storage.LocationExists(location)
+}
 
-	_, exists := s.files[location.GetFilePath()]
-	return exists
+func (s *mockLocalStorage) AddFile(destination interfaces.StorageLocation, content *bytes.Buffer) (interfaces.StorageLocation, error) {
+	return s.storage.PutObjectBytes(destination, content)
+}
+
+func (s *mockLocalStorage) GetCreatedFilesChan() chan createdFile {
+	return s.createdFilesChan
 }
 
 func (s *mockLocalStorage) Shutdown() {
 	close(s.createdFilesChan)
+	for _, location := range s.locations {
+		s.storage.DeleteObject(location)
+	}
 }
 
 func (s *UnitTestSuite) GetDiscoveredWorkers() []interfaces.Worker {

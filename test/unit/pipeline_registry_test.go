@@ -199,10 +199,9 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineTest() {
 		"test-block-slug",
 		nil,
 	)
-	createdFilesChan := make(chan createdFile, 1)
-	mockStorage := &mockLocalStorage{
-		createdFilesChan: createdFilesChan,
-	}
+
+	mockStorage := suite.NewMockLocalStorage(1)
+
 	registry.SetPipelineResultStorages(
 		[]interfaces.Storage{mockStorage},
 	)
@@ -214,7 +213,7 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineTest() {
 	suite.Nil(err)
 	suite.NotEmpty(processingId)
 
-	createdFile := <-createdFilesChan
+	createdFile := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(createdFile)
 	suite.Equal(mockedResponse, createdFile.data.String())
 }
@@ -240,10 +239,9 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineWithInputTest() {
 		},
 	)
 	suite.Equal(processingData.Block.Input["url"], priorityUrl)
-	createdFilesChan := make(chan createdFile, 1)
-	mockStorage := &mockLocalStorage{
-		createdFilesChan: createdFilesChan,
-	}
+
+	mockStorage := suite.NewMockLocalStorage(1)
+
 	registry.SetPipelineResultStorages(
 		[]interfaces.Storage{mockStorage},
 	)
@@ -255,7 +253,7 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineWithInputTest() {
 	suite.Nil(err)
 	suite.NotEmpty(processingId)
 
-	createdFile := <-createdFilesChan
+	createdFile := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(createdFile)
 	suite.Equal(mockedPriorityResponse, createdFile.data.String())
 }
