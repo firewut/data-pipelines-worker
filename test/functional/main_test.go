@@ -62,7 +62,11 @@ func (suite *FunctionalTestSuite) SetupTest() {
 	_config := config.GetConfig()
 	for blockId, blockConfig := range _config.Blocks {
 		if blockConfig.Detector.Conditions["url"] != nil {
-			successUrl := suite.GetMockHTTPServerURL("Mocked Response OK", http.StatusOK)
+			successUrl := suite.GetMockHTTPServerURL(
+				"Mocked Response OK",
+				http.StatusOK,
+				0,
+			)
 			_config.Blocks[blockId].Detector.Conditions["url"] = successUrl
 		}
 	}
@@ -71,7 +75,8 @@ func (suite *FunctionalTestSuite) SetupTest() {
 func (suite *FunctionalTestSuite) GetMockHTTPServer(
 	body string,
 	statusCode int,
-	bodyMapping ...map[string]string,
+	responseDelay time.Duration,
+	bodyMapping map[string]string,
 ) *httptest.Server {
 	suite.Lock()
 	defer suite.Unlock()
@@ -79,13 +84,17 @@ func (suite *FunctionalTestSuite) GetMockHTTPServer(
 	// Merge all body mappings into a single map
 	var bodyMap map[string]string
 	if len(bodyMapping) > 0 {
-		bodyMap = bodyMapping[0]
+		bodyMap = bodyMapping
 	} else {
 		bodyMap = make(map[string]string)
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(statusCode)
+
+		if responseDelay > 0 {
+			time.Sleep(responseDelay)
+		}
 
 		// Check if the requested path is in the bodyMap
 		if responseBody, exists := bodyMap[r.URL.Path]; exists {
@@ -100,8 +109,17 @@ func (suite *FunctionalTestSuite) GetMockHTTPServer(
 	return server
 }
 
-func (suite *FunctionalTestSuite) GetMockHTTPServerURL(body string, statusCode int) string {
-	return suite.GetMockHTTPServer(body, statusCode).URL
+func (suite *FunctionalTestSuite) GetMockHTTPServerURL(
+	body string,
+	statusCode int,
+	responseDelay time.Duration,
+) string {
+	return suite.GetMockHTTPServer(
+		body,
+		statusCode,
+		responseDelay,
+		make(map[string]string),
+	).URL
 }
 
 func (suite *FunctionalTestSuite) TearDownTest() {

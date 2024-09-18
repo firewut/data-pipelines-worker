@@ -7,10 +7,6 @@ import (
 	"data-pipelines-worker/api/schemas"
 )
 
-type PipelineProcessor interface {
-	Process() int
-}
-
 type Pipeline interface {
 	GetId() string
 	GetSlug() string

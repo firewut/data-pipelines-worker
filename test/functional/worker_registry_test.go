@@ -28,6 +28,7 @@ func (suite *FunctionalTestSuite) TestGetWorkerPipelines() {
 		http.StatusOK,
 		true,
 		[]string{blockId},
+		0,
 		suite.GetMockServerHandlersResponse(
 			map[string]interfaces.Pipeline{
 				pipelineSlug: suite.GetTestPipeline(
@@ -89,6 +90,7 @@ func (suite *FunctionalTestSuite) TestGetWorkerBlocks() {
 			http.StatusOK,
 			true,
 			[]string{blockId},
+			0,
 			suite.GetMockServerHandlersResponse(
 				map[string]interfaces.Pipeline{
 					pipelineSlug: suite.GetTestPipeline(
@@ -148,6 +150,7 @@ func (suite *FunctionalTestSuite) TestWorkerRegistryGetValidWorkers() {
 		http.StatusOK,
 		true,
 		[]string{blockId},
+		0,
 		suite.GetMockServerHandlersResponse(
 			map[string]interfaces.Pipeline{
 				pipelineSlug: suite.GetTestPipeline(
@@ -234,6 +237,7 @@ func (suite *FunctionalTestSuite) TestWorkerRegistryResumeProcessing() {
 		http.StatusOK,
 		true,
 		[]string{blockId},
+		0,
 		suite.GetMockServerHandlersResponse(
 			map[string]interfaces.Pipeline{
 				pipelineSlug: suite.GetTestPipeline(

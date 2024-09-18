@@ -3,6 +3,7 @@ package unit_test
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -135,7 +136,7 @@ func (suite *UnitTestSuite) TestPipelineRegistryLoadFromCatalogue() {
 
 func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineMissingPipelineTest() {
 	// Given
-	successUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusOK)
+	successUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusOK, 0)
 
 	_, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
 		suite.GetTestPipelineOneBlock(successUrl),
@@ -161,7 +162,7 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineMissingPipelineTest
 
 func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineMissingBlockTest() {
 	// Given
-	successUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusOK)
+	successUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusOK, 0)
 
 	_, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
 		suite.GetTestPipelineOneBlock(successUrl),
@@ -192,7 +193,7 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineTest() {
 		"Hello, world! Mocked value is %s",
 		uuid.NewString(),
 	)
-	successUrl := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK)
+	successUrl := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK, 0)
 	_, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
 		suite.GetTestPipelineOneBlock(successUrl),
 		"test-pipeline-slug",
@@ -228,8 +229,8 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineWithInputTest() {
 		"Hello, world! Mocked Priority value is %s",
 		uuid.NewString(),
 	)
-	successUrl := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK)
-	priorityUrl := suite.GetMockHTTPServerURL(mockedPriorityResponse, http.StatusOK)
+	successUrl := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK, 0)
+	priorityUrl := suite.GetMockHTTPServerURL(mockedPriorityResponse, http.StatusOK, 0)
 	_, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
 		suite.GetTestPipelineOneBlock(successUrl),
 		"test-pipeline-slug",
@@ -256,4 +257,20 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineWithInputTest() {
 	createdFile := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(createdFile)
 	suite.Equal(mockedPriorityResponse, createdFile.data.String())
+}
+
+func (suite *UnitTestSuite) TestPipelineRegistryShutDown() {
+	// Given
+	registry, err := registries.NewPipelineRegistry(
+		dataclasses.NewPipelineCatalogueLoader(),
+	)
+	suite.Nil(err)
+
+	// When
+	err = registry.Shutdown(
+		suite.GetShutDownContext(time.Millisecond),
+	)
+
+	// Then
+	suite.Nil(err)
 }

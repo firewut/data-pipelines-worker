@@ -60,7 +60,7 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessIncorrectInput() {
 func (suite *UnitTestSuite) TestBlockHTTPProcessSuccess() {
 	block := blocks.NewBlockHTTP()
 
-	successUrl := suite.GetMockHTTPServerURL("Hello, world!\n", http.StatusOK)
+	successUrl := suite.GetMockHTTPServerURL("Hello, world!\n", http.StatusOK, 0)
 
 	// Create a mock data
 	data := &dataclasses.BlockData{
@@ -81,7 +81,7 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessSuccess() {
 func (suite *UnitTestSuite) TestBlockHTTPProcessError() {
 	block := blocks.NewBlockHTTP()
 
-	failUrl := suite.GetMockHTTPServerURL("Server panic", http.StatusInternalServerError)
+	failUrl := suite.GetMockHTTPServerURL("Server panic", http.StatusInternalServerError, 0)
 
 	// Create a mock data
 	data := &dataclasses.BlockData{

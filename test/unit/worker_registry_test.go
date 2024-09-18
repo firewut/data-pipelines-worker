@@ -3,6 +3,7 @@ package unit_test
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -94,7 +95,12 @@ func (suite *UnitTestSuite) TestNewWorkerRegistryRemoveAll() {
 
 func (suite *UnitTestSuite) TestNewWorkerRegistryShutdown() {
 	workerRegistry := registries.NewWorkerRegistry()
-	workerRegistry.Shutdown()
+	err := workerRegistry.Shutdown(
+		suite.GetShutDownContext(
+			time.Second,
+		),
+	)
+	suite.Nil(err)
 }
 
 func (suite *UnitTestSuite) TestGetWorkerRegistry() {
@@ -126,6 +132,7 @@ func (suite *UnitTestSuite) TestWorkerRegistryQueryWorkerAPI() {
 		http.StatusOK,
 		true,
 		[]string{blockId},
+		0,
 		suite.GetMockServerHandlersResponse(
 			map[string]interfaces.Pipeline{
 				pipelineSlug: suite.GetTestPipeline(
@@ -192,6 +199,7 @@ func (suite *UnitTestSuite) TestWorkerRegistryGetValidWorkers() {
 		http.StatusOK,
 		true,
 		[]string{blockId},
+		0,
 		suite.GetMockServerHandlersResponse(
 			map[string]interfaces.Pipeline{
 				pipelineSlug: suite.GetTestPipeline(
@@ -247,6 +255,7 @@ func (suite *UnitTestSuite) TestWorkerRegistryResumeProcessing() {
 		http.StatusOK,
 		true,
 		[]string{blockId},
+		0,
 		suite.GetMockServerHandlersResponse(
 			map[string]interfaces.Pipeline{
 				pipelineSlug: suite.GetTestPipeline(

@@ -11,7 +11,7 @@ import (
 )
 
 func (suite *UnitTestSuite) TestDetectorHTTPSuccess() {
-	successUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusOK)
+	successUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusOK, 0)
 
 	detectorConfig := config.BlockConfigDetector{
 		CheckInterval: time.Millisecond,
@@ -47,7 +47,7 @@ func (suite *UnitTestSuite) TestDetectorStartStop() {
 	checkInterval := time.Millisecond * 1
 	registryWg := &sync.WaitGroup{}
 	block := suite.NewDummyBlock("test")
-	successUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusOK)
+	successUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusOK, 0)
 
 	detectorConfig := config.BlockConfigDetector{
 		CheckInterval: checkInterval,

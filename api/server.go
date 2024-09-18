@@ -93,11 +93,21 @@ func (s *Server) Start() {
 }
 
 func (s *Server) Shutdown(timeout time.Duration) {
-	ctx, _ := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
-	s.mdns.Shutdown()
-	s.pipelineRegistry.Shutdown()
-	s.blockRegistry.Shutdown()
+	shutdownCalls := []func(context.Context) error{
+		s.mdns.Shutdown,
+		s.blockRegistry.Shutdown,
+		s.pipelineRegistry.Shutdown,
+	}
+
+	for _, shutdownCall := range shutdownCalls {
+		callCtx, cancelCtx := context.WithTimeout(context.Background(), timeout)
+		defer cancelCtx()
+
+		shutdownCall(callCtx)
+	}
 
 	s.echo.Shutdown(ctx)
 }

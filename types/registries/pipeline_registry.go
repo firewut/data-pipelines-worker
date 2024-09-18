@@ -1,6 +1,7 @@
 package registries
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -120,9 +121,8 @@ func (pr *PipelineRegistry) DeleteAll() {
 	}
 }
 
-func (pr *PipelineRegistry) Shutdown() {
-	// Stop all Pipelines Processings
-	// Pass all running Pipelines to next Worker
+func (pr *PipelineRegistry) Shutdown(ctx context.Context) error {
+	return nil
 }
 
 func (pr *PipelineRegistry) StartPipeline(

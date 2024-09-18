@@ -1,6 +1,7 @@
 package registries
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -77,7 +78,11 @@ func (wr *WorkerRegistry) DeleteAll() {
 	}
 }
 
-func (wr *WorkerRegistry) Shutdown() {
+func (wr *WorkerRegistry) Shutdown(context context.Context) error {
+	wr.Lock()
+	defer wr.Unlock()
+
+	return nil
 }
 
 func (wr *WorkerRegistry) ResumeProcessing(

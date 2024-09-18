@@ -2,6 +2,7 @@ package registries
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"path"
 	"sync"
@@ -84,7 +85,11 @@ func (r *PipelineBlockDataRegistry) DeleteAll() {
 	}
 }
 
-func (r *PipelineBlockDataRegistry) Shutdown() {
+func (r *PipelineBlockDataRegistry) Shutdown(context context.Context) error {
+	r.Lock()
+	defer r.Unlock()
+
+	return nil
 }
 
 func (r *PipelineBlockDataRegistry) GetProcessingId() uuid.UUID {

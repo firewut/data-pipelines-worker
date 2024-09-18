@@ -116,13 +116,7 @@ func (p *PipelineData) Process(
 	inputData schemas.PipelineStartInputSchema,
 	resultStorages []interfaces.Storage,
 ) (uuid.UUID, error) {
-	processingId := uuid.New()
-
-	if inputData.Pipeline.ProcessingID != uuid.Nil {
-		processingId = inputData.Pipeline.ProcessingID
-	} else {
-		inputData.Pipeline.ProcessingID = processingId
-	}
+	processingId := inputData.GetProcessingID()
 
 	// Check if the block exists in the pipeline
 	pipelineBlocks := p.GetBlocks()

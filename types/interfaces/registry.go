@@ -1,5 +1,7 @@
 package interfaces
 
+import "context"
+
 // Registry is a generic interface that works with any type T.
 type Registry[T any] interface {
 	Add(T)
@@ -10,5 +12,5 @@ type Registry[T any] interface {
 	Delete(string)
 	DeleteAll()
 
-	Shutdown()
+	Shutdown(context.Context) error
 }

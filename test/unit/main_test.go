@@ -2,6 +2,7 @@ package unit_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/grandcat/zeroconf"
@@ -39,8 +41,12 @@ type UnitTestSuite struct {
 
 	// mock http requests
 	httpTestServers []*httptest.Server
+
 	// mock storages
 	storages []interfaces.Storage
+
+	// contextCancels
+	contextCancels []context.CancelFunc
 }
 
 func TestUnitTestSuite(t *testing.T) {
@@ -58,6 +64,7 @@ func (suite *UnitTestSuite) SetupSuite() {
 	suite._blocks = make(map[string]interfaces.Block)
 	suite.httpTestServers = make([]*httptest.Server, 0)
 	suite.storages = make([]interfaces.Storage, 0)
+	suite.contextCancels = make([]context.CancelFunc, 0)
 }
 
 func (suite *UnitTestSuite) TearDownSuite() {
@@ -70,7 +77,7 @@ func (suite *UnitTestSuite) SetupTest() {
 
 	for blockId, blockConfig := range _config.Blocks {
 		if blockConfig.Detector.Conditions["url"] != nil {
-			successUrl := suite.GetMockHTTPServerURL("Mocked Response OK", http.StatusOK)
+			successUrl := suite.GetMockHTTPServerURL("Mocked Response OK", http.StatusOK, 0)
 			_config.Blocks[blockId].Detector.Conditions["url"] = successUrl
 		}
 	}
@@ -90,7 +97,8 @@ func (suite *UnitTestSuite) NewDummyBlock(id string) interfaces.Block {
 func (suite *UnitTestSuite) GetMockHTTPServer(
 	body string,
 	statusCode int,
-	bodyMapping ...map[string]string,
+	responseDelay time.Duration,
+	bodyMapping map[string]string,
 ) *httptest.Server {
 	suite.Lock()
 	defer suite.Unlock()
@@ -98,13 +106,17 @@ func (suite *UnitTestSuite) GetMockHTTPServer(
 	// Merge all body mappings into a single map
 	var bodyMap map[string]string
 	if len(bodyMapping) > 0 {
-		bodyMap = bodyMapping[0]
+		bodyMap = bodyMapping
 	} else {
 		bodyMap = make(map[string]string)
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(statusCode)
+
+		if responseDelay > 0 {
+			time.Sleep(responseDelay)
+		}
 
 		// Check if the requested path is in the bodyMap
 		if responseBody, exists := bodyMap[r.URL.Path]; exists {
@@ -119,8 +131,17 @@ func (suite *UnitTestSuite) GetMockHTTPServer(
 	return server
 }
 
-func (suite *UnitTestSuite) GetMockHTTPServerURL(body string, statusCode int) string {
-	return suite.GetMockHTTPServer(body, statusCode).URL
+func (suite *UnitTestSuite) GetMockHTTPServerURL(
+	body string,
+	statusCode int,
+	responseDelay time.Duration,
+) string {
+	return suite.GetMockHTTPServer(
+		body,
+		statusCode,
+		responseDelay,
+		make(map[string]string),
+	).URL
 }
 
 func (suite *UnitTestSuite) TearDownTest() {
@@ -133,7 +154,11 @@ func (suite *UnitTestSuite) TearDownTest() {
 	for _, storage := range suite.storages {
 		storage.Shutdown()
 	}
+	for _, cancel := range suite.contextCancels {
+		cancel()
+	}
 
+	suite.contextCancels = make([]context.CancelFunc, 0)
 	suite.httpTestServers = make([]*httptest.Server, 0)
 	suite.storages = make([]interfaces.Storage, 0)
 }
@@ -515,4 +540,16 @@ func (suite *UnitTestSuite) GetTestTranscriptionResult() string {
 			}
 		]
 	}`
+}
+
+func (suite *UnitTestSuite) GetShutDownContext(
+	duration time.Duration,
+) context.Context {
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		duration,
+	)
+	suite.contextCancels = append(suite.contextCancels, cancel)
+
+	return ctx
 }

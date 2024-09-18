@@ -1,6 +1,7 @@
 package registries
 
 import (
+	"context"
 	"net/http"
 	"sync"
 
@@ -130,7 +131,7 @@ func (br *BlockRegistry) DeleteAll() {
 	}
 }
 
-func (br *BlockRegistry) Shutdown() {
+func (br *BlockRegistry) Shutdown(context context.Context) error {
 	br.Lock()
 	defer br.Unlock()
 
@@ -138,5 +139,13 @@ func (br *BlockRegistry) Shutdown() {
 		detector.Stop(br.shutdownWg)
 	}
 
+	// Any Processing Pipelines will transfer requests
+	// to the other Workers
+	for _, block := range br.Blocks {
+		block.SetAvailable(false)
+	}
+
 	br.shutdownWg.Wait()
+
+	return nil
 }

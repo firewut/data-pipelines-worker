@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/grandcat/zeroconf"
 
@@ -23,17 +24,20 @@ func NewWorkerServer(
 	mockServerFunction func(
 		string,
 		int,
-		...map[string]string,
+		time.Duration,
+		map[string]string,
 	) *httptest.Server,
 	statusCode int,
 	workerAvailable bool,
 	blockIds []string,
-	bodyMapping ...map[string]string,
+	responseDelay time.Duration,
+	bodyMapping map[string]string,
 ) (*httptest.Server, interfaces.Worker, error) {
 	server := mockServerFunction(
 		"",
 		statusCode,
-		bodyMapping...,
+		responseDelay,
+		bodyMapping,
 	)
 	workerEntry, err := NewWorkerRegistryEntry(
 		server, workerAvailable, blockIds,

@@ -22,6 +22,18 @@ type PipelineStartInputSchema struct {
 	Block    BlockInputSchema    `json:"block"`
 }
 
+func (p *PipelineStartInputSchema) GetProcessingID() uuid.UUID {
+	processingId := uuid.New()
+
+	if p.Pipeline.ProcessingID != uuid.Nil {
+		processingId = p.Pipeline.ProcessingID
+	} else {
+		p.Pipeline.ProcessingID = processingId
+	}
+
+	return processingId
+}
+
 // PipelineStartOutputSchema represents the structure of the output JSON.
 type PipelineStartOutputSchema struct {
 	ProcessingID uuid.UUID `json:"processing_id"`

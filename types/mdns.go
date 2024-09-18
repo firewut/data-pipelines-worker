@@ -223,7 +223,7 @@ func (m *MDNS) SetDiscoveredWorkers(workers []*dataclasses.Worker) {
 
 }
 
-func (m *MDNS) Shutdown() {
+func (m *MDNS) Shutdown(context.Context) error {
 	m.Lock()
 	defer m.Unlock()
 
@@ -233,4 +233,6 @@ func (m *MDNS) Shutdown() {
 		m.server.Shutdown()
 		m.discoverWorkersDone <- true
 	}
+
+	return nil
 }

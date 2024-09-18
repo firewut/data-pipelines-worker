@@ -34,7 +34,7 @@ func (suite *UnitTestSuite) TestNewPipelineCorrectJSON() {
 
 func (suite *UnitTestSuite) TestPipelineProcessMissingBlock() {
 	// Given
-	successUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusOK)
+	successUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusOK, 0)
 
 	pipeline, processingData, _ := suite.RegisterTestPipelineAndInputForProcessing(
 		suite.GetTestPipelineOneBlock(successUrl),
@@ -68,7 +68,7 @@ func (suite *UnitTestSuite) TestPipelineProcess() {
 		"Hello, world! Mocked value is %s",
 		uuid.NewString(),
 	)
-	successUrl := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK)
+	successUrl := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK, 0)
 	pipeline, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
 		suite.GetTestPipelineOneBlock(successUrl),
 		"test-pipeline-slug",
@@ -100,8 +100,8 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
 		"Hello, world! Mocked value is %s",
 		uuid.NewString(),
 	)
-	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK)
-	firstBlockInput := suite.GetMockHTTPServerURL(secondBlockInput, http.StatusOK)
+	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, 0)
+	firstBlockInput := suite.GetMockHTTPServerURL(secondBlockInput, http.StatusOK, 0)
 
 	pipeline, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
 		suite.GetTestPipelineTwoBlocks("NOT URL AT ALL"),
@@ -141,8 +141,8 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcessNStorages() {
 		"Hello, world! Mocked value is %s",
 		uuid.NewString(),
 	)
-	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK)
-	firstBlockInput := suite.GetMockHTTPServerURL(secondBlockInput, http.StatusOK)
+	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, 0)
+	firstBlockInput := suite.GetMockHTTPServerURL(secondBlockInput, http.StatusOK, 0)
 
 	pipeline, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
 		suite.GetTestPipelineTwoBlocks("NOT URL AT ALL"),
@@ -192,7 +192,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 		"Hello, world! Mocked value is %s",
 		uuid.NewString(),
 	)
-	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK)
+	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, 0)
 
 	pipeline, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
 		suite.GetTestPipelineTwoBlocks("NOT URL AT ALL"),
@@ -245,7 +245,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 		"Hello, world! Mocked value is %s",
 		uuid.NewString(),
 	)
-	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK)
+	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, 0)
 
 	pipeline, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
 		suite.GetTestPipelineTwoBlocks("NOT URL AT ALL"),
