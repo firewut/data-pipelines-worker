@@ -2,6 +2,7 @@ package blocks
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -135,6 +136,7 @@ func (b *BlockParent) GetAvailable() bool {
 }
 
 func (b *BlockParent) Process(
+	ctx context.Context,
 	processor interfaces.BlockProcessor,
 	data interfaces.ProcessableBlockData,
 ) (*bytes.Buffer, error) {
@@ -169,7 +171,7 @@ func (b *BlockParent) Process(
 		return result, fmt.Errorf(errStr, b.GetId(), data.GetStringRepresentation())
 	}
 
-	return processor.Process(b, data)
+	return processor.Process(ctx, b, data)
 }
 
 func (b *BlockParent) SetAvailable(available bool) {

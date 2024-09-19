@@ -2,6 +2,7 @@ package interfaces
 
 import (
 	"bytes"
+	"context"
 	"sync"
 
 	"github.com/xeipuuv/gojsonschema"
@@ -14,7 +15,7 @@ type BlockDetector interface {
 }
 
 type BlockProcessor interface {
-	Process(Block, ProcessableBlockData) (*bytes.Buffer, error)
+	Process(context.Context, Block, ProcessableBlockData) (*bytes.Buffer, error)
 }
 
 type Block interface {
@@ -33,7 +34,7 @@ type Block interface {
 	SetProcessor(BlockProcessor)
 	GetProcessor() BlockProcessor
 
-	Process(BlockProcessor, ProcessableBlockData) (*bytes.Buffer, error)
+	Process(context.Context, BlockProcessor, ProcessableBlockData) (*bytes.Buffer, error)
 }
 
 type ProcessableBlockData interface {

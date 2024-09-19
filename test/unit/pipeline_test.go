@@ -10,6 +10,7 @@ import (
 	"data-pipelines-worker/types"
 	"data-pipelines-worker/types/dataclasses"
 	"data-pipelines-worker/types/interfaces"
+	"data-pipelines-worker/types/registries"
 )
 
 func (suite *UnitTestSuite) TestGetPipelinesConfigSchema() {
@@ -69,29 +70,39 @@ func (suite *UnitTestSuite) TestPipelineProcess() {
 		uuid.NewString(),
 	)
 	successUrl := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK, 0)
-	pipeline, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
+	pipeline, processingData, pipelineRegistry := suite.RegisterTestPipelineAndInputForProcessing(
 		suite.GetTestPipelineOneBlock(successUrl),
 		"test-pipeline-slug",
 		"test-block-slug",
 		nil,
 	)
 	mockStorage := suite.NewMockLocalStorage(1)
-	registry.SetPipelineResultStorages(
+	pipelineRegistry.SetPipelineResultStorages(
 		[]interfaces.Storage{
 			mockStorage,
 		},
 	)
+	processingRegistry := registries.GetProcessingRegistry()
 
 	// When
-	processingId, err := pipeline.Process(processingData, registry.GetPipelineResultStorages())
+	processingId, err := pipeline.Process(
+		processingData,
+		pipelineRegistry.GetPipelineResultStorages(),
+	)
 
 	// Then
 	suite.Nil(err)
 	suite.NotEmpty(processingId)
 
-	createdFile := <-mockStorage.GetCreatedFilesChan()
-	suite.NotEmpty(createdFile)
-	suite.Equal(mockedResponse, createdFile.data.String())
+	// Wait for Notification about processing completed
+	processing := <-processingRegistry.GetProcessingCompletedChannel()
+	suite.NotNil(processing)
+	suite.Equal(processingId, processing.GetId())
+	suite.Equal(interfaces.ProcessingStatusCompleted, processing.GetStatus())
+
+	processingOutput := processing.GetOutput()
+	suite.NotNil(processingOutput)
+	suite.Equal(mockedResponse, processingOutput.GetValue().String())
 }
 
 func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
@@ -103,6 +114,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
 	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, 0)
 	firstBlockInput := suite.GetMockHTTPServerURL(secondBlockInput, http.StatusOK, 0)
 
+	processingRegistry := registries.GetProcessingRegistry()
 	pipeline, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
 		suite.GetTestPipelineTwoBlocks("NOT URL AT ALL"),
 		"test-pipeline-slug-two-blocks",
@@ -120,19 +132,33 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
 	)
 
 	// When
-	processingId, err := pipeline.Process(processingData, registry.GetPipelineResultStorages())
+	processingId, err := pipeline.Process(
+		processingData,
+		registry.GetPipelineResultStorages(),
+	)
 
 	// Then
 	suite.Nil(err)
 	suite.NotEmpty(processingId)
 
-	createdFileBlock1 := <-mockStorage.GetCreatedFilesChan()
-	suite.NotEmpty(createdFileBlock1)
-	suite.Equal(secondBlockInput, createdFileBlock1.data.String())
+	// Wait for Notification about processing completed
+	firstBlockProcessing := <-processingRegistry.GetProcessingCompletedChannel()
+	suite.NotNil(firstBlockProcessing)
+	suite.Equal(processingId, firstBlockProcessing.GetId())
+	suite.Equal(interfaces.ProcessingStatusCompleted, firstBlockProcessing.GetStatus())
 
-	createdFileBlock2 := <-mockStorage.GetCreatedFilesChan()
-	suite.NotEmpty(createdFileBlock2)
-	suite.Equal(mockedSecondBlockResponse, createdFileBlock2.data.String())
+	firstBlockProcessingOutput := firstBlockProcessing.GetOutput()
+	suite.NotNil(firstBlockProcessingOutput)
+	suite.Equal(secondBlockInput, firstBlockProcessingOutput.GetValue().String())
+
+	secondBlockProcessing := <-processingRegistry.GetProcessingCompletedChannel()
+	suite.NotNil(secondBlockProcessing)
+	suite.Equal(processingId, secondBlockProcessing.GetId())
+	suite.Equal(interfaces.ProcessingStatusCompleted, secondBlockProcessing.GetStatus())
+
+	secondBlockProcessingOutput := secondBlockProcessing.GetOutput()
+	suite.NotNil(secondBlockProcessingOutput)
+	suite.Equal(mockedSecondBlockResponse, secondBlockProcessingOutput.GetValue().String())
 }
 
 func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcessNStorages() {
@@ -144,6 +170,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcessNStorages() {
 	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, 0)
 	firstBlockInput := suite.GetMockHTTPServerURL(secondBlockInput, http.StatusOK, 0)
 
+	processingRegistry := registries.GetProcessingRegistry()
 	pipeline, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
 		suite.GetTestPipelineTwoBlocks("NOT URL AT ALL"),
 		"test-pipeline-slug-two-blocks",
@@ -168,6 +195,26 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcessNStorages() {
 	suite.Nil(err)
 	suite.NotEmpty(processingId)
 
+	// Wait for Notification about processing completed
+	firstBlockProcessing := <-processingRegistry.GetProcessingCompletedChannel()
+	suite.NotNil(firstBlockProcessing)
+	suite.Equal(processingId, firstBlockProcessing.GetId())
+	suite.Equal(interfaces.ProcessingStatusCompleted, firstBlockProcessing.GetStatus())
+
+	firstBlockProcessingOutput := firstBlockProcessing.GetOutput()
+	suite.NotNil(firstBlockProcessingOutput)
+	suite.Equal(secondBlockInput, firstBlockProcessingOutput.GetValue().String())
+
+	secondBlockProcessing := <-processingRegistry.GetProcessingCompletedChannel()
+	suite.NotNil(secondBlockProcessing)
+	suite.Equal(processingId, secondBlockProcessing.GetId())
+	suite.Equal(interfaces.ProcessingStatusCompleted, secondBlockProcessing.GetStatus())
+
+	secondBlockProcessingOutput := secondBlockProcessing.GetOutput()
+	suite.NotNil(secondBlockProcessingOutput)
+	suite.Equal(mockedSecondBlockResponse, secondBlockProcessingOutput.GetValue().String())
+
+	// Check Storages
 	createdFileBlock1 := <-mockStorage1.createdFilesChan
 	suite.NotEmpty(createdFileBlock1)
 	suite.Equal(secondBlockInput, createdFileBlock1.data.String())
@@ -194,6 +241,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 	)
 	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, 0)
 
+	processingRegistry := registries.GetProcessingRegistry()
 	pipeline, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
 		suite.GetTestPipelineTwoBlocks("NOT URL AT ALL"),
 		"test-pipeline-slug-two-blocks",
@@ -233,6 +281,16 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 	suite.Nil(err)
 	suite.NotEmpty(processingId)
 
+	// Wait for Notification about processing completed
+	firstBlockProcessing := <-processingRegistry.GetProcessingCompletedChannel()
+	suite.NotNil(firstBlockProcessing)
+	suite.Equal(processingId, firstBlockProcessing.GetId())
+	suite.Equal(interfaces.ProcessingStatusCompleted, firstBlockProcessing.GetStatus())
+
+	secondBlockProcessing := firstBlockProcessing.GetOutput()
+	suite.NotNil(secondBlockProcessing)
+	suite.Equal(mockedSecondBlockResponse, secondBlockProcessing.GetValue().String())
+
 	createdFileBlock1 := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(createdFileBlock1)
 	suite.Equal(mockedSecondBlockResponse, createdFileBlock1.data.String())
@@ -247,6 +305,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 	)
 	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, 0)
 
+	processingRegistry := registries.GetProcessingRegistry()
 	pipeline, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
 		suite.GetTestPipelineTwoBlocks("NOT URL AT ALL"),
 		"test-pipeline-slug-two-blocks",
@@ -281,6 +340,16 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 	// Then
 	suite.Nil(err)
 	suite.NotEmpty(processingId)
+
+	// Wait for Notification about processing completed
+	firstBlockProcessing := <-processingRegistry.GetProcessingCompletedChannel()
+	suite.NotNil(firstBlockProcessing)
+	suite.Equal(processingId, firstBlockProcessing.GetId())
+	suite.Equal(interfaces.ProcessingStatusCompleted, firstBlockProcessing.GetStatus())
+
+	secondBlockProcessing := firstBlockProcessing.GetOutput()
+	suite.NotNil(secondBlockProcessing)
+	suite.Equal(mockedSecondBlockResponse, secondBlockProcessing.GetValue().String())
 
 	createdFileBlock1 := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(createdFileBlock1)

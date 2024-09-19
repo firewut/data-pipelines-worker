@@ -39,6 +39,7 @@ func (suite *FunctionalTestSuite) TestPipelineStartHandlerTwoBlocks() {
 	// Given
 	server := suite.GetServer()
 	api_path := "/pipelines"
+	serverProcessingRegistry := server.GetProcessingRegistry()
 
 	mockedSecondBlockResponse := fmt.Sprintf(
 		"Hello, world! Mocked value is %s",
@@ -86,6 +87,15 @@ func (suite *FunctionalTestSuite) TestPipelineStartHandlerTwoBlocks() {
 	suite.Nil(err)
 	suite.NotEmpty(response.ProcessingID)
 
+	// Wait for two blocks to process
+	block1Processing := <-serverProcessingRegistry.GetProcessingCompletedChannel()
+	suite.NotEmpty(block1Processing.GetId())
+	suite.Equal(response.ProcessingID, block1Processing.GetId())
+	block2Processing := <-serverProcessingRegistry.GetProcessingCompletedChannel()
+	suite.NotEmpty(block1Processing.GetId())
+	suite.Equal(response.ProcessingID, block2Processing.GetId())
+
+	// Check server storages
 	resultStorages := registries.NewPipelineBlockDataRegistry(
 		response.ProcessingID,
 		"test-two-http-blocks",

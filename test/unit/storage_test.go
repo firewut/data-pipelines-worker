@@ -28,7 +28,7 @@ func (suite *UnitTestSuite) TestDetectMimeTypeFromBuffer() {
 	}
 	for _, _case := range cases_list {
 		buffer := bytes.NewBufferString(_case.content)
-		mimeType, err := types.DetectMimeTypeFromBuffer(buffer)
+		mimeType, err := types.DetectMimeTypeFromBuffer(*buffer)
 		suite.Nil(err)
 		suite.Equal(_case.mimeType, mimeType.String())
 		suite.Equal(_case.extension, mimeType.Extension())

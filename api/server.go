@@ -23,11 +23,12 @@ type Server struct {
 	port   int
 	config config.Config
 
-	echo             *echo.Echo
-	mdns             *types.MDNS
-	workerRegistry   interfaces.Registry[interfaces.Worker]
-	pipelineRegistry interfaces.Registry[interfaces.Pipeline]
-	blockRegistry    interfaces.Registry[interfaces.Block]
+	echo               *echo.Echo
+	mdns               *types.MDNS
+	workerRegistry     interfaces.Registry[interfaces.Worker]
+	pipelineRegistry   interfaces.Registry[interfaces.Pipeline]
+	blockRegistry      interfaces.Registry[interfaces.Block]
+	processingRegistry interfaces.Registry[interfaces.Processing]
 }
 
 func NewServer() *Server {
@@ -50,6 +51,7 @@ func NewServer() *Server {
 	}
 
 	blockRegistry := registries.GetBlockRegistry()
+	processingRegistry := registries.GetProcessingRegistry()
 
 	_echo := echo.New()
 	_echo.HideBanner = true
@@ -58,14 +60,15 @@ func NewServer() *Server {
 	mdns.SetBlocks(blockRegistry.GetAll())
 
 	var worker = &Server{
-		host:             _config.HTTPAPIServer.Host,
-		port:             _config.HTTPAPIServer.Port,
-		echo:             _echo,
-		mdns:             mdns,
-		config:           _config,
-		workerRegistry:   workerRegistry,
-		pipelineRegistry: pipelineRegistry,
-		blockRegistry:    blockRegistry,
+		host:               _config.HTTPAPIServer.Host,
+		port:               _config.HTTPAPIServer.Port,
+		echo:               _echo,
+		mdns:               mdns,
+		config:             _config,
+		workerRegistry:     workerRegistry,
+		pipelineRegistry:   pipelineRegistry,
+		blockRegistry:      blockRegistry,
+		processingRegistry: processingRegistry,
 	}
 	worker.echo.Use(middleware.Logger())
 	worker.echo.Use(middleware.Recover())
@@ -146,4 +149,8 @@ func (s *Server) GetPipelineRegistry() *registries.PipelineRegistry {
 
 func (s *Server) GetWorkerRegistry() *registries.WorkerRegistry {
 	return s.workerRegistry.(*registries.WorkerRegistry)
+}
+
+func (s *Server) GetProcessingRegistry() *registries.ProcessingRegistry {
+	return s.processingRegistry.(*registries.ProcessingRegistry)
 }

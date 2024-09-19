@@ -131,7 +131,7 @@ func (br *BlockRegistry) DeleteAll() {
 	}
 }
 
-func (br *BlockRegistry) Shutdown(context context.Context) error {
+func (br *BlockRegistry) Shutdown(ctx context.Context) error {
 	br.Lock()
 	defer br.Unlock()
 

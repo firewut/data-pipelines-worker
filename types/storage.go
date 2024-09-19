@@ -126,7 +126,7 @@ func (s *LocalStorage) PutObjectBytes(
 	destination interfaces.StorageLocation,
 	content *bytes.Buffer,
 ) (interfaces.StorageLocation, error) {
-	mimeType, err := DetectMimeTypeFromBuffer(content)
+	mimeType, err := DetectMimeTypeFromBuffer(*content)
 	if err != nil {
 		return s.NewStorageLocation(""), err
 	}
@@ -280,7 +280,7 @@ func (s *MINIOStorage) PutObject(
 		if err != nil {
 			return s.NewStorageLocation(""), err
 		}
-		mimeType, err := DetectMimeTypeFromBuffer(content)
+		mimeType, err := DetectMimeTypeFromBuffer(*content)
 		if err != nil {
 			return s.NewStorageLocation(""), err
 		}
@@ -365,23 +365,20 @@ func (s *MINIOStorage) LocationExists(location interfaces.StorageLocation) bool 
 
 func (s *MINIOStorage) Shutdown() {}
 
-func DetectMimeTypeFromBuffer(largeBuffer *bytes.Buffer) (*mimetype.MIME, error) {
+func DetectMimeTypeFromBuffer(largeBuffer bytes.Buffer) (*mimetype.MIME, error) {
 	var detectorBytesLen int64 = 261
 
 	// Create a new buffer to hold the copied data
 	var copiedBuffer bytes.Buffer
 
 	// Create a TeeReader that reads from largeBuffer and writes to copiedBuffer
-	teeReader := io.TeeReader(io.LimitReader(largeBuffer, detectorBytesLen), &copiedBuffer)
+	teeReader := io.TeeReader(io.LimitReader(&largeBuffer, detectorBytesLen), &copiedBuffer)
 
 	smallBuffer := make([]byte, detectorBytesLen)
 	bytesRead, err := io.ReadFull(teeReader, smallBuffer)
 	if err != nil && err != io.ErrUnexpectedEOF {
 		return nil, err
 	}
-
-	largeBuffer.Reset()
-	largeBuffer.Write(copiedBuffer.Bytes())
 
 	return mimetype.Detect(smallBuffer[:bytesRead]), nil
 }

@@ -20,7 +20,7 @@ type PipelineBlockDataRegistry struct {
 	storages     []interfaces.Storage
 
 	// TODO: Follow Registry interface and replace []*bytes.Buffer
-	//	withth interfaces.StorageLocation
+	//	to interfaces.StorageLocation
 	pipelineBlockData map[string][]*bytes.Buffer
 }
 

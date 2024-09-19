@@ -138,6 +138,7 @@ func (p *PipelineData) Process(
 		)
 	}
 
+	processingRegistry := registries.GetProcessingRegistry()
 	pipelineBlockDataRegistry := registries.NewPipelineBlockDataRegistry(
 		processingId,
 		p.Slug,
@@ -150,97 +151,104 @@ func (p *PipelineData) Process(
 		pipelineBlockDataRegistry.LoadOutput(blockData.GetSlug())
 	}
 
-	// Loop through each block
-	for blockRelativeIndex, blockData := range processBlocks {
-		blockIndex := blockRelativeIndex + len(processedBlocks)
+	go func() {
+		// Loop through each block
+		for blockRelativeIndex, blockData := range processBlocks {
+			blockIndex := blockRelativeIndex + len(processedBlocks)
 
-		block := blockData.GetBlock()
+			block := blockData.GetBlock()
 
-		if !block.IsAvailable() {
-			workerRegistry := registries.GetWorkerRegistry()
+			if !block.IsAvailable() {
+				workerRegistry := registries.GetWorkerRegistry()
 
-			if err := workerRegistry.ResumeProcessing(
-				blockData.GetPipeline().GetSlug(),
-				processingId,
-				blockData.GetSlug(),
-				inputData,
-			); err != nil {
-				return uuid.UUID{}, err
+				if err := workerRegistry.ResumeProcessing(
+					blockData.GetPipeline().GetSlug(),
+					processingId,
+					blockData.GetSlug(),
+					inputData,
+				); err != nil {
+					return
+					// return uuid.UUID{}, err
+				}
+				// return processingId, nil
+				return
 			}
-			return processingId, nil
-		}
 
-		var inputConfigValue interface{}
-		if blockData.GetInputConfig() != nil {
-			var err error
-			inputConfigValue, err = blockData.GetInputConfigData(
-				pipelineBlockDataRegistry.GetAll(),
-			)
-			if err != nil {
-				return uuid.UUID{}, err
+			var inputConfigValue interface{}
+			if blockData.GetInputConfig() != nil {
+				var err error
+				inputConfigValue, err = blockData.GetInputConfigData(
+					pipelineBlockDataRegistry.GetAll(),
+				)
+				if err != nil {
+					return
+					// return uuid.UUID{}, err
+				}
 			}
-		}
 
-		blockInputData := blockData.GetInputDataByPriority(
-			[]interface{}{
-				BlockInputData{
-					Condition: (blockRelativeIndex == 0 ||
-						blockIndex == 0) &&
-						inputData.Block.Input != nil &&
-						len(inputData.Block.Input) > 0,
-					Value: []map[string]interface{}{
-						inputData.Block.Input,
+			blockInputData := blockData.GetInputDataByPriority(
+				[]interface{}{
+					BlockInputData{
+						Condition: (blockRelativeIndex == 0 ||
+							blockIndex == 0) &&
+							inputData.Block.Input != nil &&
+							len(inputData.Block.Input) > 0,
+						Value: []map[string]interface{}{
+							inputData.Block.Input,
+						},
+					},
+					BlockInputData{
+						Condition: blockData.GetInputConfig() != nil,
+						Value:     inputConfigValue,
+					},
+					BlockInputData{
+						Condition: blockData.GetInputData() != nil,
+						Value: []map[string]interface{}{
+							blockData.GetInputData().(map[string]interface{}),
+						},
 					},
 				},
-				BlockInputData{
-					Condition: blockData.GetInputConfig() != nil,
-					Value:     inputConfigValue,
-				},
-				BlockInputData{
-					Condition: blockData.GetInputData() != nil,
-					Value: []map[string]interface{}{
-						blockData.GetInputData().(map[string]interface{}),
-					},
-				},
-			},
-		)
-
-		for blockInputIndex, blockInput := range blockInputData {
-			blockProcessor := block.GetProcessor()
-
-			// Start processing
-			blockData.SetInputData(blockInput)
-			result, err := block.Process(
-				blockProcessor,
-				blockData,
-			)
-			if err != nil {
-				return uuid.UUID{}, err
-			}
-
-			// Add result to Registry
-			pipelineBlockDataRegistry.Add(blockData.GetSlug(), result)
-
-			// Save result to Storage
-			saveOutputResults := pipelineBlockDataRegistry.SaveOutput(
-				blockData.GetSlug(),
-				blockInputIndex,
-				result,
 			)
 
-			for _, saveOutputResult := range saveOutputResults {
-				if saveOutputResult.Error != nil {
-					config.GetLogger().Errorf(
-						"Error saving output for block %s to storage %s: %s",
-						blockData.GetSlug(),
-						saveOutputResult.StorageLocation.GetStorageName(),
-						saveOutputResult.Error,
-					)
-					return uuid.UUID{}, saveOutputResult.Error
+			for blockInputIndex, blockInput := range blockInputData {
+				blockData.SetInputData(blockInput)
+
+				processing := NewProcessing(processingId, p, block, blockData)
+
+				// Add processing to registry
+				processingRegistry.Add(processing)
+
+				processingResult, err := processingRegistry.StartProcessingById(processingId)
+				if err != nil {
+					fmt.Println(">>", err, blockData.GetSlug())
+					return
+				}
+
+				pipelineBlockDataRegistry.Add(
+					processingResult.GetId(),
+					processingResult.GetValue(),
+				)
+
+				// Save result to Storage
+				saveOutputResults := pipelineBlockDataRegistry.SaveOutput(
+					processing.GetData().GetSlug(),
+					blockInputIndex,
+					processingResult.GetValue(),
+				)
+
+				for _, saveOutputResult := range saveOutputResults {
+					if saveOutputResult.Error != nil {
+						config.GetLogger().Errorf(
+							"Error saving output for block %s to storage %s: %s",
+							processing.GetData().GetSlug(),
+							saveOutputResult.StorageLocation.GetStorageName(),
+							saveOutputResult.Error,
+						)
+					}
 				}
 			}
 		}
-	}
+	}()
 
 	return processingId, nil
 }

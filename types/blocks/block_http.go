@@ -2,9 +2,11 @@ package blocks
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	gjm "github.com/firewut/go-json-map"
 
@@ -46,6 +48,7 @@ func NewProcessorHTTP() *ProcessorHTTP {
 }
 
 func (p *ProcessorHTTP) Process(
+	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
 ) (*bytes.Buffer, error) {
@@ -53,21 +56,45 @@ func (p *ProcessorHTTP) Process(
 
 	logger := config.GetLogger()
 
+	logger.Debugf("Starting HTTP request for block %s", data.GetSlug())
+
 	_data := data.GetInputData().(map[string]interface{})
 
+	// Fetch the URL from the input data
 	url, err := gjm.GetProperty(_data, "url")
 	if err != nil {
 		return nil, err
 	}
 
-	response, err := http.Get(url.(string))
+	method := http.MethodGet
+	switch m, err := gjm.GetProperty(_data, "method"); {
+	case err == nil:
+		method = m.(string)
+	default:
+		logger.Debugf("Method not provided, using default: %s", method)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, url.(string), nil)
 	if err != nil {
-		logger.Errorf("HTTP request error: %v", err)
-		return output, err
+		return nil, err
+	}
+
+	client := &http.Client{
+		Timeout: 30 * time.Second, // Set a timeout for the request ( use config later )
+	}
+
+	// Perform the HTTP request
+	response, err := client.Do(req)
+	if err != nil {
+		// Check if the error is due to context cancellation
+		if ctx.Err() == context.Canceled {
+			logger.Errorf("Request was cancelled for block %s", data.GetSlug())
+			return nil, ctx.Err()
+		}
+		return nil, err
 	}
 	defer response.Body.Close()
 
-	// Read response body
 	_, err = io.Copy(output, response.Body)
 	if err != nil {
 		return output, err

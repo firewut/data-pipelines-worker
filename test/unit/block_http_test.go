@@ -1,7 +1,10 @@
 package unit_test
 
 import (
+	"context"
 	"net/http"
+	"sync"
+	"time"
 
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/dataclasses"
@@ -48,7 +51,11 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessIncorrectInput() {
 	}
 
 	// Process the block
-	result, err := block.Process(blocks.NewProcessorHTTP(), data)
+	result, err := block.Process(
+		suite.GetContextWithcancel(),
+		blocks.NewProcessorHTTP(),
+		data,
+	)
 	suite.Empty(result)
 	suite.NotNil(err)
 	suite.Contains(
@@ -72,10 +79,55 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessSuccess() {
 	}
 
 	// Process the block
-	result, err := block.Process(blocks.NewProcessorHTTP(), data)
+	result, err := block.Process(
+		suite.GetContextWithcancel(),
+		blocks.NewProcessorHTTP(),
+		data,
+	)
+
 	suite.NotNil(result)
 	suite.Nil(err)
 	suite.Equal("Hello, world!\n", result.String())
+}
+
+func (suite *UnitTestSuite) TestBlockHTTPProcessCancel() {
+	// Given
+	ctx, cancel := context.WithCancel(context.Background())
+
+	successUrl := suite.GetMockHTTPServerURL("Hello, world!\n", http.StatusOK, time.Second)
+	data := &dataclasses.BlockData{
+		Id:   "http_request",
+		Slug: "http-request",
+		Input: map[string]interface{}{
+			"url": successUrl,
+		},
+	}
+	block := blocks.NewBlockHTTP()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	// Run the Process call in a separate goroutine
+	var err error
+	go func() {
+		defer wg.Done()
+		_, err = block.Process(
+			ctx,
+			blocks.NewProcessorHTTP(),
+			data,
+		)
+	}()
+
+	time.Sleep(time.Millisecond * 10)
+
+	// When
+	cancel()
+
+	wg.Wait()
+
+	// Then
+	suite.NotNil(err)
+	suite.Contains(err.Error(), "context canceled")
 }
 
 func (suite *UnitTestSuite) TestBlockHTTPProcessError() {
@@ -93,7 +145,11 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessError() {
 	}
 
 	// Process the block
-	result, err := block.Process(blocks.NewProcessorHTTP(), data)
+	result, err := block.Process(
+		suite.GetContextWithcancel(),
+		blocks.NewProcessorHTTP(),
+		data,
+	)
 	suite.NotNil(result)
 	suite.NotNil(err)
 	suite.Contains(result.String(), "Server panic")

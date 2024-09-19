@@ -47,6 +47,8 @@ type UnitTestSuite struct {
 
 	// contextCancels
 	contextCancels []context.CancelFunc
+
+	processingRegistry *registries.ProcessingRegistry
 }
 
 func TestUnitTestSuite(t *testing.T) {
@@ -65,6 +67,7 @@ func (suite *UnitTestSuite) SetupSuite() {
 	suite.httpTestServers = make([]*httptest.Server, 0)
 	suite.storages = make([]interfaces.Storage, 0)
 	suite.contextCancels = make([]context.CancelFunc, 0)
+	suite.processingRegistry = registries.NewProcessingRegistry()
 }
 
 func (suite *UnitTestSuite) TearDownSuite() {
@@ -81,6 +84,8 @@ func (suite *UnitTestSuite) SetupTest() {
 			_config.Blocks[blockId].Detector.Conditions["url"] = successUrl
 		}
 	}
+
+	suite.processingRegistry = registries.NewProcessingRegistry()
 }
 
 func (suite *UnitTestSuite) NewDummyBlock(id string) interfaces.Block {
@@ -112,12 +117,19 @@ func (suite *UnitTestSuite) GetMockHTTPServer(
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(statusCode)
+		// Create a channel to listen for cancellation
+		ctx := r.Context()
 
-		if responseDelay > 0 {
-			time.Sleep(responseDelay)
+		select {
+		case <-ctx.Done():
+			// Context was canceled, exit early
+			http.Error(w, "Request canceled", http.StatusRequestTimeout)
+			return
+		case <-time.After(responseDelay):
+			// Introduce an artificial delay if specified
 		}
 
+		w.WriteHeader(statusCode)
 		// Check if the requested path is in the bodyMap
 		if responseBody, exists := bodyMap[r.URL.Path]; exists {
 			w.Write([]byte(responseBody))
@@ -158,9 +170,20 @@ func (suite *UnitTestSuite) TearDownTest() {
 		cancel()
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	suite.processingRegistry.Shutdown(ctx)
 	suite.contextCancels = make([]context.CancelFunc, 0)
 	suite.httpTestServers = make([]*httptest.Server, 0)
 	suite.storages = make([]interfaces.Storage, 0)
+}
+
+func (suite *UnitTestSuite) GetProcessingRegistry() *registries.ProcessingRegistry {
+	suite.Lock()
+	defer suite.Unlock()
+
+	return suite.processingRegistry
 }
 
 func (suite *UnitTestSuite) GetTestPipelineDefinition() []byte {
@@ -434,6 +457,9 @@ func (s *mockLocalStorage) GetCreatedFilesChan() chan createdFile {
 }
 
 func (s *mockLocalStorage) Shutdown() {
+	s.Lock()
+	defer s.Unlock()
+
 	close(s.createdFilesChan)
 	for _, location := range s.locations {
 		s.storage.DeleteObject(location)
@@ -545,10 +571,14 @@ func (suite *UnitTestSuite) GetTestTranscriptionResult() string {
 func (suite *UnitTestSuite) GetShutDownContext(
 	duration time.Duration,
 ) context.Context {
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		duration,
-	)
+	ctx, cancel := context.WithTimeout(context.Background(), duration)
+	suite.contextCancels = append(suite.contextCancels, cancel)
+
+	return ctx
+}
+
+func (suite *UnitTestSuite) GetContextWithcancel() context.Context {
+	ctx, cancel := context.WithCancel(context.Background())
 	suite.contextCancels = append(suite.contextCancels, cancel)
 
 	return ctx

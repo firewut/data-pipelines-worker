@@ -23,6 +23,7 @@ func NewProcessorOpenAIRequestCompletion() *ProcessorOpenAIRequestCompletion {
 }
 
 func (p *ProcessorOpenAIRequestCompletion) Process(
+	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
 ) (*bytes.Buffer, error) {
@@ -56,7 +57,7 @@ func (p *ProcessorOpenAIRequestCompletion) Process(
 
 	client := openai.NewClient(config.OpenAI.Token)
 	resp, err := client.CreateChatCompletion(
-		context.Background(),
+		ctx,
 		openai.ChatCompletionRequest{
 			Model: model_value.(string),
 			Messages: []openai.ChatCompletionMessage{
