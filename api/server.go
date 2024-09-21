@@ -3,13 +3,17 @@ package api
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
+	"os/signal"
+	"sync"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
+	"data-pipelines-worker/api/handlers"
 	workerMiddleware "data-pipelines-worker/api/middleware"
 	"data-pipelines-worker/types"
 	"data-pipelines-worker/types/config"
@@ -19,12 +23,16 @@ import (
 )
 
 type Server struct {
+	sync.RWMutex
+
 	host   string
 	port   int
 	config config.Config
+	echo   *echo.Echo
+	mdns   *types.MDNS
 
-	echo               *echo.Echo
-	mdns               *types.MDNS
+	Ready chan struct{}
+
 	workerRegistry     interfaces.Registry[interfaces.Worker]
 	pipelineRegistry   interfaces.Registry[interfaces.Pipeline]
 	blockRegistry      interfaces.Registry[interfaces.Block]
@@ -69,6 +77,7 @@ func NewServer() *Server {
 		pipelineRegistry:   pipelineRegistry,
 		blockRegistry:      blockRegistry,
 		processingRegistry: processingRegistry,
+		Ready:              make(chan struct{}, 1),
 	}
 	worker.echo.Use(middleware.Logger())
 	worker.echo.Use(middleware.Recover())
@@ -80,24 +89,51 @@ func NewServer() *Server {
 }
 
 func (s *Server) AddMiddleware(middleware ...echo.MiddlewareFunc) {
+	s.RLock()
+	defer s.RUnlock()
+
 	s.echo.Use(middleware...)
 }
 
 func (s *Server) AddHTTPAPIRoute(method string, path string, handlerFunc echo.HandlerFunc) {
+	s.RLock()
+	defer s.RUnlock()
+
 	s.echo.Add(method, path, handlerFunc)
 }
 
-func (s *Server) Start() {
+func (s *Server) Start(ctx context.Context) {
+	var cancel context.CancelFunc
+	if ctx == nil {
+		ctx, cancel = signal.NotifyContext(context.Background(), os.Interrupt)
+	} else {
+		cancel = func() {}
+	}
+	defer cancel()
+
 	s.mdns.Announce()
 	s.mdns.DiscoverWorkers()
-	s.echo.Logger.Fatal(
-		s.echo.Start(fmt.Sprintf("%s:%d", s.host, s.port)),
-	)
+
+	// Start server
+	go func() {
+		s.Ready <- struct{}{}
+
+		if err := s.echo.Start(
+			fmt.Sprintf("%s:%d", s.host, s.port),
+		); err != nil && err != http.ErrServerClosed {
+			s.echo.Logger.Fatal("shutting down the server due to an error:", err)
+		}
+	}()
+
+	<-ctx.Done()
+
+	s.Shutdown(time.Second * 5)
 }
 
 func (s *Server) Shutdown(timeout time.Duration) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
+	defer close(s.Ready)
 
 	shutdownCalls := []func(context.Context) error{
 		s.mdns.Shutdown,
@@ -116,41 +152,133 @@ func (s *Server) Shutdown(timeout time.Duration) {
 }
 
 func (s *Server) NewContext(request *http.Request, writer http.ResponseWriter) echo.Context {
+	s.RLock()
+	defer s.RUnlock()
+
 	return s.echo.NewContext(request, writer)
 }
 
 func (s *Server) GetHost() string {
+	s.RLock()
+	defer s.RUnlock()
+
 	return s.host
 }
 
 func (s *Server) GetPort() int {
+	s.RLock()
+	defer s.RUnlock()
+
 	return s.port
 }
 
+func (s *Server) GetAPIAddress() string {
+	return fmt.Sprintf(
+		"http://%s",
+		s.GetServerAddress().String(),
+	)
+}
+
+func (s *Server) GetServerAddress() net.Addr {
+	return s.GetEcho().ListenerAddr()
+}
+
+func (s *Server) SetPort(port int) {
+	s.Lock()
+	defer s.Unlock()
+
+	s.port = port
+}
+
 func (s *Server) GetEcho() *echo.Echo {
+	s.RLock()
+	defer s.RUnlock()
+
 	return s.echo
 }
 
 func (s *Server) GetMDNS() *types.MDNS {
+	s.RLock()
+	defer s.RUnlock()
+
 	return s.mdns
 }
 
 func (s *Server) GetConfig() config.Config {
+	s.RLock()
+	defer s.RUnlock()
+
 	return s.config
 }
 
 func (s *Server) GetBlockRegistry() *registries.BlockRegistry {
+	s.RLock()
+	defer s.RUnlock()
+
 	return s.blockRegistry.(*registries.BlockRegistry)
 }
 
 func (s *Server) GetPipelineRegistry() *registries.PipelineRegistry {
+	s.RLock()
+	defer s.RUnlock()
+
 	return s.pipelineRegistry.(*registries.PipelineRegistry)
 }
 
 func (s *Server) GetWorkerRegistry() *registries.WorkerRegistry {
+	s.RLock()
+	defer s.RUnlock()
+
 	return s.workerRegistry.(*registries.WorkerRegistry)
 }
 
 func (s *Server) GetProcessingRegistry() *registries.ProcessingRegistry {
+	s.RLock()
+	defer s.RUnlock()
+
 	return s.processingRegistry.(*registries.ProcessingRegistry)
+}
+
+func (s *Server) SetAPIMiddlewares() {
+	s.AddMiddleware(
+		middleware.Logger(),
+		middleware.Recover(),
+		middleware.RequestID(),
+		middleware.Gzip(),
+		middleware.CORSWithConfig(middleware.CORSConfig{
+			AllowOrigins: []string{
+				"https://localhost",
+				"https://localhost",
+				"http://localhost:*",
+				"http://127.0.0.1:*",
+				"http://0.0.0.0.*",
+			},
+			AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+		}),
+	)
+}
+
+func (s *Server) SetAPIHandlers() {
+	s.AddHTTPAPIRoute("GET", "/health", handlers.HealthHandler)
+	s.AddHTTPAPIRoute("GET", "/blocks", handlers.BlocksHandler(
+		s.GetBlockRegistry(),
+	))
+	s.AddHTTPAPIRoute("GET", "/workers", handlers.WorkersHandler(
+		s.GetMDNS(),
+	))
+	s.AddHTTPAPIRoute("GET", "/pipelines", handlers.PipelinesHandler(
+		s.GetPipelineRegistry(),
+	))
+	s.AddHTTPAPIRoute(
+		"POST", "/pipelines/:slug/start",
+		handlers.PipelineStartHandler(
+			s.GetPipelineRegistry(),
+		),
+	)
+	s.AddHTTPAPIRoute(
+		"POST", "/pipelines/:slug/resume",
+		handlers.PipelineResumeHandler(
+			s.GetPipelineRegistry(),
+		),
+	)
 }

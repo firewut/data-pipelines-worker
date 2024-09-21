@@ -1,6 +1,7 @@
 package functional_test
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -23,7 +24,7 @@ func (suite *FunctionalTestSuite) TestGetWorkerPipelines() {
 	pipelineSlug := "test-pipeline-slug"
 	blockId := "test-block-id"
 
-	workerServer, workerEntry, err := factories.NewWorkerServer(
+	worker, workerEntry, err := factories.NewWorkerServer(
 		suite.GetMockHTTPServer,
 		http.StatusOK,
 		true,
@@ -55,7 +56,7 @@ func (suite *FunctionalTestSuite) TestGetWorkerPipelines() {
 		),
 	)
 	suite.Nil(err)
-	suite.NotNil(workerServer)
+	suite.NotNil(worker)
 	suite.NotNil(workerEntry)
 
 	// When
@@ -85,7 +86,7 @@ func (suite *FunctionalTestSuite) TestGetWorkerBlocks() {
 	for _, available := range blockAvailability {
 		block.SetAvailable(available)
 
-		workerServer, workerEntry, err := factories.NewWorkerServer(
+		worker, workerEntry, err := factories.NewWorkerServer(
 			suite.GetMockHTTPServer,
 			http.StatusOK,
 			true,
@@ -117,7 +118,7 @@ func (suite *FunctionalTestSuite) TestGetWorkerBlocks() {
 			),
 		)
 		suite.Nil(err)
-		suite.NotNil(workerServer)
+		suite.NotNil(worker)
 		suite.NotNil(workerEntry)
 
 		// When
@@ -145,7 +146,7 @@ func (suite *FunctionalTestSuite) TestWorkerRegistryGetValidWorkers() {
 	block := blocks.NewBlockHTTP()
 	block.SetAvailable(true)
 
-	workerServer, workerEntry, err := factories.NewWorkerServer(
+	worker, workerEntry, err := factories.NewWorkerServer(
 		suite.GetMockHTTPServer,
 		http.StatusOK,
 		true,
@@ -177,7 +178,7 @@ func (suite *FunctionalTestSuite) TestWorkerRegistryGetValidWorkers() {
 		),
 	)
 	suite.Nil(err)
-	suite.NotNil(workerServer)
+	suite.NotNil(worker)
 	suite.NotNil(workerEntry)
 
 	discoveredEntries := []*zeroconf.ServiceEntry{
@@ -232,7 +233,7 @@ func (suite *FunctionalTestSuite) TestWorkerRegistryResumeProcessing() {
 	block.SetAvailable(true)
 	processingId := uuid.New()
 
-	workerServer, workerEntry, err := factories.NewWorkerServer(
+	worker, workerEntry, err := factories.NewWorkerServer(
 		suite.GetMockHTTPServer,
 		http.StatusOK,
 		true,
@@ -264,7 +265,7 @@ func (suite *FunctionalTestSuite) TestWorkerRegistryResumeProcessing() {
 		),
 	)
 	suite.Nil(err)
-	suite.NotNil(workerServer)
+	suite.NotNil(worker)
 	suite.NotNil(workerEntry)
 
 	discoveredEntries := []*zeroconf.ServiceEntry{
@@ -305,4 +306,53 @@ func (suite *FunctionalTestSuite) TestWorkerRegistryResumeProcessing() {
 
 	// Then
 	suite.Nil(err)
+}
+
+func (suite *FunctionalTestSuite) TestWorkerShutdownCorrect() {
+	// Given
+	ctx, shutdown := context.WithCancel(context.Background())
+	defer shutdown()
+	httpClient := &http.Client{}
+
+	worker1 := factories.NewServerWithHandlers()
+	go worker1.Start(ctx)
+	<-worker1.Ready
+
+	// When
+	response, err := httpClient.Get(
+		fmt.Sprintf(
+			"%s/health",
+			worker1.GetAPIAddress(),
+		),
+	)
+
+	// Then
+	suite.Nil(err)
+	suite.Equal(http.StatusOK, response.StatusCode)
+}
+
+func (suite *FunctionalTestSuite) TestTwoWorkersCommunication() {
+	// Given
+	ctx, shutdown := context.WithCancel(context.Background())
+	defer shutdown()
+	httpClient := &http.Client{}
+
+	worker1 := factories.NewServerWithHandlers()
+	go worker1.Start(ctx)
+	<-worker1.Ready
+
+	worker2 := factories.NewServerWithHandlers()
+	go worker2.Start(ctx)
+	<-worker2.Ready
+
+	// When
+	response, err := httpClient.Get(
+		fmt.Sprintf("%s/health",
+			worker1.GetAPIAddress(),
+		),
+	)
+
+	// Then
+	suite.Nil(err)
+	suite.Equal(http.StatusOK, response.StatusCode)
 }

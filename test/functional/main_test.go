@@ -43,7 +43,6 @@ func (suite *FunctionalTestSuite) SetupSuite() {
 	defer suite.Unlock()
 
 	suite._config = config.GetConfig()
-	suite.server = factories.ServerFactory()
 }
 
 func (suite *FunctionalTestSuite) GetServer() *api.Server {
@@ -54,7 +53,6 @@ func (suite *FunctionalTestSuite) TearDownSuite() {
 	suite.Lock()
 	defer suite.Unlock()
 
-	suite.server.Shutdown(time.Second)
 }
 
 func (suite *FunctionalTestSuite) SetupTest() {
@@ -70,6 +68,8 @@ func (suite *FunctionalTestSuite) SetupTest() {
 			_config.Blocks[blockId].Detector.Conditions["url"] = successUrl
 		}
 	}
+	suite.server = factories.NewServerWithHandlers()
+
 }
 
 func (suite *FunctionalTestSuite) GetMockHTTPServer(
@@ -130,6 +130,8 @@ func (suite *FunctionalTestSuite) TearDownTest() {
 		server.Close()
 	}
 	suite.httpTestServers = make([]*httptest.Server, 0)
+
+	suite.server.Shutdown(time.Millisecond * 100)
 }
 
 func (suite *FunctionalTestSuite) GetTestPipeline(pipelineDefinition string) interfaces.Pipeline {

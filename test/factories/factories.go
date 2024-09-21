@@ -16,8 +16,18 @@ import (
 	"data-pipelines-worker/types/interfaces"
 )
 
-func ServerFactory() *api.Server {
-	return api.NewServer()
+func NewServer() *api.Server {
+	server := api.NewServer()
+	server.SetPort(0)
+	return server
+}
+
+func NewServerWithHandlers() *api.Server {
+	server := api.NewServer()
+	server.SetPort(0)
+	server.SetAPIMiddlewares()
+	server.SetAPIHandlers()
+	return server
 }
 
 func NewWorkerServer(
