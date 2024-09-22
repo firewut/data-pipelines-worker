@@ -25,6 +25,8 @@ type Block interface {
 	GetVersion() string
 	GetSchemaString() string
 	GetSchema() *gojsonschema.Schema
+	GetConfigSection() map[string]interface{}
+	SetConfigSection(map[string]interface{})
 	ApplySchema(string) error
 
 	SetAvailable(bool)

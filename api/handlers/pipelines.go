@@ -57,7 +57,15 @@ func PipelineStartHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc
 	}
 }
 
-// Handler to Resume processing of a pipeline which has `processing_id`
+// PipelineResumeHandler returns an HTTP handler function that responds with a JSON
+// representation of the pipeline that was resumed.
+//
+// Parameters:
+// - registry: A pointer to a PipelineRegistry instance containing the pipelines.
+//
+// Returns:
+//   - An echo.HandlerFunc that handles HTTP requests and responds with a JSON
+//     representation of the pipeline that was resumed.
 func PipelineResumeHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var inputData schemas.PipelineStartInputSchema

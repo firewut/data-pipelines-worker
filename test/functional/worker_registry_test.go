@@ -245,3 +245,45 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocks
 
 	suite.Equal(mockedSecondBlockResponse, completedProcessing22.GetOutput().GetValue().String())
 }
+
+// func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessing() {
+// 	// Given
+// 	ctx, shutdown := context.WithCancel(context.Background())
+// 	defer shutdown()
+
+// 	testPipelineSlug, testBlockId := "test-two-http-blocks", "http_request"
+// 	server1, worker1, err := factories.NewWorkerServerWithHandlers(ctx, true)
+// 	suite.Nil(err)
+// 	server2, worker2, err := factories.NewWorkerServerWithHandlers(ctx, true)
+// 	suite.Nil(err)
+
+// 	workerRegistry1 := server1.GetWorkerRegistry()
+// 	workerRegistry2 := server2.GetWorkerRegistry()
+// 	workerRegistry1.Add(worker2)
+// 	workerRegistry2.Add(worker1)
+
+// 	blockRegistry1 := server1.GetBlockRegistry()
+// 	blockRegistry2 := server2.GetBlockRegistry()
+
+// 	cases := []struct {
+// 		worker1block1Available bool
+// 		worker1block2Available bool
+// 		worker2block1Available bool
+// 		worker2block2Available bool
+// 		worker1worker2Transfer bool
+// 		worker1block1Error     bool
+// 		worker1block2Error     bool
+// 		worker2block1Error     bool
+// 		worker2block2Error     bool
+// 	}{
+// 		// Worker1 has all blocks available, Worker2 has all blocks available, no transfer, no errors
+// 		{
+// 			true, true, true, true, false, false, false, false, false,
+// 		},
+// 	}
+
+// 	for _, c := range cases {
+// 		blockRegistry1.GetAvailableBlocks()[testBlockId].SetAvailable(c.worker1block1Available)
+// 	}
+
+// }

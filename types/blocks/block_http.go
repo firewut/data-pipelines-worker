@@ -122,63 +122,63 @@ func NewBlockHTTP() *BlockHTTP {
 			Description: "Block to perform request to a URL and save the Response",
 			Version:     "1",
 			SchemaString: `{
-        	"type": "object",
-			"properties": {
-				"input": {
-					"type": "object",
-					"description": "Input parameters",
-					"properties": {
-						"url": {
-							"description": "URL to fetch content from",
-							"type": "string",
-							"minLength": 5,
-							"format": "url"
-						},
-						"method": {
-							"description": "HTTP method to use",
-							"type": "string",
-							"enum": ["GET", "POST", "PUT", "DELETE"],
-							"default": "GET"
-						},
-						"headers": {
-							"description": "HTTP headers to send",
-							"type": ["object", "null"],
-							"additionalProperties": {
-								"type": "string"
+				"type": "object",
+				"properties": {
+					"input": {
+						"type": "object",
+						"description": "Input parameters",
+						"properties": {
+							"url": {
+								"description": "URL to fetch content from",
+								"type": "string",
+								"minLength": 5,
+								"format": "url"
 							},
-							"example": {
-								"Content-Type": "application/json"
+							"method": {
+								"description": "HTTP method to use",
+								"type": "string",
+								"enum": ["GET", "POST", "PUT", "DELETE"],
+								"default": "GET"
+							},
+							"headers": {
+								"description": "HTTP headers to send",
+								"type": ["object", "null"],
+								"additionalProperties": {
+									"type": "string"
+								},
+								"example": {
+									"Content-Type": "application/json"
+								}
+							},
+							"query": {
+								"description": "Query parameters to send in the request",
+								"type": ["object", "null"],
+								"additionalProperties": {
+									"type": "string"
+								},
+								"example": {
+									"page": "1",
+									"limit": "10"
+								}
+							},
+							"body": {
+								"description": "Body to send in the request",
+								"type": ["string", "object", "array", "null"]
+							},
+							"description": {
+								"description": "Description of the request",
+								"type": ["string", "null"]
 							}
 						},
-						"query": {
-							"description": "Query parameters to send in the request",
-							"type": ["object", "null"],
-							"additionalProperties": {
-								"type": "string"
-							},
-							"example": {
-								"page": "1",
-								"limit": "10"
-							}
-						},
-						"body": {
-							"description": "Body to send in the request",
-							"type": ["string", "object", "array", "null"]
-						},
-						"description": {
-							"description": "Description of the request",
-							"type": ["string", "null"]
-						}
+						"required": ["url"]
 					},
-					"required": ["url"]
-				},
-				"output": {
-					"description": "Content fetched from the URL",
-					"type": ["string", "null"],
-					"format": "file"
+					"output": {
+						"description": "Content fetched from the URL",
+						"type": ["string", "null"],
+						"format": "file"
+					}
 				}
-			}
-		}`,
+			}`,
 			SchemaPtr: nil,
 			Schema:    nil,
 		},

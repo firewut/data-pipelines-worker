@@ -5,6 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/color"
+	"image/png"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -588,10 +591,30 @@ func (suite *UnitTestSuite) GetWorkerRegistry(forceNewInstance ...bool) interfac
 	return registries.GetWorkerRegistry(forceNewInstance...)
 
 }
+
 func (suite *UnitTestSuite) GetBlockRegistry(forceNewInstance ...bool) interfaces.BlockRegistry {
 	return registries.GetBlockRegistry(forceNewInstance...)
 
 }
+
 func (suite *UnitTestSuite) GetProcessingRegistry(forceNewInstance ...bool) interfaces.ProcessingRegistry {
 	return registries.GetProcessingRegistry(forceNewInstance...)
+}
+
+func (suite *UnitTestSuite) GetPNGImageBuffer(width int, height int) bytes.Buffer {
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+
+	// Fill it with white color
+	color := color.RGBA{100, 100, 100, 100}
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			img.Set(x, y, color)
+		}
+	}
+
+	buf := new(bytes.Buffer)
+	err := png.Encode(buf, img)
+	suite.Nil(err)
+
+	return *buf
 }

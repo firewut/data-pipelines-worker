@@ -56,7 +56,10 @@ blocks:
     detector:
       check_interval: 1m
       conditions:
-        libraries: ["imagemagick", "ffmpeg"]
+        libraries: []
     reliability:
       policy: "none"
+    config:
+      font: /System/Library/Fonts/Supplemental/Courier New Bold.ttf
+      font_size: 50
   

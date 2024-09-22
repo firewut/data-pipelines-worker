@@ -89,6 +89,7 @@ type OpenAIConfig struct {
 type BlockConfig struct {
 	Detector    BlockConfigDetector    `yaml:"detector" json:"-"`
 	Reliability BlockConfigReliability `yaml:"reliability" json:"-"`
+	Config      map[string]interface{} `yaml:"config" json:"-"`
 }
 
 type BlockConfigDetector struct {

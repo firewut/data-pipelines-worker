@@ -73,7 +73,8 @@ type BlockParent struct {
 	Schema       interface{}          `json:"schema"`
 	Available    bool                 `json:"available"`
 
-	processor interfaces.BlockProcessor
+	configSection map[string]interface{}
+	processor     interfaces.BlockProcessor
 }
 
 func (b *BlockParent) GetId() string {
@@ -200,4 +201,18 @@ func (b *BlockParent) GetProcessor() interfaces.BlockProcessor {
 	defer b.Unlock()
 
 	return b.processor
+}
+
+func (b *BlockParent) GetConfigSection() map[string]interface{} {
+	b.Lock()
+	defer b.Unlock()
+
+	return b.configSection
+}
+
+func (b *BlockParent) SetConfigSection(configSection map[string]interface{}) {
+	b.Lock()
+	defer b.Unlock()
+
+	b.configSection = configSection
 }
