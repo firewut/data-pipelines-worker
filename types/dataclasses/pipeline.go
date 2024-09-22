@@ -168,9 +168,7 @@ func (p *PipelineData) Process(
 					inputData,
 				); err != nil {
 					return
-					// return uuid.UUID{}, err
 				}
-				// return processingId, nil
 				return
 			}
 
@@ -182,7 +180,6 @@ func (p *PipelineData) Process(
 				)
 				if err != nil {
 					return
-					// return uuid.UUID{}, err
 				}
 			}
 
@@ -220,7 +217,6 @@ func (p *PipelineData) Process(
 
 				processingResult, err := processingRegistry.StartProcessingById(processingId)
 				if err != nil {
-					fmt.Println(">>", err, blockData.GetSlug())
 					return
 				}
 

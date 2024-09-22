@@ -104,19 +104,22 @@ func (suite *UnitTestSuite) TestNewWorkerRegistryShutdown() {
 }
 
 func (suite *UnitTestSuite) TestGetWorkerRegistry() {
-	workerRegistry := registries.GetWorkerRegistry()
-	suite.NotEmpty(workerRegistry)
-
-	discoveredWorkers := suite.GetDiscoveredWorkers()
-	for _, worker := range discoveredWorkers {
-		workerRegistry.Add(worker)
+	// Given
+	cases := [][]bool{
+		{false, false, true}, // Expect same instance
+		{true, false, false}, // Expect the same instance as the one created
+		{false, true, false}, // Expect different instances
+		{true, true, false},  // Expect different instances
 	}
 
-	workerRegistry2 := registries.GetWorkerRegistry()
-	suite.Equal(
-		len(workerRegistry.GetAll()),
-		len(workerRegistry2.GetAll()),
-	)
+	// When
+	for _, c := range cases {
+		workerRegistry1 := registries.GetWorkerRegistry(c[0])
+		workerRegistry2 := registries.GetWorkerRegistry(c[1])
+
+		// Then
+		suite.Equal(workerRegistry1 == workerRegistry2, c[2])
+	}
 }
 
 func (suite *UnitTestSuite) TestWorkerRegistryQueryWorkerAPI() {

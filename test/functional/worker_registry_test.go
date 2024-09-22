@@ -314,15 +314,14 @@ func (suite *FunctionalTestSuite) TestWorkerShutdownCorrect() {
 	defer shutdown()
 	httpClient := &http.Client{}
 
-	worker1 := factories.NewServerWithHandlers()
-	go worker1.Start(ctx)
-	<-worker1.Ready
+	server1, _, err := factories.NewWorkerServerWithHandlers(ctx, true)
 
 	// When
+	suite.Nil(err)
 	response, err := httpClient.Get(
 		fmt.Sprintf(
 			"%s/health",
-			worker1.GetAPIAddress(),
+			server1.GetAPIAddress(),
 		),
 	)
 
@@ -331,28 +330,69 @@ func (suite *FunctionalTestSuite) TestWorkerShutdownCorrect() {
 	suite.Equal(http.StatusOK, response.StatusCode)
 }
 
-func (suite *FunctionalTestSuite) TestTwoWorkersCommunication() {
+func (suite *FunctionalTestSuite) TestTwoWorkersDifferentRegistries() {
 	// Given
 	ctx, shutdown := context.WithCancel(context.Background())
 	defer shutdown()
-	httpClient := &http.Client{}
-
-	worker1 := factories.NewServerWithHandlers()
-	go worker1.Start(ctx)
-	<-worker1.Ready
-
-	worker2 := factories.NewServerWithHandlers()
-	go worker2.Start(ctx)
-	<-worker2.Ready
 
 	// When
-	response, err := httpClient.Get(
-		fmt.Sprintf("%s/health",
-			worker1.GetAPIAddress(),
-		),
-	)
+	server1, worker1, err := factories.NewWorkerServerWithHandlers(ctx, true)
+	suite.Nil(err)
+	server2, worker2, err := factories.NewWorkerServerWithHandlers(ctx, false)
+	suite.Nil(err)
 
 	// Then
+	suite.False(server1.GetWorkerRegistry() == server2.GetWorkerRegistry())
+	suite.False(server1.GetPipelineRegistry() == server2.GetPipelineRegistry())
+	suite.False(server1.GetBlockRegistry() == server2.GetBlockRegistry())
+	suite.False(server1.GetProcessingRegistry() == server2.GetProcessingRegistry())
+
+	server1.GetWorkerRegistry().Add(worker1)
+	server1.GetWorkerRegistry().Add(worker2)
+
+	suite.NotEqual(
+		server1.GetWorkerRegistry().GetAll(),
+		server2.GetWorkerRegistry().GetAll(),
+	)
+}
+
+func (suite *FunctionalTestSuite) TestTwoWorkersWorkersDiscovery() {
+	// Given
+	ctx, shutdown := context.WithCancel(context.Background())
+	defer shutdown()
+
+	testPipelineSlug, testBlockId := "test-two-http-blocks", "http_request"
+	server1, worker1, err := factories.NewWorkerServerWithHandlers(ctx, true)
 	suite.Nil(err)
-	suite.Equal(http.StatusOK, response.StatusCode)
+	server2, worker2, err := factories.NewWorkerServerWithHandlers(ctx, true)
+	suite.Nil(err)
+
+	workerRegistry1 := server1.GetWorkerRegistry()
+	workerRegistry2 := server2.GetWorkerRegistry()
+
+	// When
+	workerRegistry1.Add(worker2)
+	workerRegistry2.Add(worker1)
+
+	// Then
+	availableWorkers1 := workerRegistry1.GetAvailableWorkers()
+	availableWorkers2 := workerRegistry2.GetAvailableWorkers()
+	suite.Equal(len(availableWorkers1), 1)
+	suite.Equal(len(availableWorkers2), 1)
+	suite.Equal(availableWorkers1[worker2.GetId()], worker2)
+	suite.Equal(availableWorkers2[worker1.GetId()], worker1)
+
+	workersWithBlocks1 := workerRegistry1.GetWorkersWithBlocksDetected(availableWorkers1, testBlockId)
+	workersWithBlocks2 := workerRegistry2.GetWorkersWithBlocksDetected(availableWorkers2, testBlockId)
+	suite.Equal(len(workersWithBlocks1), 1)
+	suite.Equal(len(workersWithBlocks2), 1)
+	suite.Equal(workersWithBlocks1[worker2.GetId()], worker2)
+	suite.Equal(workersWithBlocks2[worker1.GetId()], worker1)
+
+	validWorkers1 := workerRegistry1.GetValidWorkers(testPipelineSlug, testBlockId)
+	validWorkers2 := workerRegistry2.GetValidWorkers(testPipelineSlug, testBlockId)
+	suite.Equal(len(validWorkers1), 1)
+	suite.Equal(len(validWorkers2), 1)
+	suite.Equal(validWorkers1[worker2.GetId()], worker2)
+	suite.Equal(validWorkers2[worker1.GetId()], worker1)
 }

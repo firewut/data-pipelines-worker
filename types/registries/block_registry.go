@@ -15,7 +15,14 @@ var (
 	blockRegistryInstance *BlockRegistry
 )
 
-func GetBlockRegistry() *BlockRegistry {
+func GetBlockRegistry(forceNewInstance ...bool) *BlockRegistry {
+	if len(forceNewInstance) > 0 && forceNewInstance[0] {
+		newInstance := NewBlockRegistry()
+		blockRegistryInstance = newInstance
+		onceBlockRegistry = sync.Once{}
+		return newInstance
+	}
+
 	onceBlockRegistry.Do(func() {
 		blockRegistryInstance = NewBlockRegistry()
 	})

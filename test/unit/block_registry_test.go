@@ -35,8 +35,22 @@ func (suite *UnitTestSuite) TestNewBlockRegistry() {
 }
 
 func (suite *UnitTestSuite) TestGetBlockRegistry() {
-	blockRegistry := registries.GetBlockRegistry()
-	suite.NotEmpty(blockRegistry)
+	// Given
+	cases := [][]bool{
+		{false, false, true}, // Expect same instance
+		{true, false, false}, // Expect the same instance as the one created
+		{false, true, false}, // Expect different instances
+		{true, true, false},  // Expect different instances
+	}
+
+	// When
+	for _, c := range cases {
+		blockRegistry1 := registries.GetBlockRegistry(c[0])
+		blockRegistry2 := registries.GetBlockRegistry(c[1])
+
+		// Then
+		suite.Equal(blockRegistry1 == blockRegistry2, c[2])
+	}
 }
 
 func (suite *UnitTestSuite) TestBlockRegistryDetectBlocks() {

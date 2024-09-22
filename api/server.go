@@ -42,11 +42,15 @@ type Server struct {
 func NewServer() *Server {
 	_config := config.GetConfig()
 
-	workerRegistry := registries.GetWorkerRegistry()
+	workerRegistry := registries.GetWorkerRegistry(true)
 
 	pipelineRegistry, err := registries.NewPipelineRegistry(
 		dataclasses.NewPipelineCatalogueLoader(),
 	)
+	if err != nil {
+		panic(err)
+	}
+
 	// Set the pipeline result storages
 	pipelineRegistry.SetPipelineResultStorages(
 		[]interfaces.Storage{
@@ -54,12 +58,9 @@ func NewServer() *Server {
 			types.NewMINIOStorage(),
 		},
 	)
-	if err != nil {
-		panic(err)
-	}
 
-	blockRegistry := registries.GetBlockRegistry()
-	processingRegistry := registries.GetProcessingRegistry()
+	blockRegistry := registries.GetBlockRegistry(true)
+	processingRegistry := registries.GetProcessingRegistry(true)
 
 	_echo := echo.New()
 	_echo.HideBanner = true
@@ -81,9 +82,7 @@ func NewServer() *Server {
 	}
 	worker.echo.Use(middleware.Logger())
 	worker.echo.Use(middleware.Recover())
-	worker.echo.Use(
-		workerMiddleware.ConfigMiddleware(_config),
-	)
+	worker.echo.Use(workerMiddleware.ConfigMiddleware(_config))
 
 	return worker
 }

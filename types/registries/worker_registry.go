@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/google/uuid"
+
 	"data-pipelines-worker/api/schemas"
 	"data-pipelines-worker/types/interfaces"
-
-	"github.com/google/uuid"
 )
 
 var (
@@ -18,7 +18,14 @@ var (
 	workerRegistryInstance *WorkerRegistry
 )
 
-func GetWorkerRegistry() *WorkerRegistry {
+func GetWorkerRegistry(forceNewInstance ...bool) *WorkerRegistry {
+	if len(forceNewInstance) > 0 && forceNewInstance[0] {
+		newInstance := NewWorkerRegistry()
+		workerRegistryInstance = newInstance
+		onceWorkerRegistry = sync.Once{}
+		return newInstance
+	}
+
 	onceWorkerRegistry.Do(func() {
 		workerRegistryInstance = NewWorkerRegistry()
 	})

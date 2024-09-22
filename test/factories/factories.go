@@ -1,6 +1,7 @@
 package factories
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http/httptest"
@@ -28,6 +29,39 @@ func NewServerWithHandlers() *api.Server {
 	server.SetAPIMiddlewares()
 	server.SetAPIHandlers()
 	return server
+}
+
+func NewWorkerServerWithHandlers(ctx context.Context, available bool) (*api.Server, interfaces.Worker, error) {
+	server := NewServerWithHandlers()
+	go server.Start(ctx)
+
+	<-server.Ready
+
+	u, err := url.Parse(server.GetAPIAddress())
+	if err != nil {
+		fmt.Println("Error parsing URL:", err)
+		return server, nil, err
+	}
+	port, err := strconv.Atoi(u.Port())
+	if err != nil {
+		fmt.Println("Error converting port to integer:", err)
+		return server, nil, err
+	}
+
+	worker := dataclasses.NewWorker(
+		&zeroconf.ServiceEntry{
+			ServiceRecord: zeroconf.ServiceRecord{
+				Instance: "remotehost",
+			},
+			HostName: u.Hostname(),
+			AddrIPv4: []net.IP{net.ParseIP("localhost")},
+			AddrIPv6: []net.IP{net.ParseIP("::1")},
+			Port:     port,
+			Text:     server.GetMDNS().GetTXT(),
+		},
+	)
+
+	return server, worker, err
 }
 
 func NewWorkerServer(

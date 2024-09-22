@@ -21,10 +21,22 @@ func (suite *UnitTestSuite) TestNewProcessingRegistry() {
 }
 
 func (suite *UnitTestSuite) TestGetProcessingRegistry() {
-	registry := registries.GetProcessingRegistry()
+	// Given
+	cases := [][]bool{
+		{false, false, true}, // Expect same instance
+		{true, false, false}, // Expect the same instance as the one created
+		{false, true, false}, // Expect different instances
+		{true, true, false},  // Expect different instances
+	}
 
-	suite.NotNil(registry)
-	suite.Empty(registry.GetAll())
+	// When
+	for _, c := range cases {
+		processingRegistry1 := registries.GetProcessingRegistry(c[0])
+		processingRegistry2 := registries.GetProcessingRegistry(c[1])
+
+		// Then
+		suite.Equal(processingRegistry1 == processingRegistry2, c[2])
+	}
 }
 
 func (suite *UnitTestSuite) TestProcessingRegistryAdd() {

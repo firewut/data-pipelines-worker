@@ -14,7 +14,14 @@ var (
 	processingRegistryInstance *ProcessingRegistry
 )
 
-func GetProcessingRegistry() *ProcessingRegistry {
+func GetProcessingRegistry(forceNewInstance ...bool) *ProcessingRegistry {
+	if len(forceNewInstance) > 0 && forceNewInstance[0] {
+		newInstance := NewProcessingRegistry()
+		processingRegistryInstance = newInstance
+		onceProcessingRegistry = sync.Once{}
+		return newInstance
+	}
+
 	onceProcessingRegistry.Do(func() {
 		processingRegistryInstance = NewProcessingRegistry()
 	})
