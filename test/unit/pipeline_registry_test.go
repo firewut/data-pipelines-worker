@@ -14,6 +14,9 @@ import (
 
 func (suite *UnitTestSuite) TestNewPipelineRegistry() {
 	registry, err := registries.NewPipelineRegistry(
+		registries.GetWorkerRegistry(),
+		registries.GetBlockRegistry(),
+		registries.GetProcessingRegistry(),
 		dataclasses.NewPipelineCatalogueLoader(),
 	)
 	suite.Nil(err)
@@ -24,6 +27,9 @@ func (suite *UnitTestSuite) TestNewPipelineRegistry() {
 
 func (suite *UnitTestSuite) TestPipelineRegistryRegisterCorrect() {
 	registry, err := registries.NewPipelineRegistry(
+		registries.GetWorkerRegistry(),
+		registries.GetBlockRegistry(),
+		registries.GetProcessingRegistry(),
 		dataclasses.NewPipelineCatalogueLoader(),
 	)
 	suite.Nil(err)
@@ -41,6 +47,9 @@ func (suite *UnitTestSuite) TestPipelineRegistryRegisterCorrect() {
 
 func (suite *UnitTestSuite) TestPipelineRegistryRegisterErrorMissingRequiredProperty() {
 	registry, err := registries.NewPipelineRegistry(
+		registries.GetWorkerRegistry(),
+		registries.GetBlockRegistry(),
+		registries.GetProcessingRegistry(),
 		dataclasses.NewPipelineCatalogueLoader(),
 	)
 	suite.Nil(err)
@@ -62,6 +71,9 @@ func (suite *UnitTestSuite) TestPipelineRegistryRegisterErrorMissingRequiredProp
 
 func (suite *UnitTestSuite) TestPipelineRegistryGet() {
 	registry, err := registries.NewPipelineRegistry(
+		registries.GetWorkerRegistry(),
+		registries.GetBlockRegistry(),
+		registries.GetProcessingRegistry(),
 		dataclasses.NewPipelineCatalogueLoader(),
 	)
 	suite.Nil(err)
@@ -77,6 +89,9 @@ func (suite *UnitTestSuite) TestPipelineRegistryGet() {
 
 func (suite *UnitTestSuite) TestPipelineRegistryGetAll() {
 	registry, err := registries.NewPipelineRegistry(
+		registries.GetWorkerRegistry(),
+		registries.GetBlockRegistry(),
+		registries.GetProcessingRegistry(),
 		dataclasses.NewPipelineCatalogueLoader(),
 	)
 	suite.Nil(err)
@@ -90,6 +105,9 @@ func (suite *UnitTestSuite) TestPipelineRegistryGetAll() {
 
 func (suite *UnitTestSuite) TestPipelineRegistryDelete() {
 	registry, err := registries.NewPipelineRegistry(
+		registries.GetWorkerRegistry(),
+		registries.GetBlockRegistry(),
+		registries.GetProcessingRegistry(),
 		dataclasses.NewPipelineCatalogueLoader(),
 	)
 	suite.Nil(err)
@@ -106,6 +124,9 @@ func (suite *UnitTestSuite) TestPipelineRegistryDelete() {
 
 func (suite *UnitTestSuite) TestPipelineRegistryLoadFromCatalogue() {
 	registry, err := registries.NewPipelineRegistry(
+		registries.GetWorkerRegistry(),
+		registries.GetBlockRegistry(),
+		registries.GetProcessingRegistry(),
 		dataclasses.NewPipelineCatalogueLoader(),
 	)
 	suite.Nil(err)
@@ -262,6 +283,9 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineWithInputTest() {
 func (suite *UnitTestSuite) TestPipelineRegistryShutDown() {
 	// Given
 	registry, err := registries.NewPipelineRegistry(
+		registries.GetWorkerRegistry(),
+		registries.GetBlockRegistry(),
+		registries.GetProcessingRegistry(),
 		dataclasses.NewPipelineCatalogueLoader(),
 	)
 	suite.Nil(err)

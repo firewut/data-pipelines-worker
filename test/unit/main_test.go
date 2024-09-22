@@ -23,6 +23,7 @@ import (
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/dataclasses"
+	"data-pipelines-worker/types/generics"
 	"data-pipelines-worker/types/interfaces"
 	"data-pipelines-worker/types/registries"
 )
@@ -45,10 +46,11 @@ type UnitTestSuite struct {
 	// mock storages
 	storages []interfaces.Storage
 
+	// registries
+	registries []generics.Registry[any]
+
 	// contextCancels
 	contextCancels []context.CancelFunc
-
-	processingRegistry *registries.ProcessingRegistry
 }
 
 func TestUnitTestSuite(t *testing.T) {
@@ -67,7 +69,6 @@ func (suite *UnitTestSuite) SetupSuite() {
 	suite.httpTestServers = make([]*httptest.Server, 0)
 	suite.storages = make([]interfaces.Storage, 0)
 	suite.contextCancels = make([]context.CancelFunc, 0)
-	suite.processingRegistry = registries.NewProcessingRegistry()
 }
 
 func (suite *UnitTestSuite) TearDownSuite() {
@@ -85,7 +86,7 @@ func (suite *UnitTestSuite) SetupTest() {
 		}
 	}
 
-	suite.processingRegistry = registries.NewProcessingRegistry()
+	suite.registries = make([]generics.Registry[any], 0)
 }
 
 func (suite *UnitTestSuite) NewDummyBlock(id string) interfaces.Block {
@@ -160,6 +161,9 @@ func (suite *UnitTestSuite) TearDownTest() {
 	suite.Lock()
 	defer suite.Unlock()
 
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
 	for _, server := range suite.httpTestServers {
 		server.Close()
 	}
@@ -169,21 +173,14 @@ func (suite *UnitTestSuite) TearDownTest() {
 	for _, cancel := range suite.contextCancels {
 		cancel()
 	}
+	for _, registry := range suite.registries {
+		registry.Shutdown(ctx)
+	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	suite.processingRegistry.Shutdown(ctx)
 	suite.contextCancels = make([]context.CancelFunc, 0)
 	suite.httpTestServers = make([]*httptest.Server, 0)
 	suite.storages = make([]interfaces.Storage, 0)
-}
-
-func (suite *UnitTestSuite) GetProcessingRegistry() *registries.ProcessingRegistry {
-	suite.Lock()
-	defer suite.Unlock()
-
-	return suite.processingRegistry
+	suite.registries = make([]generics.Registry[any], 0)
 }
 
 func (suite *UnitTestSuite) GetTestPipelineDefinition() []byte {
@@ -257,6 +254,9 @@ func (suite *UnitTestSuite) RegisterTestPipelineAndInputForProcessing(
 	)
 
 	registry, err := registries.NewPipelineRegistry(
+		suite.GetWorkerRegistry(),
+		suite.GetBlockRegistry(),
+		suite.GetProcessingRegistry(),
 		dataclasses.NewPipelineCatalogueLoader(),
 	)
 	suite.Nil(err)
@@ -582,4 +582,16 @@ func (suite *UnitTestSuite) GetContextWithcancel() context.Context {
 	suite.contextCancels = append(suite.contextCancels, cancel)
 
 	return ctx
+}
+
+func (suite *UnitTestSuite) GetWorkerRegistry(forceNewInstance ...bool) interfaces.WorkerRegistry {
+	return registries.GetWorkerRegistry(forceNewInstance...)
+
+}
+func (suite *UnitTestSuite) GetBlockRegistry(forceNewInstance ...bool) interfaces.BlockRegistry {
+	return registries.GetBlockRegistry(forceNewInstance...)
+
+}
+func (suite *UnitTestSuite) GetProcessingRegistry(forceNewInstance ...bool) interfaces.ProcessingRegistry {
+	return registries.GetProcessingRegistry(forceNewInstance...)
 }

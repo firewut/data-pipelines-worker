@@ -1,8 +1,10 @@
 package functional_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -15,7 +17,6 @@ import (
 
 	"data-pipelines-worker/api"
 	"data-pipelines-worker/api/schemas"
-	"data-pipelines-worker/test/factories"
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/dataclasses"
 	"data-pipelines-worker/types/interfaces"
@@ -25,7 +26,6 @@ type FunctionalTestSuite struct {
 	sync.RWMutex
 
 	suite.Suite
-	server  *api.Server
 	_config config.Config
 
 	httpTestServers []*httptest.Server // to mock http requests
@@ -43,10 +43,6 @@ func (suite *FunctionalTestSuite) SetupSuite() {
 	defer suite.Unlock()
 
 	suite._config = config.GetConfig()
-}
-
-func (suite *FunctionalTestSuite) GetServer() *api.Server {
-	return suite.server
 }
 
 func (suite *FunctionalTestSuite) TearDownSuite() {
@@ -68,8 +64,6 @@ func (suite *FunctionalTestSuite) SetupTest() {
 			_config.Blocks[blockId].Detector.Conditions["url"] = successUrl
 		}
 	}
-	suite.server = factories.NewServerWithHandlers()
-
 }
 
 func (suite *FunctionalTestSuite) GetMockHTTPServer(
@@ -130,8 +124,6 @@ func (suite *FunctionalTestSuite) TearDownTest() {
 		server.Close()
 	}
 	suite.httpTestServers = make([]*httptest.Server, 0)
-
-	suite.server.Shutdown(time.Millisecond * 100)
 }
 
 func (suite *FunctionalTestSuite) GetTestPipeline(pipelineDefinition string) interfaces.Pipeline {
@@ -178,4 +170,39 @@ func (suite *FunctionalTestSuite) GetMockServerHandlersResponse(
 	mockedResponses["/blocks"] = string(blocksResponse)
 
 	return mockedResponses
+}
+
+func (suite *FunctionalTestSuite) SendProcessingStartRequest(
+	server *api.Server,
+	input schemas.PipelineStartInputSchema,
+	httpClient *http.Client,
+) (schemas.PipelineResumeOutputSchema, int, string, error) {
+	var result schemas.PipelineResumeOutputSchema
+
+	inputJSONData, err := json.Marshal(input)
+	suite.Nil(err)
+
+	if httpClient == nil {
+		httpClient = &http.Client{}
+	}
+
+	response, err := httpClient.Post(
+		fmt.Sprintf(
+			"%s/pipelines/%s/start",
+			server.GetAPIAddress(),
+			input.Pipeline.Slug,
+		),
+		"application/json",
+		bytes.NewReader(inputJSONData),
+	)
+	suite.Nil(err)
+	defer response.Body.Close()
+
+	responseBodyBytes, _ := io.ReadAll(response.Body)
+
+	if err := json.Unmarshal(responseBodyBytes, &result); err != nil {
+		return result, response.StatusCode, string(responseBodyBytes), err
+	}
+
+	return result, response.StatusCode, "", err
 }

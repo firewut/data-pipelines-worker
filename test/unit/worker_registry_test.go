@@ -169,19 +169,21 @@ func (suite *UnitTestSuite) TestWorkerRegistryQueryWorkerAPI() {
 	pipelines := make(map[string]interface{})
 	blocks := make(map[string]interface{})
 
-	err = workerRegistry.QueryWorkerAPI(
+	_, err = workerRegistry.QueryWorkerAPI(
 		workerEntry,
 		"pipelines",
 		"GET",
+		nil,
 		&pipelines,
 	)
 	suite.Nil(err)
 	suite.NotEmpty(pipelines)
 
-	err = workerRegistry.QueryWorkerAPI(
+	_, err = workerRegistry.QueryWorkerAPI(
 		workerEntry,
 		"blocks",
 		"GET",
+		nil,
 		&blocks,
 	)
 	suite.Nil(err)

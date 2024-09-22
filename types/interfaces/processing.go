@@ -15,6 +15,7 @@ const (
 	ProcessingStatusRunning
 	ProcessingStatusCompleted
 	ProcessingStatusFailed
+	ProcessingStatusTransferred
 )
 
 type Processing interface {
@@ -24,12 +25,17 @@ type Processing interface {
 	GetData() ProcessableBlockData
 	GetStatus() ProcessingStatus
 	SetStatus(ProcessingStatus)
+	SetError(error)
+	GetError() error
 	GetOutput() ProcessingOutput
 
 	SetRegistryNotificationChannel(chan Processing)
 
 	Start() (ProcessingOutput, error)
 	Shutdown(context.Context) error
+
+	// Stop unstarted processing
+	Stop(ProcessingStatus, error)
 }
 
 type ProcessingOutput interface {

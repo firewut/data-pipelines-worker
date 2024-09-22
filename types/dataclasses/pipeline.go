@@ -58,8 +58,9 @@ func (p *PipelineData) UnmarshalJSON(data []byte) error {
 
 	// Loop through each BlockData
 	for i, block := range aux.Blocks {
+		registryBlock := registryBlocks[block.GetId()]
 		block.SetPipeline(p)
-		block.SetBlock(registryBlocks[block.GetId()])
+		block.SetBlock(registryBlock)
 
 		p.Blocks[i] = block
 	}
@@ -113,6 +114,9 @@ func (p *PipelineData) GetSchemaPtr() *gojsonschema.Schema {
 }
 
 func (p *PipelineData) Process(
+	workerRegistry interfaces.WorkerRegistry,
+	blockRegistry interfaces.BlockRegistry,
+	processingRegistry interfaces.ProcessingRegistry,
 	inputData schemas.PipelineStartInputSchema,
 	resultStorages []interfaces.Storage,
 ) (uuid.UUID, error) {
@@ -138,7 +142,6 @@ func (p *PipelineData) Process(
 		)
 	}
 
-	processingRegistry := registries.GetProcessingRegistry()
 	pipelineBlockDataRegistry := registries.NewPipelineBlockDataRegistry(
 		processingId,
 		p.Slug,
@@ -158,17 +161,22 @@ func (p *PipelineData) Process(
 
 			block := blockData.GetBlock()
 
-			if !block.IsAvailable() {
-				workerRegistry := registries.GetWorkerRegistry()
+			tmpProcessing := NewProcessing(processingId, p, block, blockData)
+			processingRegistry.Add(tmpProcessing)
 
+			// Check registry if Block is Available
+			if !blockRegistry.IsAvailable(block) {
 				if err := workerRegistry.ResumeProcessing(
 					blockData.GetPipeline().GetSlug(),
 					processingId,
-					blockData.GetSlug(),
+					blockData.GetId(),
 					inputData,
 				); err != nil {
+					tmpProcessing.Stop(interfaces.ProcessingStatusFailed, err)
 					return
 				}
+
+				tmpProcessing.Stop(interfaces.ProcessingStatusTransferred, nil)
 				return
 			}
 
@@ -179,6 +187,7 @@ func (p *PipelineData) Process(
 					pipelineBlockDataRegistry.GetAll(),
 				)
 				if err != nil {
+					tmpProcessing.Stop(interfaces.ProcessingStatusFailed, err)
 					return
 				}
 			}
@@ -211,16 +220,12 @@ func (p *PipelineData) Process(
 				blockData.SetInputData(blockInput)
 
 				processing := NewProcessing(processingId, p, block, blockData)
-
-				// Add processing to registry
-				processingRegistry.Add(processing)
-
-				processingResult, err := processingRegistry.StartProcessingById(processingId)
+				processingResult, err := processingRegistry.StartProcessing(processing)
 				if err != nil {
 					return
 				}
 
-				pipelineBlockDataRegistry.Add(
+				pipelineBlockDataRegistry.AddBlockData(
 					processingResult.GetId(),
 					processingResult.GetValue(),
 				)

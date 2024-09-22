@@ -24,6 +24,9 @@ type PipelineBlockDataRegistry struct {
 	pipelineBlockData map[string][]*bytes.Buffer
 }
 
+// Ensure PipelineBlockDataRegistry implements the PipelineBlockDataRegistry
+var _ interfaces.PipelineBlockDataRegistry = (*PipelineBlockDataRegistry)(nil)
+
 type PipelineBlockDataRegistrySavedOutput struct {
 	StorageLocation interfaces.StorageLocation
 	Error           error
@@ -44,7 +47,10 @@ func NewPipelineBlockDataRegistry(
 	return registry
 }
 
-func (r *PipelineBlockDataRegistry) Add(blockSlug string, data *bytes.Buffer) {
+func (r *PipelineBlockDataRegistry) Add(input []*bytes.Buffer) {
+}
+
+func (r *PipelineBlockDataRegistry) AddBlockData(blockSlug string, data *bytes.Buffer) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -150,7 +156,7 @@ func (r *PipelineBlockDataRegistry) LoadOutput(blockSlug string) []*bytes.Buffer
 				continue
 			}
 
-			r.Add(blockSlug, data)
+			r.AddBlockData(blockSlug, data)
 		}
 	}
 

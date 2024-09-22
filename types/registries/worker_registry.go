@@ -1,15 +1,18 @@
 package registries
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"sync"
 
 	"github.com/google/uuid"
 
 	"data-pipelines-worker/api/schemas"
+	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/interfaces"
 )
 
@@ -39,6 +42,9 @@ type WorkerRegistry struct {
 
 	Workers map[string]interfaces.Worker
 }
+
+// Ensure WorkerRegistry implements the WorkerRegistry
+var _ interfaces.WorkerRegistry = (*WorkerRegistry)(nil)
 
 func NewWorkerRegistry() *WorkerRegistry {
 	registry := &WorkerRegistry{
@@ -217,8 +223,20 @@ func (wr *WorkerRegistry) QueryWorkerAPI(
 	worker interfaces.Worker,
 	path string,
 	method string,
+	body interface{},
 	result interface{},
-) error {
+) (string, error) {
+	var requestBody io.Reader
+	if body != nil {
+		jsonBody, err := json.Marshal(body)
+		if err != nil {
+			return "", fmt.Errorf("failed to marshal request body: %w", err)
+		}
+		requestBody = bytes.NewBuffer(jsonBody)
+	} else {
+		requestBody = nil
+	}
+
 	request, err := http.NewRequest(
 		method,
 		fmt.Sprintf(
@@ -226,43 +244,59 @@ func (wr *WorkerRegistry) QueryWorkerAPI(
 			worker.GetAPIEndpoint(),
 			path,
 		),
-		nil, // Use a different io.Reader if you need to send a body
+		requestBody,
 	)
 	if err != nil {
-		return err
+		return "", err
 	}
+
+	request.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
 	response, err := client.Do(request)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer response.Body.Close()
+	responseBodyBytes, _ := io.ReadAll(response.Body)
 
 	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf(
+		responseString := string(responseBodyBytes)
+		config.GetLogger().Errorf(
+			"worker API returned status code %d. Response was %s",
+			response.StatusCode,
+			responseString,
+		)
+
+		return responseString, fmt.Errorf(
 			"worker API returned status code %d",
 			response.StatusCode,
 		)
 	}
 
-	err = json.NewDecoder(response.Body).Decode(result)
-	if err != nil {
-		return err
+	if err := json.Unmarshal(responseBodyBytes, &result); err != nil {
+		responseString := string(responseBodyBytes)
+
+		config.GetLogger().Errorf(
+			"failed to unmarshal worker API response: %s. Response was %s",
+			err.Error(),
+			responseString,
+		)
+		return responseString, err
 	}
 
-	return nil
+	return "", nil
 }
 
 func (wr *WorkerRegistry) GetWorkerPipelines(worker interfaces.Worker) (map[string]interface{}, error) {
 	pipelines := make(map[string]interface{})
-	err := wr.QueryWorkerAPI(worker, "pipelines", "GET", &pipelines)
+	_, err := wr.QueryWorkerAPI(worker, "pipelines", "GET", nil, &pipelines)
 	return pipelines, err
 }
 
 func (wr *WorkerRegistry) GetWorkerBlocks(worker interfaces.Worker) (map[string]interface{}, error) {
 	blocks := make(map[string]interface{})
-	err := wr.QueryWorkerAPI(worker, "blocks", "GET", &blocks)
+	_, err := wr.QueryWorkerAPI(worker, "blocks", "GET", nil, &blocks)
 	return blocks, err
 }
 
@@ -273,13 +307,14 @@ func (wr *WorkerRegistry) ResumeProcessingAtWorker(
 	inputData schemas.PipelineStartInputSchema,
 ) error {
 	var pipelineResumeOutput schemas.PipelineResumeOutputSchema
-	if err := wr.QueryWorkerAPI(
+	if _, err := wr.QueryWorkerAPI(
 		worker,
 		fmt.Sprintf(
 			"pipelines/%s/resume",
 			pipelineSlug,
 		),
 		"POST",
+		inputData,
 		&pipelineResumeOutput,
 	); err != nil {
 		return err

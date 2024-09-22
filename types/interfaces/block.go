@@ -23,12 +23,12 @@ type Block interface {
 	GetName() string
 	GetDescription() string
 	GetVersion() string
-	GetAvailable() bool
 	GetSchemaString() string
 	GetSchema() *gojsonschema.Schema
 	ApplySchema(string) error
 
 	SetAvailable(bool)
+	GetAvailable() bool
 	IsAvailable() bool
 
 	SetProcessor(BlockProcessor)

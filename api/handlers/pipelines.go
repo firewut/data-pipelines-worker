@@ -6,7 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"data-pipelines-worker/api/schemas"
-	"data-pipelines-worker/types/registries"
+	"data-pipelines-worker/types/interfaces"
 )
 
 // PipelinesHandler returns an HTTP handler function that responds with a JSON
@@ -18,7 +18,7 @@ import (
 // Returns:
 //   - An echo.HandlerFunc that handles HTTP requests and responds with a JSON
 //     array of pipelines.
-func PipelinesHandler(registry *registries.PipelineRegistry) echo.HandlerFunc {
+func PipelinesHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.JSON(http.StatusOK, registry.GetAll())
 	}
@@ -33,12 +33,15 @@ func PipelinesHandler(registry *registries.PipelineRegistry) echo.HandlerFunc {
 // Returns:
 //   - An echo.HandlerFunc that handles HTTP requests and responds with a JSON
 //     representation of the pipeline that was started.
-func PipelineStartHandler(registry *registries.PipelineRegistry) echo.HandlerFunc {
+func PipelineStartHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var inputData schemas.PipelineStartInputSchema
 		if err := c.Bind(&inputData); err != nil {
 			return c.JSON(http.StatusBadRequest, err.Error())
 		}
+
+		// Update request pipeline slug from url
+		inputData.Pipeline.Slug = c.Param("slug")
 
 		processingId, err := registry.StartPipeline(inputData)
 		if err != nil {
@@ -55,12 +58,15 @@ func PipelineStartHandler(registry *registries.PipelineRegistry) echo.HandlerFun
 }
 
 // Handler to Resume processing of a pipeline which has `processing_id`
-func PipelineResumeHandler(registry *registries.PipelineRegistry) echo.HandlerFunc {
+func PipelineResumeHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var inputData schemas.PipelineStartInputSchema
 		if err := c.Bind(&inputData); err != nil {
 			return c.JSON(http.StatusBadRequest, err.Error())
 		}
+
+		// Update request pipeline slug from url
+		inputData.Pipeline.Slug = c.Param("slug")
 
 		processingId, err := registry.ResumePipeline(inputData)
 		if err != nil {

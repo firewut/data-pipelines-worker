@@ -46,6 +46,9 @@ func (suite *UnitTestSuite) TestPipelineProcessMissingBlock() {
 
 	// When
 	processingId, err := pipeline.Process(
+		suite.GetWorkerRegistry(),
+		suite.GetBlockRegistry(),
+		suite.GetProcessingRegistry(),
 		processingData,
 		[]interfaces.Storage{types.NewLocalStorage("")},
 	)
@@ -86,6 +89,9 @@ func (suite *UnitTestSuite) TestPipelineProcess() {
 
 	// When
 	processingId, err := pipeline.Process(
+		suite.GetWorkerRegistry(),
+		suite.GetBlockRegistry(),
+		suite.GetProcessingRegistry(),
 		processingData,
 		pipelineRegistry.GetPipelineResultStorages(),
 	)
@@ -133,6 +139,9 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
 
 	// When
 	processingId, err := pipeline.Process(
+		suite.GetWorkerRegistry(),
+		suite.GetBlockRegistry(),
+		suite.GetProcessingRegistry(),
 		processingData,
 		registry.GetPipelineResultStorages(),
 	)
@@ -189,7 +198,13 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcessNStorages() {
 	registry.SetPipelineResultStorages(storages)
 
 	// When
-	processingId, err := pipeline.Process(processingData, registry.GetPipelineResultStorages())
+	processingId, err := pipeline.Process(
+		suite.GetWorkerRegistry(),
+		suite.GetBlockRegistry(),
+		suite.GetProcessingRegistry(),
+		processingData,
+		registry.GetPipelineResultStorages(),
+	)
 
 	// Then
 	suite.Nil(err)
@@ -275,7 +290,13 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 	)
 
 	// When
-	processingId, err := pipeline.Process(processingData, registry.GetPipelineResultStorages())
+	processingId, err := pipeline.Process(
+		suite.GetWorkerRegistry(),
+		suite.GetBlockRegistry(),
+		suite.GetProcessingRegistry(),
+		processingData,
+		registry.GetPipelineResultStorages(),
+	)
 
 	// Then
 	suite.Nil(err)
@@ -335,7 +356,13 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 	)
 
 	// When
-	processingId, err := pipeline.Process(processingData, registry.GetPipelineResultStorages())
+	processingId, err := pipeline.Process(
+		suite.GetWorkerRegistry(),
+		suite.GetBlockRegistry(),
+		suite.GetProcessingRegistry(),
+		processingData,
+		registry.GetPipelineResultStorages(),
+	)
 
 	// Then
 	suite.Nil(err)

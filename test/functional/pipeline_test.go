@@ -1,8 +1,7 @@
 package functional_test
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -12,12 +11,18 @@ import (
 
 	"data-pipelines-worker/api/handlers"
 	"data-pipelines-worker/api/schemas"
+	"data-pipelines-worker/test/factories"
 	"data-pipelines-worker/types/registries"
 )
 
 func (suite *FunctionalTestSuite) TestPipelineStartHandler() {
 	// Given
-	server := suite.GetServer()
+	ctx, shutdown := context.WithCancel(context.Background())
+	defer shutdown()
+
+	server, _, err := factories.NewWorkerServerWithHandlers(ctx, true)
+	suite.Nil(err)
+
 	api_path := "/pipelines"
 
 	rec := httptest.NewRecorder()
@@ -37,67 +42,56 @@ func (suite *FunctionalTestSuite) TestPipelineStartHandler() {
 
 func (suite *FunctionalTestSuite) TestPipelineStartHandlerTwoBlocks() {
 	// Given
-	server := suite.GetServer()
-	api_path := "/pipelines"
+	ctx, shutdown := context.WithCancel(context.Background())
+	defer shutdown()
+
+	testPipelineSlug, _ := "test-two-http-blocks", "http_request"
+
+	server, _, err := factories.NewWorkerServerWithHandlers(ctx, true)
+	suite.Nil(err)
+	suite.NotEmpty(server)
 	serverProcessingRegistry := server.GetProcessingRegistry()
 
-	mockedSecondBlockResponse := fmt.Sprintf(
-		"Hello, world! Mocked value is %s",
-		uuid.NewString(),
-	)
+	mockedSecondBlockResponse := fmt.Sprintf("Hello, world! Mocked value is %s", uuid.NewString())
 	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, time.Millisecond)
 	firstBlockInput := suite.GetMockHTTPServerURL(secondBlockInput, http.StatusOK, 0)
 
-	payload, err := json.Marshal(
-		&schemas.PipelineStartInputSchema{
-			Pipeline: schemas.PipelineInputSchema{
-				Slug: "test-two-http-blocks",
-			},
-			Block: schemas.BlockInputSchema{
-				Slug: "test-block-first-slug",
-				Input: map[string]interface{}{
-					"url": firstBlockInput,
-				},
+	inputData := schemas.PipelineStartInputSchema{
+		Pipeline: schemas.PipelineInputSchema{
+			Slug: testPipelineSlug,
+		},
+		Block: schemas.BlockInputSchema{
+			Slug: "test-block-first-slug",
+			Input: map[string]interface{}{
+				"url": firstBlockInput,
 			},
 		},
-	)
-	suite.Nil(err)
-	suite.NotEmpty(payload)
-
-	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(
-		http.MethodPost,
-		fmt.Sprintf("/%s", api_path),
-		bytes.NewReader(payload),
-	)
-	req.Header.Set("Content-Type", "application/json")
-
-	c := server.GetEcho().NewContext(req, rec)
-	c.SetParamNames("slug")
-	c.SetParamValues("test-two-http-blocks")
-
-	var response schemas.PipelineStartOutputSchema
+	}
 
 	// When
-	handlers.PipelineStartHandler(server.GetPipelineRegistry())(c)
+	processingResponse, statusCode, errorResponse, err := suite.SendProcessingStartRequest(
+		server,
+		inputData,
+		nil,
+	)
 
 	// Then
-	suite.Equal(http.StatusOK, rec.Code, rec.Body.String())
-	err = json.Unmarshal(rec.Body.Bytes(), &response)
-	suite.Nil(err)
-	suite.NotEmpty(response.ProcessingID)
+	suite.Empty(errorResponse)
+	suite.Nil(err, errorResponse)
+	suite.Equal(http.StatusOK, statusCode, errorResponse)
+	suite.NotNil(processingResponse.ProcessingID)
 
 	// Wait for two blocks to process
 	block1Processing := <-serverProcessingRegistry.GetProcessingCompletedChannel()
 	suite.NotEmpty(block1Processing.GetId())
-	suite.Equal(response.ProcessingID, block1Processing.GetId())
+	suite.Equal(processingResponse.ProcessingID, block1Processing.GetId())
 	block2Processing := <-serverProcessingRegistry.GetProcessingCompletedChannel()
 	suite.NotEmpty(block1Processing.GetId())
-	suite.Equal(response.ProcessingID, block2Processing.GetId())
+	suite.Equal(processingResponse.ProcessingID, block2Processing.GetId())
 
 	// Check server storages
 	resultStorages := registries.NewPipelineBlockDataRegistry(
-		response.ProcessingID,
+		processingResponse.ProcessingID,
 		"test-two-http-blocks",
 		server.GetPipelineRegistry().GetPipelineResultStorages(),
 	)

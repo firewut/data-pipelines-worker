@@ -22,6 +22,7 @@ type Processing struct {
 	processor interfaces.BlockProcessor
 	data      interfaces.ProcessableBlockData
 
+	err                         error
 	output                      *ProcessingOutput
 	registryNotificationChannel chan interfaces.Processing
 
@@ -48,6 +49,7 @@ func NewProcessing(
 		ctx:                         ctx,
 		ctxCancel:                   ctxCancel,
 		output:                      nil,
+		err:                         nil,
 	}
 }
 
@@ -145,6 +147,26 @@ func (p *Processing) Start() (interfaces.ProcessingOutput, error) {
 	p.Unlock()
 
 	return p.output, nil
+}
+
+func (p *Processing) Stop(status interfaces.ProcessingStatus, err error) {
+	p.SetStatus(status)
+	p.SetError(err)
+	p.sendResult(false)
+}
+
+func (p *Processing) SetError(err error) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.err = err
+}
+
+func (p *Processing) GetError() error {
+	p.Lock()
+	defer p.Unlock()
+
+	return p.err
 }
 
 func (p *Processing) sendResult(shutdown bool) {

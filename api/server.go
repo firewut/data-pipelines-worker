@@ -33,18 +33,23 @@ type Server struct {
 
 	Ready chan struct{}
 
-	workerRegistry     interfaces.Registry[interfaces.Worker]
-	pipelineRegistry   interfaces.Registry[interfaces.Pipeline]
-	blockRegistry      interfaces.Registry[interfaces.Block]
-	processingRegistry interfaces.Registry[interfaces.Processing]
+	workerRegistry     interfaces.WorkerRegistry
+	pipelineRegistry   interfaces.PipelineRegistry
+	blockRegistry      interfaces.BlockRegistry
+	processingRegistry interfaces.ProcessingRegistry
 }
 
 func NewServer() *Server {
 	_config := config.GetConfig()
 
 	workerRegistry := registries.GetWorkerRegistry(true)
+	blockRegistry := registries.GetBlockRegistry(true)
+	processingRegistry := registries.GetProcessingRegistry(true)
 
 	pipelineRegistry, err := registries.NewPipelineRegistry(
+		workerRegistry,
+		blockRegistry,
+		processingRegistry,
 		dataclasses.NewPipelineCatalogueLoader(),
 	)
 	if err != nil {
@@ -58,9 +63,6 @@ func NewServer() *Server {
 			types.NewMINIOStorage(),
 		},
 	)
-
-	blockRegistry := registries.GetBlockRegistry(true)
-	processingRegistry := registries.GetProcessingRegistry(true)
 
 	_echo := echo.New()
 	_echo.HideBanner = true
@@ -88,15 +90,15 @@ func NewServer() *Server {
 }
 
 func (s *Server) AddMiddleware(middleware ...echo.MiddlewareFunc) {
-	s.RLock()
-	defer s.RUnlock()
+	s.Lock()
+	defer s.Unlock()
 
 	s.echo.Use(middleware...)
 }
 
 func (s *Server) AddHTTPAPIRoute(method string, path string, handlerFunc echo.HandlerFunc) {
-	s.RLock()
-	defer s.RUnlock()
+	s.Lock()
+	defer s.Unlock()
 
 	s.echo.Add(method, path, handlerFunc)
 }
@@ -151,22 +153,22 @@ func (s *Server) Shutdown(timeout time.Duration) {
 }
 
 func (s *Server) NewContext(request *http.Request, writer http.ResponseWriter) echo.Context {
-	s.RLock()
-	defer s.RUnlock()
+	s.Lock()
+	defer s.Unlock()
 
 	return s.echo.NewContext(request, writer)
 }
 
 func (s *Server) GetHost() string {
-	s.RLock()
-	defer s.RUnlock()
+	s.Lock()
+	defer s.Unlock()
 
 	return s.host
 }
 
 func (s *Server) GetPort() int {
-	s.RLock()
-	defer s.RUnlock()
+	s.Lock()
+	defer s.Unlock()
 
 	return s.port
 }
@@ -190,52 +192,52 @@ func (s *Server) SetPort(port int) {
 }
 
 func (s *Server) GetEcho() *echo.Echo {
-	s.RLock()
-	defer s.RUnlock()
+	s.Lock()
+	defer s.Unlock()
 
 	return s.echo
 }
 
 func (s *Server) GetMDNS() *types.MDNS {
-	s.RLock()
-	defer s.RUnlock()
+	s.Lock()
+	defer s.Unlock()
 
 	return s.mdns
 }
 
 func (s *Server) GetConfig() config.Config {
-	s.RLock()
-	defer s.RUnlock()
+	s.Lock()
+	defer s.Unlock()
 
 	return s.config
 }
 
-func (s *Server) GetBlockRegistry() *registries.BlockRegistry {
-	s.RLock()
-	defer s.RUnlock()
+func (s *Server) GetBlockRegistry() interfaces.BlockRegistry {
+	s.Lock()
+	defer s.Unlock()
 
-	return s.blockRegistry.(*registries.BlockRegistry)
+	return s.blockRegistry
 }
 
-func (s *Server) GetPipelineRegistry() *registries.PipelineRegistry {
-	s.RLock()
-	defer s.RUnlock()
+func (s *Server) GetPipelineRegistry() interfaces.PipelineRegistry {
+	s.Lock()
+	defer s.Unlock()
 
-	return s.pipelineRegistry.(*registries.PipelineRegistry)
+	return s.pipelineRegistry
 }
 
-func (s *Server) GetWorkerRegistry() *registries.WorkerRegistry {
-	s.RLock()
-	defer s.RUnlock()
+func (s *Server) GetWorkerRegistry() interfaces.WorkerRegistry {
+	s.Lock()
+	defer s.Unlock()
 
-	return s.workerRegistry.(*registries.WorkerRegistry)
+	return s.workerRegistry
 }
 
-func (s *Server) GetProcessingRegistry() *registries.ProcessingRegistry {
-	s.RLock()
-	defer s.RUnlock()
+func (s *Server) GetProcessingRegistry() interfaces.ProcessingRegistry {
+	s.Lock()
+	defer s.Unlock()
 
-	return s.processingRegistry.(*registries.ProcessingRegistry)
+	return s.processingRegistry
 }
 
 func (s *Server) SetAPIMiddlewares() {

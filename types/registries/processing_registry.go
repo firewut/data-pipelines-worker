@@ -37,6 +37,9 @@ type ProcessingRegistry struct {
 	processingCompletedChannel chan interfaces.Processing
 }
 
+// Ensure ProcessingRegistry implements the ProcessingRegistry
+var _ interfaces.ProcessingRegistry = (*ProcessingRegistry)(nil)
+
 func NewProcessingRegistry() *ProcessingRegistry {
 	registry := &ProcessingRegistry{
 		Processing:                 make(map[uuid.UUID]interfaces.Processing),
@@ -121,10 +124,7 @@ func (pr *ProcessingRegistry) Shutdown(ctx context.Context) error {
 	}
 }
 
-func (pr *ProcessingRegistry) StartProcessingById(processingId uuid.UUID) (
-	interfaces.ProcessingOutput,
-	error,
-) {
+func (pr *ProcessingRegistry) StartProcessingById(processingId uuid.UUID) (interfaces.ProcessingOutput, error) {
 	pr.Lock()
 	processing := pr.Processing[processingId]
 	pr.Unlock()

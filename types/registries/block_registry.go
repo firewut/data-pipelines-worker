@@ -8,6 +8,8 @@ import (
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/interfaces"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -34,14 +36,19 @@ func GetBlockRegistry(forceNewInstance ...bool) *BlockRegistry {
 type BlockRegistry struct {
 	sync.Mutex
 
+	Id             uuid.UUID
 	Blocks         map[string]interfaces.Block
 	blocksDetector map[interfaces.Block]interfaces.BlockDetector
 
 	shutdownWg *sync.WaitGroup
 }
 
+// Ensure BlockRegistry implements the BlockRegistry
+var _ interfaces.BlockRegistry = (*BlockRegistry)(nil)
+
 func NewBlockRegistry() *BlockRegistry {
 	registry := &BlockRegistry{
+		Id:             uuid.New(),
 		Blocks:         make(map[string]interfaces.Block),
 		blocksDetector: make(map[interfaces.Block]interfaces.BlockDetector),
 		shutdownWg:     &sync.WaitGroup{},
@@ -126,6 +133,11 @@ func (br *BlockRegistry) Delete(id string) {
 	br.Lock()
 	defer br.Unlock()
 
+	// Stop the Detector
+	if detector, ok := br.blocksDetector[br.Blocks[id]]; ok {
+		detector.Stop(br.shutdownWg)
+	}
+
 	delete(br.Blocks, id)
 }
 
@@ -155,4 +167,12 @@ func (br *BlockRegistry) Shutdown(ctx context.Context) error {
 	br.shutdownWg.Wait()
 
 	return nil
+}
+
+func (br *BlockRegistry) IsAvailable(block interfaces.Block) bool {
+	availableBlocks := br.GetAvailableBlocks()
+	_, ok := availableBlocks[block.GetId()]
+	block.SetAvailable(ok)
+
+	return ok
 }

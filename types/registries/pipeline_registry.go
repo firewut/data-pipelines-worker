@@ -20,14 +20,27 @@ type PipelineRegistry struct {
 	Pipelines               map[string]interfaces.Pipeline
 	pipelineResultStorages  []interfaces.Storage
 	pipelineCatalogueLoader interfaces.PipelineCatalogueLoader
+
+	workerRegistry     interfaces.WorkerRegistry
+	blockRegistry      interfaces.BlockRegistry
+	processingRegistry interfaces.ProcessingRegistry
 }
 
+// Ensure PipelineRegistry implements the PipelineRegistry
+var _ interfaces.PipelineRegistry = (*PipelineRegistry)(nil)
+
 func NewPipelineRegistry(
+	workerRegistry interfaces.WorkerRegistry,
+	blockRegistry interfaces.BlockRegistry,
+	processingRegistry interfaces.ProcessingRegistry,
 	pipelineCatalogueLoader interfaces.PipelineCatalogueLoader,
 ) (*PipelineRegistry, error) {
 	_config := config.GetConfig()
 
 	registry := &PipelineRegistry{
+		workerRegistry:          workerRegistry,
+		blockRegistry:           blockRegistry,
+		processingRegistry:      processingRegistry,
 		Pipelines:               make(map[string]interfaces.Pipeline),
 		pipelineResultStorages:  make([]interfaces.Storage, 0),
 		pipelineCatalogueLoader: pipelineCatalogueLoader,
@@ -133,7 +146,13 @@ func (pr *PipelineRegistry) StartPipeline(
 		return uuid.UUID{}, fmt.Errorf("pipeline with slug %s not found", data.Pipeline.Slug)
 	}
 
-	return pipeline.Process(data, pr.GetPipelineResultStorages())
+	return pipeline.Process(
+		pr.GetWorkerRegistry(),
+		pr.GetBlockRegistry(),
+		pr.GetProcessingRegistry(),
+		data,
+		pr.GetPipelineResultStorages(),
+	)
 }
 
 func (pr *PipelineRegistry) ResumePipeline(
@@ -144,5 +163,23 @@ func (pr *PipelineRegistry) ResumePipeline(
 		return uuid.UUID{}, fmt.Errorf("pipeline with slug %s not found", data.Pipeline.Slug)
 	}
 
-	return pipeline.Process(data, pr.GetPipelineResultStorages())
+	return pipeline.Process(
+		pr.GetWorkerRegistry(),
+		pr.GetBlockRegistry(),
+		pr.GetProcessingRegistry(),
+		data,
+		pr.GetPipelineResultStorages(),
+	)
+}
+
+func (pr *PipelineRegistry) GetWorkerRegistry() interfaces.WorkerRegistry {
+	return pr.workerRegistry
+}
+
+func (pr *PipelineRegistry) GetBlockRegistry() interfaces.BlockRegistry {
+	return pr.blockRegistry
+}
+
+func (pr *PipelineRegistry) GetProcessingRegistry() interfaces.ProcessingRegistry {
+	return pr.processingRegistry
 }

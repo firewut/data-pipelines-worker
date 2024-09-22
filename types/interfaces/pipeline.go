@@ -16,7 +16,13 @@ type Pipeline interface {
 	GetSchemaString() string
 	GetSchemaPtr() *gojsonschema.Schema
 
-	Process(schemas.PipelineStartInputSchema, []Storage) (uuid.UUID, error)
+	Process(
+		WorkerRegistry,
+		BlockRegistry,
+		ProcessingRegistry,
+		schemas.PipelineStartInputSchema,
+		[]Storage,
+	) (uuid.UUID, error)
 }
 
 type PipelineCatalogueLoader interface {
