@@ -1,10 +1,12 @@
 package helpers
 
 import (
+	"encoding/json"
 	"fmt"
 
-	gjm "github.com/firewut/go-json-map"
 	"gopkg.in/yaml.v2"
+
+	gjm "github.com/firewut/go-json-map"
 )
 
 func GetValue[T any](m map[string]interface{}, key string) (T, error) {
@@ -24,4 +26,9 @@ func GetValue[T any](m map[string]interface{}, key string) (T, error) {
 func MapToYAMLStruct(data map[string]interface{}, result interface{}) {
 	bytes, _ := yaml.Marshal(data)
 	yaml.Unmarshal(bytes, result)
+}
+
+func MapToJSONStruct(data map[string]interface{}, result interface{}) {
+	bytes, _ := json.Marshal(data)
+	json.Unmarshal(bytes, result)
 }

@@ -605,10 +605,27 @@ func (suite *UnitTestSuite) GetPNGImageBuffer(width int, height int) bytes.Buffe
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 
 	// Fill it with white color
-	color := color.RGBA{100, 100, 100, 100}
+	_color := color.RGBA{100, 100, 100, 100}
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
-			img.Set(x, y, color)
+			img.Set(x, y, _color)
+		}
+	}
+
+	// Draw lines every 50 pixels (vertical and horizontal)
+	lineColor := color.RGBA{0, 0, 0, 255} // Black color for lines
+
+	// Draw vertical lines
+	for x := 0; x < width; x += 50 {
+		for y := 0; y < height; y++ {
+			img.Set(x, y, lineColor)
+		}
+	}
+
+	// Draw horizontal lines
+	for y := 0; y < height; y += 50 {
+		for x := 0; x < width; x++ {
+			img.Set(x, y, lineColor)
 		}
 	}
 

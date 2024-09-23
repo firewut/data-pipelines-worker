@@ -222,13 +222,13 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocks
 	processingRegistry1 := server1.GetProcessingRegistry()
 	processingRegistry2 := server2.GetProcessingRegistry()
 
-	tarnsferredProcessing1 := <-processingRegistry1.GetProcessingCompletedChannel()
-	suite.Equal(tarnsferredProcessing1.GetId(), processingResponse.ProcessingID)
-	suite.Equal(interfaces.ProcessingStatusTransferred, tarnsferredProcessing1.GetStatus())
-	suite.Nil(tarnsferredProcessing1.GetError())
+	transferredProcessing1 := <-processingRegistry1.GetProcessingCompletedChannel()
+	suite.Equal(transferredProcessing1.GetId(), processingResponse.ProcessingID)
+	suite.Equal(interfaces.ProcessingStatusTransferred, transferredProcessing1.GetStatus())
+	suite.Nil(transferredProcessing1.GetError())
 	processingRegistry1Processing := processingRegistry1.Get(processingResponse.ProcessingID.String())
 	suite.NotEmpty(processingRegistry1Processing)
-	suite.Equal(tarnsferredProcessing1, processingRegistry1Processing)
+	suite.Equal(transferredProcessing1, processingRegistry1Processing)
 
 	completedProcessing21 := <-processingRegistry2.GetProcessingCompletedChannel()
 	suite.Equal(completedProcessing21.GetId(), processingResponse.ProcessingID)
@@ -242,7 +242,6 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocks
 	processingRegistry2Processing2 := processingRegistry2.Get(processingResponse.ProcessingID.String())
 	suite.NotEmpty(processingRegistry2Processing2)
 	suite.Equal(completedProcessing22, processingRegistry2Processing2)
-
 	suite.Equal(mockedSecondBlockResponse, completedProcessing22.GetOutput().GetValue().String())
 }
 
@@ -251,19 +250,29 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocks
 // 	ctx, shutdown := context.WithCancel(context.Background())
 // 	defer shutdown()
 
-// 	testPipelineSlug, testBlockId := "test-two-http-blocks", "http_request"
-// 	server1, worker1, err := factories.NewWorkerServerWithHandlers(ctx, true)
-// 	suite.Nil(err)
-// 	server2, worker2, err := factories.NewWorkerServerWithHandlers(ctx, true)
-// 	suite.Nil(err)
+// 	testPipelineSlug := "test-three-blocks"
+// 	numWorkers := 3
 
-// 	workerRegistry1 := server1.GetWorkerRegistry()
-// 	workerRegistry2 := server2.GetWorkerRegistry()
-// 	workerRegistry1.Add(worker2)
-// 	workerRegistry2.Add(worker1)
+// 	servers := make([]*api.Server, 0)
+// 	workers := make([]interfaces.Worker, 0)
+// 	workerRegistries := make([]interfaces.WorkerRegistry, 0)
+// 	blockRegistries := make([]interfaces.BlockRegistry, 0)
+// 	for i := 0; i < numWorkers; i++ {
+// 		server, worker, err := factories.NewWorkerServerWithHandlers(ctx, true)
+// 		suite.Nil(err)
+// 		servers = append(servers, server)
+// 		workers = append(workers, worker)
+// 		workerRegistries = append(workerRegistries, server.GetWorkerRegistry())
+// 		blockRegistries = append(blockRegistries, server.GetBlockRegistry())
+// 	}
 
-// 	blockRegistry1 := server1.GetBlockRegistry()
-// 	blockRegistry2 := server2.GetBlockRegistry()
+// 	for i := 0; i < numWorkers; i++ {
+// 		for j := 0; j < numWorkers; j++ {
+// 			if i != j {
+// 				workerRegistries[i].Add(workers[j])
+// 			}
+// 		}
+// 	}
 
 // 	cases := []struct {
 // 		worker1block1Available bool
@@ -277,6 +286,15 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocks
 // 		worker2block2Error     bool
 // 	}{
 // 		// Worker1 has all blocks available, Worker2 has all blocks available, no transfer, no errors
+// 		{
+// 			true, true, true, true, false, false, false, false, false,
+// 		},
+// 		{
+// 			true, true, true, true, true, false, false, false, false,
+// 		},
+// 		{
+// 			true, true, true, true, true, true, false, false, false,
+// 		},
 // 		{
 // 			true, true, true, true, false, false, false, false, false,
 // 		},

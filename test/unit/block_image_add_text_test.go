@@ -2,6 +2,7 @@ package unit_test
 
 import (
 	"bytes"
+	"image"
 	"image/png"
 
 	"data-pipelines-worker/types/blocks"
@@ -72,34 +73,85 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessIncorrectInput() {
 
 func (suite *UnitTestSuite) TestBlockImageAddTextProcessSuccess() {
 	// Given
-	width := 500
-	height := 1000
-	imageBuffer := suite.GetPNGImageBuffer(width, height)
+	width := 300
+	height := 300
 
-	block := blocks.NewBlockImageAddText()
-	data := &dataclasses.BlockData{
-		Id:   "image_add_text",
-		Slug: "image-add-text",
-		Input: map[string]interface{}{
-			"text":  "test",
-			"image": imageBuffer.Bytes(),
-		},
+	texts := []string{"text1", "text2"}
+	fontSizes := []int{10, 20, 30, 40}
+	fontColors := []string{"#FF00FF", "#00FF00", "#0000FF"}
+	textPositions := []string{
+		"top-left",
+		"top-center",
+		"top-right",
+		"center-left",
+		"center-center",
+		"center-right",
+		"bottom-left",
+		"bottom-center",
+		"bottom-right",
+	}
+	type testCase struct {
+		text         string
+		fontSize     int
+		fontColor    string
+		textPosition string
+	}
+	testCases := []testCase{}
+	for _, text := range texts {
+		for _, fontSize := range fontSizes {
+			for _, fontColor := range fontColors {
+				for _, textPosition := range textPositions {
+					testCases = append(testCases, testCase{
+						text:         text,
+						fontSize:     fontSize,
+						fontColor:    fontColor,
+						textPosition: textPosition,
+					})
+				}
+			}
+		}
 	}
 
-	// When
-	result, err := block.Process(
-		suite.GetContextWithcancel(),
-		blocks.NewProcessorImageAddText(),
-		data,
-	)
+	images := make([]image.Image, 0)
+	for _, tc := range testCases {
+		imageBuffer := suite.GetPNGImageBuffer(width, height)
 
-	// Then
-	suite.NotNil(result)
-	suite.Nil(err)
+		block := blocks.NewBlockImageAddText()
+		data := &dataclasses.BlockData{
+			Id:   "image_add_text",
+			Slug: "image-add-text",
+			Input: map[string]interface{}{
+				"text":          tc.text,
+				"font_size":     tc.fontSize,
+				"font_color":    tc.fontColor,
+				"text_position": tc.textPosition,
+				"image":         imageBuffer.Bytes(),
+			},
+		}
 
-	image, err := png.Decode(bytes.NewReader(result.Bytes()))
-	suite.Nil(err)
-	suite.NotNil(image)
-	suite.Equal(width, image.Bounds().Dx())
-	suite.Equal(height, image.Bounds().Dy())
+		// When
+		result, err := block.Process(
+			suite.GetContextWithcancel(),
+			blocks.NewProcessorImageAddText(),
+			data,
+		)
+
+		// Then
+		suite.NotNil(result)
+		suite.Nil(err)
+
+		image, err := png.Decode(bytes.NewReader(result.Bytes()))
+		suite.Nil(err)
+		suite.NotNil(image)
+		suite.Equal(width, image.Bounds().Dx())
+		suite.Equal(height, image.Bounds().Dy())
+		images = append(images, image)
+	}
+
+	// Check that all images are different
+	for i := 0; i < len(images); i++ {
+		for j := i + 1; j < len(images); j++ {
+			suite.NotEqual(images[i], images[j])
+		}
+	}
 }

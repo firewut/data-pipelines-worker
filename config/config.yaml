@@ -62,4 +62,5 @@ blocks:
     config:
       font: /System/Library/Fonts/Supplemental/Courier New Bold.ttf
       font_size: 50
-  
+      font_color: "#000000"
+      text_position: "center-center"
