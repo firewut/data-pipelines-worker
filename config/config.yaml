@@ -76,3 +76,13 @@ blocks:
       width: 100
       height: 100
       keep_aspect_ratio: true
+  
+  image_blur:
+    detector:
+      check_interval: 60m
+      conditions:
+        libraries: []
+    reliability:
+      policy: "none"
+    config:
+      sigma: 1.5
