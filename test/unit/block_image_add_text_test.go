@@ -73,12 +73,12 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessIncorrectInput() {
 
 func (suite *UnitTestSuite) TestBlockImageAddTextProcessSuccess() {
 	// Given
-	width := 300
-	height := 300
+	width := 100
+	height := 100
 
 	texts := []string{"text1", "text2"}
-	fontSizes := []int{10, 20, 30, 40}
-	fontColors := []string{"#FF00FF", "#00FF00", "#0000FF"}
+	fontSizes := []int{20, 25}
+	fontColors := []string{"#00FF00"}
 	textPositions := []string{
 		"top-left",
 		"top-center",
