@@ -5,7 +5,6 @@ import (
 	"context"
 	"image"
 	"image/png"
-	"log"
 
 	"github.com/fogleman/gg"
 
@@ -85,7 +84,7 @@ func (p *ProcessorImageAddText) Process(
 	dc := gg.NewContextForImage(img)
 	// Set the font size and load a font (substitute with your own font file)
 	if err := dc.LoadFontFace(blockConfig.Font, blockConfig.FontSize); err != nil {
-		log.Fatalf("Failed to load font: %v", err)
+		config.GetLogger().Fatalf("Failed to load font: %v", err)
 	}
 
 	// Set text Color from config
@@ -124,7 +123,7 @@ func (p *ProcessorImageAddText) Process(
 
 	err = png.Encode(output, rgbaImage)
 	if err != nil {
-		log.Fatalf("Failed to encode PNG image: %v", err)
+		config.GetLogger().Fatalf("Failed to encode PNG image: %v", err)
 	}
 
 	return output, nil

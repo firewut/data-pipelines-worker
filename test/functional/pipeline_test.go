@@ -29,6 +29,7 @@ func (suite *FunctionalTestSuite) TestPipelineStartHandler() {
 	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/%s", api_path), nil)
 
 	c := server.GetEcho().NewContext(req, rec)
+	server.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
 
 	// When
 	handlers.PipelinesHandler(server.GetPipelineRegistry())(c)
@@ -50,6 +51,8 @@ func (suite *FunctionalTestSuite) TestPipelineStartHandlerTwoBlocks() {
 	server, _, err := factories.NewWorkerServerWithHandlers(ctx, true)
 	suite.Nil(err)
 	suite.NotEmpty(server)
+	server.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
+
 	serverProcessingRegistry := server.GetProcessingRegistry()
 
 	mockedSecondBlockResponse := fmt.Sprintf("Hello, world! Mocked value is %s", uuid.NewString())

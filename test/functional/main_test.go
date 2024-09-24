@@ -134,6 +134,38 @@ func (suite *FunctionalTestSuite) GetTestPipeline(pipelineDefinition string) int
 	return pipeline
 }
 
+func (suite *FunctionalTestSuite) GetTestPipelineTwoBlocks(firstBlockUrl string) interfaces.Pipeline {
+	return suite.GetTestPipeline(
+		fmt.Sprintf(`{
+			"slug": "test-two-http-blocks",
+			"title": "Test two HTTP Blocks",
+			"description": "First Block makes a request to a URL and the second block makes a request result of First Block",
+			"blocks": [
+				{
+					"id": "http_request",
+					"slug": "test-block-first-slug",
+					"description": "Request Local Resourse",
+					"input": {
+						"url": "%s"
+					}
+				},
+				{
+					"id": "http_request",
+					"slug": "test-block-second-slug",
+					"description": "Request Result from First Block",
+					"input_config": {
+						"property": {
+							"url": {
+								"origin": "test-block-first-slug"
+							}
+						}
+					}
+				}
+			]
+		}`, firstBlockUrl),
+	)
+}
+
 func (suite *FunctionalTestSuite) GetMockServerHandlersResponse(
 	pipelines map[string]interfaces.Pipeline,
 	blocks map[string]interfaces.Block,

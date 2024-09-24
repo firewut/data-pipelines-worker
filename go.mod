@@ -15,6 +15,7 @@ require (
 
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
+	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/firewut/go-json-map v0.0.0-20200120075508-0192c2978c65 // indirect
 	github.com/fogleman/gg v1.3.0 // indirect

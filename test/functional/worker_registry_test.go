@@ -68,8 +68,10 @@ func (suite *FunctionalTestSuite) TestTwoWorkersAPIDiscoveryCommunication() {
 	testPipelineSlug, testBlockId := "test-two-http-blocks", "http_request"
 	server1, worker1, err := factories.NewWorkerServerWithHandlers(ctx, true)
 	suite.Nil(err)
+	server1.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
 	server2, worker2, err := factories.NewWorkerServerWithHandlers(ctx, true)
 	suite.Nil(err)
+	server2.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
 
 	workerRegistry1 := server1.GetWorkerRegistry()
 	workerRegistry2 := server2.GetWorkerRegistry()
@@ -109,8 +111,10 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocks
 	testPipelineSlug, testBlockId := "test-two-http-blocks", "http_request"
 	server1, worker1, err := factories.NewWorkerServerWithHandlers(ctx, true)
 	suite.Nil(err)
+	server1.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
 	server2, worker2, err := factories.NewWorkerServerWithHandlers(ctx, true)
 	suite.Nil(err)
+	server2.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
 
 	workerRegistry1 := server1.GetWorkerRegistry()
 	workerRegistry2 := server2.GetWorkerRegistry()
@@ -174,8 +178,10 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocks
 	testPipelineSlug, testBlockId := "test-two-http-blocks", "http_request"
 	server1, worker1, err := factories.NewWorkerServerWithHandlers(ctx, true)
 	suite.Nil(err)
+	server1.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
 	server2, worker2, err := factories.NewWorkerServerWithHandlers(ctx, true)
 	suite.Nil(err)
+	server2.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
 
 	workerRegistry1 := server1.GetWorkerRegistry()
 	workerRegistry2 := server2.GetWorkerRegistry()

@@ -218,7 +218,6 @@ func (p *PipelineData) Process(
 
 			for blockInputIndex, blockInput := range blockInputData {
 				blockData.SetInputData(blockInput)
-
 				processing := NewProcessing(processingId, p, block, blockData)
 				processingResult, err := processingRegistry.StartProcessing(processing)
 				if err != nil {
@@ -247,6 +246,7 @@ func (p *PipelineData) Process(
 						)
 					}
 				}
+
 			}
 		}
 	}()
