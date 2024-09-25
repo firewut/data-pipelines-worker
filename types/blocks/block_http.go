@@ -11,6 +11,7 @@ import (
 	gjm "github.com/firewut/go-json-map"
 
 	"data-pipelines-worker/types/config"
+	"data-pipelines-worker/types/helpers"
 	"data-pipelines-worker/types/interfaces"
 )
 
@@ -61,7 +62,7 @@ func (p *ProcessorHTTP) Process(
 	_data := data.GetInputData().(map[string]interface{})
 
 	// Fetch the URL from the input data
-	url, err := gjm.GetProperty(_data, "url")
+	url, err := helpers.GetValue[string](_data, "url")
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +75,7 @@ func (p *ProcessorHTTP) Process(
 		logger.Debugf("Method not provided, using default: %s", method)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, url.(string), nil)
+	req, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
 		return nil, err
 	}

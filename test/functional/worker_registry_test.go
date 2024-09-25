@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 
 	"github.com/google/uuid"
 
@@ -221,82 +222,157 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocks
 	suite.Equal(transferredProcessing1.GetId(), processingResponse.ProcessingID)
 	suite.Equal(interfaces.ProcessingStatusTransferred, transferredProcessing1.GetStatus())
 	suite.Nil(transferredProcessing1.GetError())
+
 	processingRegistry1Processing := processingRegistry1.Get(processingResponse.ProcessingID.String())
 	suite.NotNil(processingRegistry1Processing)
-	suite.Equal(transferredProcessing1, processingRegistry1Processing)
+	suite.Equal(transferredProcessing1.GetInstanceId(), processingRegistry1Processing.GetInstanceId())
 
 	completedProcessing21 := <-processingRegistry2.GetProcessingCompletedChannel()
 	suite.Equal(completedProcessing21.GetId(), processingResponse.ProcessingID)
+	suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing21.GetStatus())
+
 	processingRegistry2Processing1 := processingRegistry2.Get(processingResponse.ProcessingID.String())
 	suite.NotNil(processingRegistry2Processing1)
-	suite.Equal(completedProcessing21, processingRegistry2Processing1)
+	suite.Equal(completedProcessing21.GetInstanceId(), processingRegistry2Processing1.GetInstanceId())
 	suite.Equal(secondBlockInput, completedProcessing21.GetOutput().GetValue().String())
 
 	completedProcessing22 := <-processingRegistry2.GetProcessingCompletedChannel()
 	suite.Equal(completedProcessing22.GetId(), processingResponse.ProcessingID)
+	suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing22.GetStatus())
+
 	processingRegistry2Processing2 := processingRegistry2.Get(processingResponse.ProcessingID.String())
 	suite.NotNil(processingRegistry2Processing2)
-	suite.Equal(completedProcessing22, processingRegistry2Processing2)
+	suite.Equal(completedProcessing22.GetInstanceId(), processingRegistry2Processing2.GetInstanceId())
 	suite.Equal(mockedSecondBlockResponse, completedProcessing22.GetOutput().GetValue().String())
 }
 
-// func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessing() {
-// 	// Given
-// 	ctx, shutdown := context.WithCancel(context.Background())
-// 	defer shutdown()
+func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingWorker1HasNoSecondBlock() {
+	// Given
+	imageWidth, imageHeight := 100, 100
+	testPipelineSlug := "test-two-http-blocks"
+	firstWorkerDisabledBlocks := []string{"image_add_text"}
+	secondWorkerDisabledBlocks := []string{"http_request"}
+	imageContent := suite.GetPNGImageBuffer(imageWidth, imageHeight)
 
-// 	testPipelineSlug := "test-three-blocks"
-// 	numWorkers := 3
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "image/png")
+		w.WriteHeader(http.StatusOK)
+		w.Write(imageContent.Bytes())
+	}))
+	suite.httpTestServers = append(suite.httpTestServers, server)
+	imageUrl := server.URL
 
-// 	servers := make([]*api.Server, 0)
-// 	workers := make([]interfaces.Worker, 0)
-// 	workerRegistries := make([]interfaces.WorkerRegistry, 0)
-// 	blockRegistries := make([]interfaces.BlockRegistry, 0)
-// 	for i := 0; i < numWorkers; i++ {
-// 		server, worker, err := factories.NewWorkerServerWithHandlers(ctx, true)
-// 		suite.Nil(err)
-// 		servers = append(servers, server)
-// 		workers = append(workers, worker)
-// 		workerRegistries = append(workerRegistries, server.GetWorkerRegistry())
-// 		blockRegistries = append(blockRegistries, server.GetBlockRegistry())
-// 	}
+	pipeline := suite.GetTestPipeline(
+		fmt.Sprintf(`{
+			"slug": "%s",
+			"title": "Test two Blocks",
+			"description": "First Block downloads image and second block adds text to it",
+			"blocks": [
+				{
+					"id": "http_request",
+					"slug": "test-block-first-slug",
+					"description": "Download Image from provided URL",
+					"input": {
+						"url": "%s"
+					}
+				},
+				{
+					"id": "image_add_text",
+					"slug": "test-block-second-slug",
+					"description": "Add text to downloaded image",
+					"input_config": {
+						"property": {
+							"image": {
+								"origin": "test-block-first-slug"
+							}
+						}
+					},
+					"input": {
+						"text": "Hello, world!",
+						"font_size": 50,
+						"font_color": "#000000"
+					}
+				}
+			]
+		}`,
+			testPipelineSlug,
+			imageUrl,
+		),
+	)
 
-// 	for i := 0; i < numWorkers; i++ {
-// 		for j := 0; j < numWorkers; j++ {
-// 			if i != j {
-// 				workerRegistries[i].Add(workers[j])
-// 			}
-// 		}
-// 	}
+	server1, worker1, err := suite.NewWorkerServerWithHandlers(true)
+	suite.Nil(err)
+	server1.GetPipelineRegistry().Add(pipeline)
+	server2, worker2, err := suite.NewWorkerServerWithHandlers(true)
+	suite.Nil(err)
+	server2.GetPipelineRegistry().Add(pipeline)
 
-// 	cases := []struct {
-// 		worker1block1Available bool
-// 		worker1block2Available bool
-// 		worker2block1Available bool
-// 		worker2block2Available bool
-// 		worker1worker2Transfer bool
-// 		worker1block1Error     bool
-// 		worker1block2Error     bool
-// 		worker2block1Error     bool
-// 		worker2block2Error     bool
-// 	}{
-// 		// Worker1 has all blocks available, Worker2 has all blocks available, no transfer, no errors
-// 		{
-// 			true, true, true, true, false, false, false, false, false,
-// 		},
-// 		{
-// 			true, true, true, true, true, false, false, false, false,
-// 		},
-// 		{
-// 			true, true, true, true, true, true, false, false, false,
-// 		},
-// 		{
-// 			true, true, true, true, false, false, false, false, false,
-// 		},
-// 	}
+	workerRegistry1 := server1.GetWorkerRegistry()
+	workerRegistry2 := server2.GetWorkerRegistry()
+	workerRegistry1.Add(worker2)
+	workerRegistry2.Add(worker1)
 
-// 	for _, c := range cases {
-// 		blockRegistry1.GetAvailableBlocks()[testBlockId].SetAvailable(c.worker1block1Available)
-// 	}
+	blockRegistry1 := server1.GetBlockRegistry()
+	blockRegistry2 := server2.GetBlockRegistry()
 
-// }
+	for _, blockId := range firstWorkerDisabledBlocks {
+		blockRegistry1.GetAvailableBlocks()[blockId].SetAvailable(false)
+	}
+	for _, blockId := range secondWorkerDisabledBlocks {
+		blockRegistry2.GetAvailableBlocks()[blockId].SetAvailable(false)
+	}
+
+	inputData := schemas.PipelineStartInputSchema{
+		Pipeline: schemas.PipelineInputSchema{
+			Slug: testPipelineSlug,
+		},
+		Block: schemas.BlockInputSchema{
+			Slug: "test-block-first-slug",
+			Input: map[string]interface{}{
+				"url": imageUrl,
+			},
+		},
+	}
+
+	// When
+	processingResponse, statusCode, errorResponse, err := suite.SendProcessingStartRequest(
+		server1,
+		inputData,
+		nil,
+	)
+
+	// Then
+	suite.Empty(errorResponse)
+	suite.Nil(err, errorResponse)
+	suite.Equal(http.StatusOK, statusCode, errorResponse)
+	suite.NotNil(processingResponse.ProcessingID)
+
+	processingRegistry1 := server1.GetProcessingRegistry()
+	processingRegistry2 := server2.GetProcessingRegistry()
+
+	completedProcessing11 := <-processingRegistry1.GetProcessingCompletedChannel()
+	suite.Equal(completedProcessing11.GetId(), processingResponse.ProcessingID)
+	suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing11.GetStatus())
+	suite.Nil(completedProcessing11.GetError())
+
+	processingRegistry1Processing := processingRegistry1.Get(processingResponse.ProcessingID.String())
+	suite.NotNil(processingRegistry1Processing)
+	suite.Equal(completedProcessing11.GetInstanceId(), processingRegistry1Processing.GetInstanceId())
+	suite.Equal(imageContent.String(), completedProcessing11.GetOutput().GetValue().String())
+
+	transferredProcessing12 := <-processingRegistry1.GetProcessingCompletedChannel()
+	suite.Equal(transferredProcessing12.GetId(), processingResponse.ProcessingID)
+	suite.Equal(interfaces.ProcessingStatusTransferred, transferredProcessing12.GetStatus())
+	suite.Nil(transferredProcessing12.GetError())
+
+	processingRegistry12Processing := processingRegistry1.Get(processingResponse.ProcessingID.String())
+	suite.NotNil(processingRegistry1Processing)
+	suite.Equal(transferredProcessing12.GetInstanceId(), processingRegistry12Processing.GetInstanceId())
+
+	completedProcessing21 := <-processingRegistry2.GetProcessingCompletedChannel()
+	suite.Equal(completedProcessing21.GetId(), processingResponse.ProcessingID)
+	suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing21.GetStatus())
+	processingRegistry2Processing1 := processingRegistry2.Get(processingResponse.ProcessingID.String())
+	suite.NotNil(processingRegistry2Processing1)
+	suite.Equal(completedProcessing21.GetInstanceId(), processingRegistry2Processing1.GetInstanceId())
+}

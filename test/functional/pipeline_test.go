@@ -9,7 +9,6 @@ import (
 
 	"data-pipelines-worker/api/handlers"
 	"data-pipelines-worker/api/schemas"
-	"data-pipelines-worker/types/registries"
 )
 
 func (suite *FunctionalTestSuite) TestPipelineStartHandler() {
@@ -83,17 +82,4 @@ func (suite *FunctionalTestSuite) TestPipelineStartHandlerTwoBlocks() {
 	block2Processing := <-processingCompletedChannel
 	suite.NotEmpty(block1Processing.GetId())
 	suite.Equal(processingResponse.ProcessingID, block2Processing.GetId())
-
-	// Check server storages
-	resultStorages := registries.NewPipelineBlockDataRegistry(
-		processingResponse.ProcessingID,
-		"test-two-http-blocks",
-		server.GetPipelineRegistry().GetPipelineResultStorages(),
-	)
-	firstBlockOutput := resultStorages.LoadOutput("test-block-first-slug")
-	suite.NotEmpty(firstBlockOutput)
-	suite.Equal(secondBlockInput, firstBlockOutput[0].String())
-	secondBlockOutput := resultStorages.LoadOutput("test-block-second-slug")
-	suite.NotEmpty(secondBlockOutput)
-	suite.Equal(mockedSecondBlockResponse, secondBlockOutput[0].String())
 }

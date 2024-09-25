@@ -49,6 +49,7 @@ type ProcessableBlockData interface {
 	GetId() string
 	GetSlug() string
 
+	GetInput() map[string]interface{}
 	GetInputConfig() map[string]interface{}
 
 	GetData() interface{}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/oliveagle/jsonpath"
 
+	"data-pipelines-worker/types/helpers"
 	"data-pipelines-worker/types/interfaces"
 )
 
@@ -107,6 +108,13 @@ func (b *BlockData) GetSlug() string {
 	return b.Slug
 }
 
+func (b *BlockData) GetInput() map[string]interface{} {
+	b.Lock()
+	defer b.Unlock()
+
+	return b.Input
+}
+
 func (b *BlockData) GetInputConfig() map[string]interface{} {
 	b.Lock()
 	defer b.Unlock()
@@ -117,15 +125,38 @@ func (b *BlockData) GetInputConfig() map[string]interface{} {
 func (b *BlockData) GetInputDataByPriority(
 	blockInputDataConfig []interface{},
 ) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0)
 	for _, item := range blockInputDataConfig {
 		if blockInput, ok := item.(BlockInputData); ok {
 			if blockInput.Condition {
-				return blockInput.Value.([]map[string]interface{})
+				mapInput := blockInput.Value.([]map[string]interface{})
+				for _, mappedInput := range mapInput {
+					for key, value := range mappedInput {
+						// Check if key exists in result
+						if len(result) > 0 {
+							for _, resultValue := range result {
+								if _, ok := resultValue[key]; !ok {
+									resultValue[key] = value
+								}
+							}
+						} else {
+							result = append(result, mappedInput)
+						}
+					}
+				}
 			}
 		}
 	}
 
-	return make([]map[string]interface{}, 0)
+	return result
+}
+
+func (b *BlockData) CastValueToValidType(
+	value *bytes.Buffer,
+	types []string,
+) interface{} {
+
+	return value.String()
 }
 
 func (b *BlockData) GetInputConfigData(
@@ -154,6 +185,13 @@ func (b *BlockData) GetInputConfigData(
 
 	inputData := make([]map[string]interface{}, 0)
 
+	var schema map[string]interface{}
+	err := json.Unmarshal([]byte(b.GetBlock().GetSchemaString()), &schema)
+	if err != nil {
+		fmt.Println("Error unmarshaling schema:", err)
+		return nil, err
+	}
+
 	if b.GetInputConfig() == nil {
 		return inputData, nil
 	}
@@ -161,7 +199,7 @@ func (b *BlockData) GetInputConfigData(
 	b.Lock()
 	defer b.Unlock()
 
-	b.Input = make(map[string]interface{})
+	// b.Input = make(map[string]interface{})
 
 	// Check if `property` in `input_config` is not empty
 	if _, ok := b.InputConfig["property"]; !ok {
@@ -198,8 +236,17 @@ func (b *BlockData) GetInputConfigData(
 					if origin, ok := property_config.(map[string]interface{})["origin"].(string); ok {
 						if results, ok := pipelineResults[origin]; ok {
 							for _, resultValue := range results {
+								valueCasted, err := helpers.CastPropertyData(
+									property,
+									resultValue,
+									schema,
+								)
+								if err != nil {
+									valueCasted = resultValue.String()
+								}
+
 								originData := map[string]interface{}{
-									property: resultValue.String(),
+									property: valueCasted,
 								}
 
 								// jsonPath same level as `origin`

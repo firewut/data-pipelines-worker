@@ -5,6 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/color"
+	"image/png"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -133,8 +136,8 @@ func (suite *FunctionalTestSuite) NewWorkerServerWithHandlers(available bool) (*
 	suite.Lock()
 	defer suite.Unlock()
 
-	ctx, shutdown := context.WithCancel(context.Background())
-	server, _, err := factories.NewWorkerServerWithHandlers(
+	_, shutdown := context.WithCancel(context.Background())
+	server, worker, err := factories.NewWorkerServerWithHandlers(
 		context.Background(),
 		available,
 	)
@@ -152,7 +155,7 @@ func (suite *FunctionalTestSuite) NewWorkerServerWithHandlers(available bool) (*
 		Shutdown: shutdown,
 	})
 
-	return factories.NewWorkerServerWithHandlers(ctx, true)
+	return server, worker, err
 }
 
 func (suite *FunctionalTestSuite) TearDownTest() {
@@ -281,4 +284,39 @@ func (suite *FunctionalTestSuite) SendProcessingStartRequest(
 	}
 
 	return result, response.StatusCode, "", err
+}
+
+func (suite *FunctionalTestSuite) GetPNGImageBuffer(width int, height int) bytes.Buffer {
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+
+	// Fill it with white color
+	_color := color.RGBA{100, 100, 100, 100}
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			img.Set(x, y, _color)
+		}
+	}
+
+	// Draw lines every 50 pixels (vertical and horizontal)
+	lineColor := color.RGBA{0, 0, 0, 255} // Black color for lines
+
+	// Draw vertical lines
+	for x := 0; x < width; x += 50 {
+		for y := 0; y < height; y++ {
+			img.Set(x, y, lineColor)
+		}
+	}
+
+	// Draw horizontal lines
+	for y := 0; y < height; y += 50 {
+		for x := 0; x < width; x++ {
+			img.Set(x, y, lineColor)
+		}
+	}
+
+	buf := new(bytes.Buffer)
+	err := png.Encode(buf, img)
+	suite.Nil(err)
+
+	return *buf
 }

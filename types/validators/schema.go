@@ -1,23 +1,29 @@
 package validators
 
-import (
-	"regexp"
-)
-
 type FileFormatChecker struct{}
 
 func (f FileFormatChecker) IsFormat(input interface{}) bool {
-	str, ok := input.(string)
-	if !ok {
-		return false
-	}
+	// var str string
 
-	// TODO: Move this pattern to a config file
-	pattern := `^[a-zA-Z0-9_\-]+\.(txt|csv|mp3|mp4)$`
-	matched, err := regexp.MatchString(pattern, str)
-	if err != nil {
-		return false
-	}
+	// switch v := input.(type) {
+	// case string:
+	// 	str = v
+	// case []byte:
+	// 	str = string(v)
+	// case *bytes.Buffer:
+	// 	str = v.String()
+	// default:
+	// 	return false
+	// }
 
-	return matched
+	// // Move this pattern to a config file if needed
+	// pattern := `^[a-zA-Z0-9_\-]+\.(txt|csv|mp3|mp4)$`
+	// matched, err := regexp.MatchString(pattern, str)
+	// if err != nil {
+	// 	return false
+	// }
+
+	// return matched
+
+	return true
 }

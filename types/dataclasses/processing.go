@@ -15,8 +15,9 @@ import (
 type Processing struct {
 	sync.Mutex
 
-	Id     uuid.UUID
-	status interfaces.ProcessingStatus
+	Id         uuid.UUID
+	instanceId uuid.UUID
+	status     interfaces.ProcessingStatus
 
 	pipeline  interfaces.Pipeline
 	block     interfaces.Block
@@ -43,6 +44,7 @@ func NewProcessing(
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	return &Processing{
 		Id:                          id,
+		instanceId:                  uuid.New(),
 		status:                      interfaces.ProcessingStatusPending,
 		pipeline:                    pipeline,
 		block:                       block,
@@ -61,6 +63,13 @@ func (p *Processing) GetId() uuid.UUID {
 	defer p.Unlock()
 
 	return p.Id
+}
+
+func (p *Processing) GetInstanceId() uuid.UUID {
+	p.Lock()
+	defer p.Unlock()
+
+	return p.instanceId
 }
 
 func (p *Processing) GetPipeline() interfaces.Pipeline {

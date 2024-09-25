@@ -21,6 +21,7 @@ const (
 
 type Processing interface {
 	GetId() uuid.UUID
+	GetInstanceId() uuid.UUID
 	GetPipeline() Pipeline
 	GetBlock() Block
 	GetData() ProcessableBlockData

@@ -64,6 +64,16 @@ func (p *ProcessorImageBlur) Process(
 	// Merge the default and user defined maps to BlockConfig
 	helpers.MergeStructs(defaultBlockConfig, userBlockConfig, blockConfig)
 
+	// var imageBytes []byte
+	// imageBytesString, err := helpers.GetValue[string](_data, "image")
+	// if err == nil {
+	// 	imageBytes = []byte(imageBytesString)
+	// } else {
+	// 	imageBytes, err = helpers.GetValue[[]byte](_data, "image")
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// }
 	imageBytes, err := helpers.GetValue[[]byte](_data, "image")
 	if err != nil {
 		return nil, err
@@ -118,7 +128,8 @@ func NewBlockImageBlur() *BlockImageBlur {
 						"properties": {
 							"image": {
 								"description": "Image to add text to",
-								"type": ["string", "object"]
+								"type": "string",
+								"format": "file"
 							},
 							"sigma": {
 								"description": "Blur sigma",

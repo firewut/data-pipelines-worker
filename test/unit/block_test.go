@@ -83,6 +83,93 @@ func (suite *UnitTestSuite) TestGetInputDataByPriority() {
 	}
 }
 
+func (suite *UnitTestSuite) TestGetInputDataByPriorityMerged() {
+	// Given
+	requestPassedInput := map[string]interface{}{
+		"url": "https://test-blocks.com/critical",
+	}
+	inputConfigFromResultInput := map[string]interface{}{
+		"url": "https://test-blocks.com/normal",
+	}
+	inputFromYaml := map[string]interface{}{
+		"url":    "https://test-blocks.com/low",
+		"method": "POST",
+	}
+
+	cases := []struct {
+		conditions []bool
+		expected   map[string]interface{}
+	}{
+		{
+			conditions: []bool{true, false, false},
+			expected:   requestPassedInput,
+		},
+		{
+			conditions: []bool{false, true, false},
+			expected:   inputConfigFromResultInput,
+		},
+		{
+			conditions: []bool{false, false, true},
+			expected:   inputFromYaml,
+		},
+		{
+			conditions: []bool{false, true, true},
+			expected: map[string]interface{}{
+				"url":    "https://test-blocks.com/normal",
+				"method": "POST",
+			},
+		},
+		{
+			conditions: []bool{true, false, true},
+			expected: map[string]interface{}{
+				"url":    "https://test-blocks.com/critical",
+				"method": "POST",
+			},
+		},
+		{
+			conditions: []bool{true, true, false},
+			expected:   requestPassedInput,
+		},
+		{
+			conditions: []bool{true, true, true},
+			expected: map[string]interface{}{
+				"url":    "https://test-blocks.com/critical",
+				"method": "POST",
+			},
+		},
+	}
+
+	for _, c := range cases {
+		// When
+		blockInputData := (&dataclasses.BlockData{}).GetInputDataByPriority(
+			[]interface{}{
+				dataclasses.BlockInputData{
+					Condition: c.conditions[0],
+					Value: []map[string]interface{}{
+						requestPassedInput,
+					},
+				},
+				dataclasses.BlockInputData{
+					Condition: c.conditions[1],
+					Value: []map[string]interface{}{
+						inputConfigFromResultInput,
+					},
+				},
+				dataclasses.BlockInputData{
+					Condition: c.conditions[2],
+					Value: []map[string]interface{}{
+						inputFromYaml,
+					},
+				},
+			},
+		)
+
+		// Then
+		suite.Equal(1, len(blockInputData))
+		suite.Equal(c.expected, blockInputData[0])
+	}
+}
+
 func (suite *UnitTestSuite) TestGetInputConfigDataNoInputConfig() {
 	// Given
 	pipelineString := `{

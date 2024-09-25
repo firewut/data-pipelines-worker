@@ -164,28 +164,13 @@ func (p *PipelineData) Process(
 			tmpProcessing := NewProcessing(processingId, p, block, blockData)
 			processingRegistry.Add(tmpProcessing)
 
-			// Check registry if Block is Available
-			if !blockRegistry.IsAvailable(block) {
-				if err := workerRegistry.ResumeProcessing(
-					blockData.GetPipeline().GetSlug(),
-					processingId,
-					blockData.GetId(),
-					inputData,
-				); err != nil {
-					tmpProcessing.Stop(interfaces.ProcessingStatusFailed, err)
-					return
-				}
-
-				tmpProcessing.Stop(interfaces.ProcessingStatusTransferred, nil)
-				return
-			}
-
 			var inputConfigValue interface{}
 			if blockData.GetInputConfig() != nil {
 				var err error
 				inputConfigValue, err = blockData.GetInputConfigData(
 					pipelineBlockDataRegistry.GetAll(),
 				)
+
 				if err != nil {
 					tmpProcessing.Stop(interfaces.ProcessingStatusFailed, err)
 					return
@@ -215,6 +200,36 @@ func (p *PipelineData) Process(
 					},
 				},
 			)
+
+			// Check registry if Block is Available
+			if !blockRegistry.IsAvailable(block) {
+				_inputData := schemas.PipelineStartInputSchema{
+					Pipeline: schemas.PipelineInputSchema{
+						Slug:         blockData.GetPipeline().GetSlug(),
+						ProcessingID: processingId,
+					},
+					Block: schemas.BlockInputSchema{
+						Slug:  blockData.GetSlug(),
+						Input: make(map[string]interface{}),
+					},
+				}
+				if blockRelativeIndex == 0 {
+					_inputData = inputData
+				}
+
+				if err := workerRegistry.ResumeProcessing(
+					blockData.GetPipeline().GetSlug(),
+					processingId,
+					block.GetId(),
+					_inputData,
+				); err != nil {
+					tmpProcessing.Stop(interfaces.ProcessingStatusFailed, err)
+					return
+				}
+
+				tmpProcessing.Stop(interfaces.ProcessingStatusTransferred, nil)
+				return
+			}
 
 			for blockInputIndex, blockInput := range blockInputData {
 				blockData.SetInputData(blockInput)
