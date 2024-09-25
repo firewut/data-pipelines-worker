@@ -3,6 +3,7 @@ package interfaces
 import (
 	"bytes"
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -28,6 +29,7 @@ type Processing interface {
 	SetError(error)
 	GetError() error
 	GetOutput() ProcessingOutput
+	GetProcessingTime() time.Duration
 
 	SetRegistryNotificationChannel(chan Processing)
 

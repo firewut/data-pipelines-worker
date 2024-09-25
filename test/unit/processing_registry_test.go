@@ -2,7 +2,9 @@ package unit_test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -297,6 +299,72 @@ func (suite *UnitTestSuite) TestProcessingRegistryStartProcessing() {
 	suite.NotEmpty(registry.GetAll())
 	suite.NotEmpty(completedProcessing.GetId())
 	suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing.GetStatus())
+}
+
+func (suite *UnitTestSuite) TestProcessingRegistryStartProcessingTwoBlocks() {
+	// Given
+	processingId := uuid.New()
+	registry := registries.NewProcessingRegistry()
+	processingCompletedChannel := registry.GetProcessingCompletedChannel()
+	block := blocks.NewBlockHTTP()
+
+	mockedSecondBlockResponse := fmt.Sprintf("Hello, world! Mocked value is %s", uuid.NewString())
+	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, time.Millisecond)
+	firstBlockInput := suite.GetMockHTTPServerURL(secondBlockInput, http.StatusOK, 0)
+
+	pipeline, inputDataSchema, _ := suite.RegisterTestPipelineAndInputForProcessing(
+		suite.GetTestPipelineTwoBlocks(firstBlockInput),
+		"test-pipeline-slug",
+		"test-block-slug",
+		map[string]interface{}{
+			"url": firstBlockInput,
+		},
+	)
+
+	processing1 := dataclasses.NewProcessing(
+		processingId,
+		pipeline,
+		block,
+		&dataclasses.BlockData{
+			Id:    block.GetId(),
+			Slug:  "test-block-first-slug",
+			Input: inputDataSchema.Block.Input,
+		},
+	)
+	processing2 := dataclasses.NewProcessing(
+		processingId,
+		pipeline,
+		block,
+		&dataclasses.BlockData{
+			Id:    block.GetId(),
+			Slug:  "test-block-second-slug",
+			Input: inputDataSchema.Block.Input,
+		},
+	)
+	suite.Equal(interfaces.ProcessingStatusPending, processing2.GetStatus())
+	suite.Empty(registry.GetAll())
+
+	wg := &sync.WaitGroup{}
+	wg.Add(2)
+	go func() {
+		registry.StartProcessing(processing1)
+		wg.Done()
+
+		registry.StartProcessing(processing2)
+		wg.Done()
+	}()
+	wg.Wait()
+
+	// When
+	completedProcessing1 := <-processingCompletedChannel
+	completedProcessing2 := <-processingCompletedChannel
+
+	// Then
+	suite.NotEmpty(completedProcessing1.GetId())
+	suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing1.GetStatus())
+
+	suite.NotEmpty(completedProcessing2.GetId())
+	suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing2.GetStatus())
 }
 
 func (suite *UnitTestSuite) TestProcessingRegistryShutdownCompletedProcessing() {

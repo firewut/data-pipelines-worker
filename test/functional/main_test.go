@@ -2,11 +2,13 @@ package functional_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -17,10 +19,17 @@ import (
 
 	"data-pipelines-worker/api"
 	"data-pipelines-worker/api/schemas"
+	"data-pipelines-worker/test/factories"
+	"data-pipelines-worker/types"
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/dataclasses"
 	"data-pipelines-worker/types/interfaces"
 )
+
+type APIServer struct {
+	Server   *api.Server
+	Shutdown context.CancelFunc
+}
 
 type FunctionalTestSuite struct {
 	sync.RWMutex
@@ -29,6 +38,7 @@ type FunctionalTestSuite struct {
 	_config config.Config
 
 	httpTestServers []*httptest.Server // to mock http requests
+	apiServers      []*APIServer
 }
 
 func TestFunctionalTestSuite(t *testing.T) {
@@ -54,6 +64,9 @@ func (suite *FunctionalTestSuite) TearDownSuite() {
 func (suite *FunctionalTestSuite) SetupTest() {
 	// Make Mock HTTP Server for each URL Block Detector
 	_config := config.GetConfig()
+
+	suite.apiServers = make([]*APIServer, 0)
+
 	for blockId, blockConfig := range _config.Blocks {
 		if blockConfig.Detector.Conditions["url"] != nil {
 			successUrl := suite.GetMockHTTPServerURL(
@@ -116,6 +129,32 @@ func (suite *FunctionalTestSuite) GetMockHTTPServerURL(
 	).URL
 }
 
+func (suite *FunctionalTestSuite) NewWorkerServerWithHandlers(available bool) (*api.Server, interfaces.Worker, error) {
+	suite.Lock()
+	defer suite.Unlock()
+
+	ctx, shutdown := context.WithCancel(context.Background())
+	server, _, err := factories.NewWorkerServerWithHandlers(
+		context.Background(),
+		available,
+	)
+	suite.Nil(err)
+	suite.NotEmpty(server)
+
+	server.GetPipelineRegistry().SetPipelineResultStorages(
+		[]interfaces.Storage{
+			types.NewLocalStorage(os.TempDir()),
+		},
+	)
+
+	suite.apiServers = append(suite.apiServers, &APIServer{
+		Server:   server,
+		Shutdown: shutdown,
+	})
+
+	return factories.NewWorkerServerWithHandlers(ctx, true)
+}
+
 func (suite *FunctionalTestSuite) TearDownTest() {
 	suite.Lock()
 	defer suite.Unlock()
@@ -124,6 +163,11 @@ func (suite *FunctionalTestSuite) TearDownTest() {
 		server.Close()
 	}
 	suite.httpTestServers = make([]*httptest.Server, 0)
+
+	for _, apiServer := range suite.apiServers {
+		apiServer.Shutdown()
+	}
+	suite.apiServers = make([]*APIServer, 0)
 }
 
 func (suite *FunctionalTestSuite) GetTestPipeline(pipelineDefinition string) interfaces.Pipeline {

@@ -240,13 +240,12 @@ func (p *PipelineData) Process(
 					if saveOutputResult.Error != nil {
 						config.GetLogger().Errorf(
 							"Error saving output for block %s to storage %s: %s",
-							processing.GetData().GetSlug(),
+							tmpProcessing.GetData().GetSlug(),
 							saveOutputResult.StorageLocation.GetStorageName(),
 							saveOutputResult.Error,
 						)
 					}
 				}
-
 			}
 		}
 	}()

@@ -73,8 +73,8 @@ func (suite *UnitTestSuite) TestBlockImageResizeProcessIncorrectInput() {
 
 func (suite *UnitTestSuite) TestBlockImageResizeProcessSuccess() {
 	// Given
-	width := 300
-	height := 300
+	width := 100
+	height := 100
 
 	widths := []int{10, 20, 30, 40}
 	heights := []int{10, 20, 30, 40}

@@ -72,8 +72,8 @@ func (suite *UnitTestSuite) TestBlockImageBlurProcessIncorrectInput() {
 
 func (suite *UnitTestSuite) TestBlockImageBlurProcessSuccess() {
 	// Given
-	width := 300
-	height := 300
+	width := 100
+	height := 100
 
 	sigmas := []float64{1.0, 2.0, 3.0, 4.0}
 

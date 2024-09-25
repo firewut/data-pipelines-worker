@@ -43,7 +43,7 @@ var _ interfaces.ProcessingRegistry = (*ProcessingRegistry)(nil)
 func NewProcessingRegistry() *ProcessingRegistry {
 	registry := &ProcessingRegistry{
 		Processing:                 make(map[uuid.UUID]interfaces.Processing),
-		processingCompletedChannel: make(chan interfaces.Processing),
+		processingCompletedChannel: make(chan interfaces.Processing, 2),
 	}
 
 	return registry

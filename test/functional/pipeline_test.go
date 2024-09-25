@@ -1,26 +1,20 @@
 package functional_test
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"time"
 
 	"github.com/google/uuid"
 
 	"data-pipelines-worker/api/handlers"
 	"data-pipelines-worker/api/schemas"
-	"data-pipelines-worker/test/factories"
 	"data-pipelines-worker/types/registries"
 )
 
 func (suite *FunctionalTestSuite) TestPipelineStartHandler() {
 	// Given
-	ctx, shutdown := context.WithCancel(context.Background())
-	defer shutdown()
-
-	server, _, err := factories.NewWorkerServerWithHandlers(ctx, true)
+	server, _, err := suite.NewWorkerServerWithHandlers(true)
 	suite.Nil(err)
 
 	api_path := "/pipelines"
@@ -43,22 +37,19 @@ func (suite *FunctionalTestSuite) TestPipelineStartHandler() {
 
 func (suite *FunctionalTestSuite) TestPipelineStartHandlerTwoBlocks() {
 	// Given
-	ctx, shutdown := context.WithCancel(context.Background())
-	defer shutdown()
-
-	testPipelineSlug, _ := "test-two-http-blocks", "http_request"
-
-	server, _, err := factories.NewWorkerServerWithHandlers(ctx, true)
+	server, _, err := suite.NewWorkerServerWithHandlers(true)
 	suite.Nil(err)
 	suite.NotEmpty(server)
-	server.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
 
 	serverProcessingRegistry := server.GetProcessingRegistry()
+	processingCompletedChannel := serverProcessingRegistry.GetProcessingCompletedChannel()
 
 	mockedSecondBlockResponse := fmt.Sprintf("Hello, world! Mocked value is %s", uuid.NewString())
-	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, time.Millisecond)
+	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, 0)
 	firstBlockInput := suite.GetMockHTTPServerURL(secondBlockInput, http.StatusOK, 0)
+	server.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(firstBlockInput))
 
+	testPipelineSlug, _ := "test-two-http-blocks", "http_request"
 	inputData := schemas.PipelineStartInputSchema{
 		Pipeline: schemas.PipelineInputSchema{
 			Slug: testPipelineSlug,
@@ -85,10 +76,11 @@ func (suite *FunctionalTestSuite) TestPipelineStartHandlerTwoBlocks() {
 	suite.NotNil(processingResponse.ProcessingID)
 
 	// Wait for two blocks to process
-	block1Processing := <-serverProcessingRegistry.GetProcessingCompletedChannel()
+	block1Processing := <-processingCompletedChannel
 	suite.NotEmpty(block1Processing.GetId())
 	suite.Equal(processingResponse.ProcessingID, block1Processing.GetId())
-	block2Processing := <-serverProcessingRegistry.GetProcessingCompletedChannel()
+
+	block2Processing := <-processingCompletedChannel
 	suite.NotEmpty(block1Processing.GetId())
 	suite.Equal(processingResponse.ProcessingID, block2Processing.GetId())
 

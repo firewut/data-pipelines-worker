@@ -1,21 +1,16 @@
 package functional_test
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 
 	"data-pipelines-worker/api/handlers"
-	"data-pipelines-worker/test/factories"
 )
 
 func (suite *FunctionalTestSuite) TestHealthHandler() {
 	// Given
-	ctx, shutdown := context.WithCancel(context.Background())
-	defer shutdown()
-
-	server, _, err := factories.NewWorkerServerWithHandlers(ctx, true)
+	server, _, err := suite.NewWorkerServerWithHandlers(true)
 	suite.Nil(err)
 
 	api_path := "/health"
@@ -37,10 +32,7 @@ func (suite *FunctionalTestSuite) TestHealthHandler() {
 
 func (suite *FunctionalTestSuite) TestBlocksHandler() {
 	// Given
-	ctx, shutdown := context.WithCancel(context.Background())
-	defer shutdown()
-
-	server, _, err := factories.NewWorkerServerWithHandlers(ctx, true)
+	server, _, err := suite.NewWorkerServerWithHandlers(true)
 	suite.Nil(err)
 	api_path := "/blocks"
 
@@ -60,10 +52,7 @@ func (suite *FunctionalTestSuite) TestBlocksHandler() {
 
 func (suite *FunctionalTestSuite) TestWorkersHandler() {
 	// Given
-	ctx, shutdown := context.WithCancel(context.Background())
-	defer shutdown()
-
-	server, _, err := factories.NewWorkerServerWithHandlers(ctx, true)
+	server, _, err := suite.NewWorkerServerWithHandlers(true)
 	suite.Nil(err)
 	api_path := "/workers"
 
@@ -83,10 +72,7 @@ func (suite *FunctionalTestSuite) TestWorkersHandler() {
 
 func (suite *FunctionalTestSuite) TestPipelinesHandler() {
 	// Given
-	ctx, shutdown := context.WithCancel(context.Background())
-	defer shutdown()
-
-	server, _, err := factories.NewWorkerServerWithHandlers(ctx, true)
+	server, _, err := suite.NewWorkerServerWithHandlers(true)
 	suite.Nil(err)
 	api_path := "/pipelines"
 

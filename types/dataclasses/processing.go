@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -25,6 +26,8 @@ type Processing struct {
 	err                         error
 	output                      *ProcessingOutput
 	registryNotificationChannel chan interfaces.Processing
+	startTimestamp              int64
+	endTimestamp                int64
 
 	ctx       context.Context
 	ctxCancel context.CancelFunc
@@ -95,6 +98,14 @@ func (p *Processing) SetStatus(status interfaces.ProcessingStatus) {
 	defer p.Unlock()
 
 	p.status = status
+	switch status {
+	case interfaces.ProcessingStatusRunning:
+		p.startTimestamp = time.Now().Unix()
+	case interfaces.ProcessingStatusCompleted,
+		interfaces.ProcessingStatusFailed,
+		interfaces.ProcessingStatusTransferred:
+		p.endTimestamp = time.Now().Unix()
+	}
 }
 
 func (p *Processing) GetData() interfaces.ProcessableBlockData {
@@ -184,6 +195,23 @@ func (p *Processing) sendResult(shutdown bool) {
 			}
 		}
 	})
+}
+
+func (p *Processing) GetProcessingTime() time.Duration {
+	p.Lock()
+	defer p.Unlock()
+
+	if p.startTimestamp == 0 {
+		return 0
+	}
+
+	if p.endTimestamp == 0 {
+		return time.Duration(
+			time.Now().Unix() - p.startTimestamp,
+		)
+	}
+
+	return time.Duration(p.endTimestamp - p.startTimestamp)
 }
 
 type ProcessingOutput struct {

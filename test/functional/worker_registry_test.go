@@ -14,11 +14,8 @@ import (
 
 func (suite *FunctionalTestSuite) TestWorkerShutdownCorrect() {
 	// Given
-	ctx, shutdown := context.WithCancel(context.Background())
-	defer shutdown()
 	httpClient := &http.Client{}
-
-	server1, _, err := factories.NewWorkerServerWithHandlers(ctx, true)
+	server1, _, err := suite.NewWorkerServerWithHandlers(true)
 
 	// When
 	suite.Nil(err)
@@ -62,14 +59,12 @@ func (suite *FunctionalTestSuite) TestTwoWorkersDifferentRegistries() {
 
 func (suite *FunctionalTestSuite) TestTwoWorkersAPIDiscoveryCommunication() {
 	// Given
-	ctx, shutdown := context.WithCancel(context.Background())
-	defer shutdown()
-
 	testPipelineSlug, testBlockId := "test-two-http-blocks", "http_request"
-	server1, worker1, err := factories.NewWorkerServerWithHandlers(ctx, true)
+	server1, worker1, err := suite.NewWorkerServerWithHandlers(true)
 	suite.Nil(err)
 	server1.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
-	server2, worker2, err := factories.NewWorkerServerWithHandlers(ctx, true)
+
+	server2, worker2, err := suite.NewWorkerServerWithHandlers(true)
 	suite.Nil(err)
 	server2.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
 
@@ -105,14 +100,11 @@ func (suite *FunctionalTestSuite) TestTwoWorkersAPIDiscoveryCommunication() {
 
 func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocksDisabledEverywhere() {
 	// Given
-	ctx, shutdown := context.WithCancel(context.Background())
-	defer shutdown()
-
 	testPipelineSlug, testBlockId := "test-two-http-blocks", "http_request"
-	server1, worker1, err := factories.NewWorkerServerWithHandlers(ctx, true)
+	server1, worker1, err := suite.NewWorkerServerWithHandlers(true)
 	suite.Nil(err)
 	server1.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
-	server2, worker2, err := factories.NewWorkerServerWithHandlers(ctx, true)
+	server2, worker2, err := suite.NewWorkerServerWithHandlers(true)
 	suite.Nil(err)
 	server2.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
 
@@ -172,14 +164,11 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocks
 
 func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocksDisabledFirst() {
 	// Given
-	ctx, shutdown := context.WithCancel(context.Background())
-	defer shutdown()
-
 	testPipelineSlug, testBlockId := "test-two-http-blocks", "http_request"
-	server1, worker1, err := factories.NewWorkerServerWithHandlers(ctx, true)
+	server1, worker1, err := suite.NewWorkerServerWithHandlers(true)
 	suite.Nil(err)
 	server1.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
-	server2, worker2, err := factories.NewWorkerServerWithHandlers(ctx, true)
+	server2, worker2, err := suite.NewWorkerServerWithHandlers(true)
 	suite.Nil(err)
 	server2.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
 
@@ -233,20 +222,20 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocks
 	suite.Equal(interfaces.ProcessingStatusTransferred, transferredProcessing1.GetStatus())
 	suite.Nil(transferredProcessing1.GetError())
 	processingRegistry1Processing := processingRegistry1.Get(processingResponse.ProcessingID.String())
-	suite.NotEmpty(processingRegistry1Processing)
+	suite.NotNil(processingRegistry1Processing)
 	suite.Equal(transferredProcessing1, processingRegistry1Processing)
 
 	completedProcessing21 := <-processingRegistry2.GetProcessingCompletedChannel()
 	suite.Equal(completedProcessing21.GetId(), processingResponse.ProcessingID)
 	processingRegistry2Processing1 := processingRegistry2.Get(processingResponse.ProcessingID.String())
-	suite.NotEmpty(processingRegistry2Processing1)
+	suite.NotNil(processingRegistry2Processing1)
 	suite.Equal(completedProcessing21, processingRegistry2Processing1)
 	suite.Equal(secondBlockInput, completedProcessing21.GetOutput().GetValue().String())
 
 	completedProcessing22 := <-processingRegistry2.GetProcessingCompletedChannel()
 	suite.Equal(completedProcessing22.GetId(), processingResponse.ProcessingID)
 	processingRegistry2Processing2 := processingRegistry2.Get(processingResponse.ProcessingID.String())
-	suite.NotEmpty(processingRegistry2Processing2)
+	suite.NotNil(processingRegistry2Processing2)
 	suite.Equal(completedProcessing22, processingRegistry2Processing2)
 	suite.Equal(mockedSecondBlockResponse, completedProcessing22.GetOutput().GetValue().String())
 }
