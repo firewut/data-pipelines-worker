@@ -141,7 +141,7 @@ func (p *Processing) SetRegistryNotificationChannel(channel chan interfaces.Proc
 func (p *Processing) Start() (interfaces.ProcessingOutput, error) {
 	if p.GetStatus() != interfaces.ProcessingStatusPending {
 		p.sendResult(false)
-		return nil, fmt.Errorf("processing with id %s is not in pending state", p.Id.String())
+		return nil, fmt.Errorf("processing with id %s is not in pending state", p.GetId().String())
 	}
 	p.SetStatus(interfaces.ProcessingStatusRunning)
 
@@ -152,7 +152,7 @@ func (p *Processing) Start() (interfaces.ProcessingOutput, error) {
 		if err == context.Canceled {
 			// Handle cancellation specifically
 			p.sendResult(true)
-			return nil, fmt.Errorf("processing with id %s was cancelled", p.Id.String())
+			return nil, fmt.Errorf("processing with id %s was cancelled", p.GetId().String())
 		}
 
 		p.sendResult(false)

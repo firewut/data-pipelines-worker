@@ -63,12 +63,16 @@ func (pr *ProcessingRegistry) processCompleted() {
 			processing.GetInstanceId(),
 		)
 
+		// Copy the reference outside the lock
+		var notificationChannel chan interfaces.Processing
+		pr.Lock()
+		notificationChannel = pr.notificationChannel
+		pr.Unlock()
+
 		// Send to the notification channel if it's set
-		pr.Lock() // Lock for accessing the notification channel
-		if pr.notificationChannel != nil {
-			pr.notificationChannel <- processing
+		if notificationChannel != nil {
+			notificationChannel <- processing
 		}
-		pr.Unlock() // Unlock after sending
 	}
 }
 
@@ -82,7 +86,8 @@ func (pr *ProcessingRegistry) Add(p interfaces.Processing) {
 	pr.Lock()
 	defer pr.Unlock()
 
-	p.SetRegistryNotificationChannel(pr.GetProcessingCompletedChannel())
+	p.SetRegistryNotificationChannel(pr.processingCompletedChannel)
+
 	pr.Processing[p.GetId()] = p
 }
 

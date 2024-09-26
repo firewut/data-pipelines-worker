@@ -158,7 +158,6 @@ func (p *PipelineData) Process(
 		// Loop through each block
 		for blockRelativeIndex, blockData := range processBlocks {
 			blockIndex := blockRelativeIndex + len(processedBlocks)
-
 			block := blockData.GetBlock()
 
 			tmpProcessing := NewProcessing(processingId, p, block, blockData)
