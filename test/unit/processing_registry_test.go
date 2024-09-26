@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -220,50 +219,14 @@ func (suite *UnitTestSuite) TestProcessingRegistryShutdownEmptyRegistry() {
 	suite.Empty(registry.GetAll())
 }
 
-func (suite *UnitTestSuite) TestProcessingRegistryStartProcessingById() {
-	// Given
-	processingId := uuid.New()
-	registry := registries.NewProcessingRegistry()
-	block := blocks.NewBlockHTTP()
-
-	successUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusOK, 0)
-	pipeline, inputDataSchema, _ := suite.RegisterTestPipelineAndInputForProcessing(
-		suite.GetTestPipelineOneBlock(successUrl),
-		"test-pipeline-slug",
-		"test-block-slug",
-		map[string]interface{}{
-			"url": successUrl,
-		},
-	)
-
-	processing := dataclasses.NewProcessing(
-		processingId,
-		pipeline,
-		block,
-		&dataclasses.BlockData{
-			Id:    block.GetId(),
-			Slug:  "test-block-slug",
-			Input: inputDataSchema.Block.Input,
-		},
-	)
-	suite.Equal(interfaces.ProcessingStatusPending, processing.GetStatus())
-	registry.Add(processing)
-	suite.NotEmpty(registry.GetAll())
-
-	go registry.StartProcessingById(processingId)
-
-	// When
-	completedProcessing := <-registry.GetProcessingCompletedChannel()
-
-	// Then
-	suite.NotEmpty(completedProcessing.GetId())
-	suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing.GetStatus())
-}
-
 func (suite *UnitTestSuite) TestProcessingRegistryStartProcessing() {
 	// Given
 	processingId := uuid.New()
+
+	notificationChannel := make(chan interfaces.Processing)
 	registry := registries.NewProcessingRegistry()
+	registry.SetNotificationChannel(notificationChannel)
+
 	block := blocks.NewBlockHTTP()
 
 	successUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusOK, 0)
@@ -293,7 +256,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryStartProcessing() {
 	go registry.StartProcessing(processing)
 
 	// When
-	completedProcessing := <-registry.GetProcessingCompletedChannel()
+	completedProcessing := <-notificationChannel
 
 	// Then
 	suite.NotEmpty(registry.GetAll())
@@ -304,8 +267,11 @@ func (suite *UnitTestSuite) TestProcessingRegistryStartProcessing() {
 func (suite *UnitTestSuite) TestProcessingRegistryStartProcessingTwoBlocks() {
 	// Given
 	processingId := uuid.New()
+
+	notificationChannel := make(chan interfaces.Processing)
 	registry := registries.NewProcessingRegistry()
-	processingCompletedChannel := registry.GetProcessingCompletedChannel()
+	registry.SetNotificationChannel(notificationChannel)
+
 	block := blocks.NewBlockHTTP()
 
 	mockedSecondBlockResponse := fmt.Sprintf("Hello, world! Mocked value is %s", uuid.NewString())
@@ -344,20 +310,20 @@ func (suite *UnitTestSuite) TestProcessingRegistryStartProcessingTwoBlocks() {
 	suite.Equal(interfaces.ProcessingStatusPending, processing2.GetStatus())
 	suite.Empty(registry.GetAll())
 
-	wg := &sync.WaitGroup{}
-	wg.Add(2)
-	go func() {
-		registry.StartProcessing(processing1)
-		wg.Done()
-
-		registry.StartProcessing(processing2)
-		wg.Done()
-	}()
-	wg.Wait()
-
 	// When
-	completedProcessing1 := <-processingCompletedChannel
-	completedProcessing2 := <-processingCompletedChannel
+	go func() {
+		processing1Output, err := registry.StartProcessing(processing1)
+		suite.Nil(err)
+		suite.NotEmpty(processing1Output)
+	}()
+	completedProcessing1 := <-notificationChannel
+
+	go func() {
+		processing2Output, err := registry.StartProcessing(processing2)
+		suite.Nil(err)
+		suite.NotEmpty(processing2Output)
+	}()
+	completedProcessing2 := <-notificationChannel
 
 	// Then
 	suite.NotEmpty(completedProcessing1.GetId())
@@ -370,7 +336,9 @@ func (suite *UnitTestSuite) TestProcessingRegistryStartProcessingTwoBlocks() {
 func (suite *UnitTestSuite) TestProcessingRegistryShutdownCompletedProcessing() {
 	// Given
 	processingId := uuid.New()
+
 	registry := registries.NewProcessingRegistry()
+
 	block := blocks.NewBlockHTTP()
 
 	processDelay := time.Millisecond * 10
@@ -401,7 +369,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryShutdownCompletedProcessing() 
 	registry.Add(processing)
 	suite.NotEmpty(registry.GetAll())
 
-	go registry.StartProcessingById(processingId)
+	go registry.StartProcessing(processing)
 
 	time.Sleep(shutdownTriggerDelay)
 
@@ -416,7 +384,11 @@ func (suite *UnitTestSuite) TestProcessingRegistryShutdownCompletedProcessing() 
 func (suite *UnitTestSuite) TestProcessingRegistryShutdownRunningProcessing() {
 	// Given
 	processingId := uuid.New()
+
+	notificationChannel := make(chan interfaces.Processing)
 	registry := registries.NewProcessingRegistry()
+	registry.SetNotificationChannel(notificationChannel)
+
 	block := blocks.NewBlockHTTP()
 
 	processDelay := time.Hour
@@ -447,7 +419,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryShutdownRunningProcessing() {
 	registry.Add(processing)
 	suite.NotEmpty(registry.GetAll())
 
-	go registry.StartProcessingById(processingId)
+	go registry.StartProcessing(processing)
 
 	time.Sleep(shutdownTriggerDelay)
 

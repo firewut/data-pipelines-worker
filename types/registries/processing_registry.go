@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/interfaces"
 )
 
@@ -35,6 +36,7 @@ type ProcessingRegistry struct {
 
 	Processing                 map[uuid.UUID]interfaces.Processing
 	processingCompletedChannel chan interfaces.Processing
+	notificationChannel        chan interfaces.Processing // Channel for external notifications
 }
 
 // Ensure ProcessingRegistry implements the ProcessingRegistry
@@ -43,19 +45,45 @@ var _ interfaces.ProcessingRegistry = (*ProcessingRegistry)(nil)
 func NewProcessingRegistry() *ProcessingRegistry {
 	registry := &ProcessingRegistry{
 		Processing:                 make(map[uuid.UUID]interfaces.Processing),
-		processingCompletedChannel: make(chan interfaces.Processing, 2),
+		processingCompletedChannel: make(chan interfaces.Processing),
+		notificationChannel:        nil,
 	}
+
+	go registry.processCompleted()
 
 	return registry
 }
 
+func (pr *ProcessingRegistry) processCompleted() {
+	logger := config.GetLogger()
+	for processing := range pr.processingCompletedChannel {
+		logger.Debugf(
+			"Processing completed: %s %s\n",
+			processing.GetId(),
+			processing.GetInstanceId(),
+		)
+
+		// Send to the notification channel if it's set
+		pr.Lock() // Lock for accessing the notification channel
+		if pr.notificationChannel != nil {
+			pr.notificationChannel <- processing
+		}
+		pr.Unlock() // Unlock after sending
+	}
+}
+
+func (pr *ProcessingRegistry) SetNotificationChannel(channel chan interfaces.Processing) {
+	pr.Lock()
+	defer pr.Unlock()
+	pr.notificationChannel = channel
+}
+
 func (pr *ProcessingRegistry) Add(p interfaces.Processing) {
 	pr.Lock()
+	defer pr.Unlock()
 
 	p.SetRegistryNotificationChannel(pr.GetProcessingCompletedChannel())
 	pr.Processing[p.GetId()] = p
-
-	pr.Unlock()
 }
 
 func (pr *ProcessingRegistry) Get(id string) interfaces.Processing {
@@ -95,7 +123,6 @@ func (pr *ProcessingRegistry) DeleteAll() {
 
 func (pr *ProcessingRegistry) Shutdown(ctx context.Context) error {
 	pr.Lock()
-	defer close(pr.processingCompletedChannel)
 	defer pr.Unlock()
 
 	shutdownWg := sync.WaitGroup{}
@@ -112,8 +139,12 @@ func (pr *ProcessingRegistry) Shutdown(ctx context.Context) error {
 
 	done := make(chan struct{})
 	go func() {
-		defer close(done)
 		shutdownWg.Wait()
+		close(pr.processingCompletedChannel)
+		close(done)
+		if pr.notificationChannel != nil {
+			close(pr.notificationChannel)
+		}
 	}()
 
 	select {
@@ -124,20 +155,12 @@ func (pr *ProcessingRegistry) Shutdown(ctx context.Context) error {
 	}
 }
 
-func (pr *ProcessingRegistry) StartProcessingById(processingId uuid.UUID) (interfaces.ProcessingOutput, error) {
-	pr.Lock()
-	processing := pr.Processing[processingId]
-	pr.Unlock()
-
-	return processing.Start()
-}
-
 func (pr *ProcessingRegistry) StartProcessing(processing interfaces.Processing) (
 	interfaces.ProcessingOutput,
 	error,
 ) {
 	pr.Add(processing)
-	return pr.StartProcessingById(processing.GetId())
+	return processing.Start()
 }
 
 func (pr *ProcessingRegistry) GetProcessingCompletedChannel() chan interfaces.Processing {

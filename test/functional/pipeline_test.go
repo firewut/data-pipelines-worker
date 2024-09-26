@@ -9,6 +9,7 @@ import (
 
 	"data-pipelines-worker/api/handlers"
 	"data-pipelines-worker/api/schemas"
+	"data-pipelines-worker/types/interfaces"
 )
 
 func (suite *FunctionalTestSuite) TestPipelineStartHandler() {
@@ -40,8 +41,9 @@ func (suite *FunctionalTestSuite) TestPipelineStartHandlerTwoBlocks() {
 	suite.Nil(err)
 	suite.NotEmpty(server)
 
+	notificationChannel := make(chan interfaces.Processing)
 	serverProcessingRegistry := server.GetProcessingRegistry()
-	processingCompletedChannel := serverProcessingRegistry.GetProcessingCompletedChannel()
+	serverProcessingRegistry.SetNotificationChannel(notificationChannel)
 
 	mockedSecondBlockResponse := fmt.Sprintf("Hello, world! Mocked value is %s", uuid.NewString())
 	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, 0)
@@ -74,12 +76,12 @@ func (suite *FunctionalTestSuite) TestPipelineStartHandlerTwoBlocks() {
 	suite.Equal(http.StatusOK, statusCode, errorResponse)
 	suite.NotNil(processingResponse.ProcessingID)
 
-	// Wait for two blocks to process
-	block1Processing := <-processingCompletedChannel
+	// Wait for completion events
+	block1Processing := <-notificationChannel
 	suite.NotEmpty(block1Processing.GetId())
 	suite.Equal(processingResponse.ProcessingID, block1Processing.GetId())
 
-	block2Processing := <-processingCompletedChannel
-	suite.NotEmpty(block1Processing.GetId())
+	block2Processing := <-notificationChannel
+	suite.NotEmpty(block2Processing.GetId())
 	suite.Equal(processingResponse.ProcessingID, block2Processing.GetId())
 }

@@ -223,7 +223,6 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineTest() {
 	)
 
 	mockStorage := suite.NewMockLocalStorage(1)
-
 	registry.SetPipelineResultStorages(
 		[]interfaces.Storage{mockStorage},
 	)
@@ -263,7 +262,6 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineWithInputTest() {
 	suite.Equal(processingData.Block.Input["url"], priorityUrl)
 
 	mockStorage := suite.NewMockLocalStorage(1)
-
 	registry.SetPipelineResultStorages(
 		[]interfaces.Storage{mockStorage},
 	)

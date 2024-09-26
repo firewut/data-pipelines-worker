@@ -57,9 +57,10 @@ type BlockRegistry interface {
 type ProcessingRegistry interface {
 	generics.Registry[Processing]
 
-	StartProcessingById(uuid.UUID) (ProcessingOutput, error)
 	StartProcessing(Processing) (ProcessingOutput, error)
 	GetProcessingCompletedChannel() chan Processing
+
+	SetNotificationChannel(chan Processing)
 }
 
 type PipelineBlockDataRegistry interface {

@@ -37,6 +37,9 @@ func NewWorkerServerWithHandlers(ctx context.Context, available bool) (*api.Serv
 
 	<-server.Ready
 
+	// This one for testing purposes. Sometimes server needs more time to Listen in test
+	time.Sleep(time.Millisecond)
+
 	u, err := url.Parse(server.GetAPIAddress())
 	if err != nil {
 		fmt.Println("Error parsing URL:", err)

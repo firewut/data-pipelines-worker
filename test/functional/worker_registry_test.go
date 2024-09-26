@@ -109,6 +109,10 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocks
 	suite.Nil(err)
 	server2.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
 
+	notificationChannel := make(chan interfaces.Processing)
+	processingRegistry1 := server1.GetProcessingRegistry()
+	processingRegistry1.SetNotificationChannel(notificationChannel)
+
 	workerRegistry1 := server1.GetWorkerRegistry()
 	workerRegistry2 := server2.GetWorkerRegistry()
 	workerRegistry1.Add(worker2)
@@ -151,9 +155,7 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocks
 	suite.Equal(http.StatusOK, statusCode, errorResponse)
 	suite.NotNil(processingResponse.ProcessingID)
 
-	processingRegistry1 := server1.GetProcessingRegistry()
-
-	failedProcessing1 := <-processingRegistry1.GetProcessingCompletedChannel()
+	failedProcessing1 := <-notificationChannel
 	suite.Equal(failedProcessing1.GetId(), processingResponse.ProcessingID)
 
 	processing1 := processingRegistry1.Get(processingResponse.ProcessingID.String())
@@ -177,6 +179,15 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocks
 	workerRegistry2 := server2.GetWorkerRegistry()
 	workerRegistry1.Add(worker2)
 	workerRegistry2.Add(worker1)
+
+	notificationChannel1 := make(chan interfaces.Processing)
+	notificationChannel2 := make(chan interfaces.Processing)
+
+	processingRegistry1 := server1.GetProcessingRegistry()
+	processingRegistry2 := server2.GetProcessingRegistry()
+
+	processingRegistry1.SetNotificationChannel(notificationChannel1)
+	processingRegistry2.SetNotificationChannel(notificationChannel2)
 
 	blockRegistry1 := server1.GetBlockRegistry()
 	blockRegistry2 := server2.GetBlockRegistry()
@@ -215,34 +226,31 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocks
 	suite.Equal(http.StatusOK, statusCode, errorResponse)
 	suite.NotNil(processingResponse.ProcessingID)
 
-	processingRegistry1 := server1.GetProcessingRegistry()
-	processingRegistry2 := server2.GetProcessingRegistry()
-
-	transferredProcessing1 := <-processingRegistry1.GetProcessingCompletedChannel()
+	transferredProcessing1 := <-notificationChannel1
 	suite.Equal(transferredProcessing1.GetId(), processingResponse.ProcessingID)
 	suite.Equal(interfaces.ProcessingStatusTransferred, transferredProcessing1.GetStatus())
 	suite.Nil(transferredProcessing1.GetError())
 
 	processingRegistry1Processing := processingRegistry1.Get(processingResponse.ProcessingID.String())
 	suite.NotNil(processingRegistry1Processing)
-	suite.Equal(transferredProcessing1.GetInstanceId(), processingRegistry1Processing.GetInstanceId())
+	suite.Equal(transferredProcessing1.GetId(), processingRegistry1Processing.GetId())
 
-	completedProcessing21 := <-processingRegistry2.GetProcessingCompletedChannel()
+	completedProcessing21 := <-notificationChannel2
 	suite.Equal(completedProcessing21.GetId(), processingResponse.ProcessingID)
 	suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing21.GetStatus())
 
 	processingRegistry2Processing1 := processingRegistry2.Get(processingResponse.ProcessingID.String())
 	suite.NotNil(processingRegistry2Processing1)
-	suite.Equal(completedProcessing21.GetInstanceId(), processingRegistry2Processing1.GetInstanceId())
+	suite.Equal(completedProcessing21.GetId(), processingRegistry2Processing1.GetId())
 	suite.Equal(secondBlockInput, completedProcessing21.GetOutput().GetValue().String())
 
-	completedProcessing22 := <-processingRegistry2.GetProcessingCompletedChannel()
+	completedProcessing22 := <-notificationChannel2
 	suite.Equal(completedProcessing22.GetId(), processingResponse.ProcessingID)
 	suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing22.GetStatus())
 
 	processingRegistry2Processing2 := processingRegistry2.Get(processingResponse.ProcessingID.String())
 	suite.NotNil(processingRegistry2Processing2)
-	suite.Equal(completedProcessing22.GetInstanceId(), processingRegistry2Processing2.GetInstanceId())
+	suite.Equal(completedProcessing22.GetId(), processingRegistry2Processing2.GetId())
 	suite.Equal(mockedSecondBlockResponse, completedProcessing22.GetOutput().GetValue().String())
 }
 
@@ -312,6 +320,15 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingWorker1HasNoSe
 	workerRegistry1.Add(worker2)
 	workerRegistry2.Add(worker1)
 
+	notificationChannel1 := make(chan interfaces.Processing)
+	notificationChannel2 := make(chan interfaces.Processing)
+
+	processingRegistry1 := server1.GetProcessingRegistry()
+	processingRegistry2 := server2.GetProcessingRegistry()
+
+	processingRegistry1.SetNotificationChannel(notificationChannel1)
+	processingRegistry2.SetNotificationChannel(notificationChannel2)
+
 	blockRegistry1 := server1.GetBlockRegistry()
 	blockRegistry2 := server2.GetBlockRegistry()
 
@@ -347,32 +364,29 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingWorker1HasNoSe
 	suite.Equal(http.StatusOK, statusCode, errorResponse)
 	suite.NotNil(processingResponse.ProcessingID)
 
-	processingRegistry1 := server1.GetProcessingRegistry()
-	processingRegistry2 := server2.GetProcessingRegistry()
-
-	completedProcessing11 := <-processingRegistry1.GetProcessingCompletedChannel()
+	completedProcessing11 := <-notificationChannel1
 	suite.Equal(completedProcessing11.GetId(), processingResponse.ProcessingID)
 	suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing11.GetStatus())
 	suite.Nil(completedProcessing11.GetError())
 
 	processingRegistry1Processing := processingRegistry1.Get(processingResponse.ProcessingID.String())
 	suite.NotNil(processingRegistry1Processing)
-	suite.Equal(completedProcessing11.GetInstanceId(), processingRegistry1Processing.GetInstanceId())
 	suite.Equal(imageContent.String(), completedProcessing11.GetOutput().GetValue().String())
+	suite.Equal(completedProcessing11.GetId(), processingRegistry1Processing.GetId())
 
-	transferredProcessing12 := <-processingRegistry1.GetProcessingCompletedChannel()
+	transferredProcessing12 := <-notificationChannel1
 	suite.Equal(transferredProcessing12.GetId(), processingResponse.ProcessingID)
 	suite.Equal(interfaces.ProcessingStatusTransferred, transferredProcessing12.GetStatus())
 	suite.Nil(transferredProcessing12.GetError())
 
 	processingRegistry12Processing := processingRegistry1.Get(processingResponse.ProcessingID.String())
 	suite.NotNil(processingRegistry1Processing)
-	suite.Equal(transferredProcessing12.GetInstanceId(), processingRegistry12Processing.GetInstanceId())
+	suite.Equal(transferredProcessing12.GetId(), processingRegistry12Processing.GetId())
 
-	completedProcessing21 := <-processingRegistry2.GetProcessingCompletedChannel()
+	completedProcessing21 := <-notificationChannel2
 	suite.Equal(completedProcessing21.GetId(), processingResponse.ProcessingID)
 	suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing21.GetStatus())
 	processingRegistry2Processing1 := processingRegistry2.Get(processingResponse.ProcessingID.String())
 	suite.NotNil(processingRegistry2Processing1)
-	suite.Equal(completedProcessing21.GetInstanceId(), processingRegistry2Processing1.GetInstanceId())
+	suite.Equal(completedProcessing21.GetId(), processingRegistry2Processing1.GetId())
 }
