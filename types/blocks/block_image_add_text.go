@@ -3,10 +3,13 @@ package blocks
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"image"
 	"image/png"
 
 	"github.com/fogleman/gg"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
 
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/helpers"
@@ -87,11 +90,32 @@ func (p *ProcessorImageAddText) Process(
 	}
 	config.GetLogger().Debugf("Image format: %s", format)
 
-	dc := gg.NewContextForImage(img)
-	// Set the font size and load a font (substitute with your own font file)
-	if err := dc.LoadFontFace(blockConfig.Font, blockConfig.FontSize); err != nil {
-		config.GetLogger().Fatalf("Failed to load font: %v", err)
+	if blockConfig.Font == "" {
+		blockConfig.Font = defaultBlockConfig.Font
 	}
+
+	dc := gg.NewContextForImage(img)
+	fontBytes, err := config.LoadFont(blockConfig.Font)
+	if err != nil {
+		return nil, err
+	}
+
+	fontParsed, err := opentype.Parse(fontBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	fontFace, err := opentype.NewFace(fontParsed, &opentype.FaceOptions{
+		Size:    blockConfig.FontSize,
+		DPI:     72,
+		Hinting: font.HintingFull,
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer fontFace.Close()
+
+	dc.SetFontFace(fontFace)
 
 	// Set text Color from config
 	dc.SetHexColor(blockConfig.FontColor)
@@ -136,7 +160,7 @@ func (p *ProcessorImageAddText) Process(
 }
 
 type BlockImageAddTextConfig struct {
-	Font         string  `yaml:"font" json:"-"`
+	Font         string  `yaml:"font" json:"font"`
 	FontSize     float64 `yaml:"font_size" json:"font_size"`
 	FontColor    string  `yaml:"font_color" json:"font_color"`
 	TextPosition string  `yaml:"text_position" json:"text_position"`
@@ -150,13 +174,19 @@ type BlockImageAddText struct {
 func NewBlockImageAddText() *BlockImageAddText {
 	_config := config.GetConfig()
 
+	fontsEmbedded, err := config.ListFonts()
+	if err != nil {
+		panic(err)
+	}
+	listAsEnum := helpers.GetListAsQuotedString(fontsEmbedded)
+
 	block := &BlockImageAddText{
 		BlockParent: BlockParent{
 			Id:          "image_add_text",
 			Name:        "Image Add Text",
 			Description: "Add text to Image",
 			Version:     "1",
-			SchemaString: `{
+			SchemaString: fmt.Sprintf(`{
 				"type": "object",
 				"properties": {
 					"input":{
@@ -182,6 +212,14 @@ func NewBlockImageAddText() *BlockImageAddText {
 								"description": "Text color",
 								"type": "string",
 								"format": "color"
+							},
+							"font": {
+								"description": "Font name",
+								"type": "string",
+								"enum": [
+									%s
+								],
+								"default": "Roboto-Regular.ttf"
 							},
 							"text_position": {
 								"description": "Text position",
@@ -209,6 +247,8 @@ func NewBlockImageAddText() *BlockImageAddText {
 					}
 				}
 			}`,
+				listAsEnum,
+			),
 			SchemaPtr: nil,
 			Schema:    nil,
 		},

@@ -50,3 +50,10 @@ func (suite *UnitTestSuite) TestMergeStructs() {
 
 	suite.Equal(66, blockConfig.Width)
 }
+
+func (suite *UnitTestSuite) TestGetListAsQuotedString() {
+	list := []string{"a", "b", "c"}
+	quotedList := helpers.GetListAsQuotedString(list)
+
+	suite.Equal(`"a", "b", "c"`, quotedList)
+}

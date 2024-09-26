@@ -76,7 +76,8 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessSuccess() {
 	width := 100
 	height := 100
 
-	texts := []string{"text1", "text2"}
+	texts := []string{"text1"}
+	fonts := []string{"OpenSans-Regular.ttf", "Roboto-Black.ttf"}
 	fontSizes := []int{20, 25}
 	fontColors := []string{"#00FF00"}
 	textPositions := []string{
@@ -92,6 +93,7 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessSuccess() {
 	}
 	type testCase struct {
 		text         string
+		font         string
 		fontSize     int
 		fontColor    string
 		textPosition string
@@ -101,12 +103,15 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessSuccess() {
 		for _, fontSize := range fontSizes {
 			for _, fontColor := range fontColors {
 				for _, textPosition := range textPositions {
-					testCases = append(testCases, testCase{
-						text:         text,
-						fontSize:     fontSize,
-						fontColor:    fontColor,
-						textPosition: textPosition,
-					})
+					for _, font := range fonts {
+						testCases = append(testCases, testCase{
+							text:         text,
+							font:         font,
+							fontSize:     fontSize,
+							fontColor:    fontColor,
+							textPosition: textPosition,
+						})
+					}
 				}
 			}
 		}
@@ -122,6 +127,7 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessSuccess() {
 			Slug: "image-add-text",
 			Input: map[string]interface{}{
 				"text":          tc.text,
+				"font":          tc.font,
 				"font_size":     tc.fontSize,
 				"font_color":    tc.fontColor,
 				"text_position": tc.textPosition,
