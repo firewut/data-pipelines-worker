@@ -17,7 +17,7 @@ type DetectorBlockImageResize struct {
 	BlockDetectorParent
 }
 
-func NewDetectorBlockImageResize(
+func NewDetectorImageResize(
 	detectorConfig config.BlockConfigDetector,
 ) *DetectorBlockImageResize {
 	return &DetectorBlockImageResize{
@@ -86,17 +86,7 @@ func (p *ProcessorImageResize) Process(
 	}
 	config.GetLogger().Debugf("Image format: %s", format)
 
-	width, err := helpers.GetValue[int](_data, "width")
-	if err != nil {
-		return nil, err
-	}
-
-	height, err := helpers.GetValue[int](_data, "height")
-	if err != nil {
-		return nil, err
-	}
-
-	resizedImage := imaging.Resize(img, width, height, imaging.Lanczos)
+	resizedImage := imaging.Resize(img, blockConfig.Width, blockConfig.Height, imaging.Lanczos)
 
 	err = png.Encode(output, resizedImage)
 	if err != nil {

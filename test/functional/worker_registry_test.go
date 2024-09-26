@@ -390,3 +390,312 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingWorker1HasNoSe
 	suite.NotNil(processingRegistry2Processing1)
 	suite.Equal(completedProcessing21.GetId(), processingRegistry2Processing1.GetId())
 }
+
+func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingWorker1HasNoSecondBlockWorker2HasAllBlocks() {
+	// Given
+	imageWidth, imageHeight := 100, 100
+	testPipelineSlug := "test-two-http-blocks"
+	firstWorkerDisabledBlocks := []string{"image_add_text"}
+	secondWorkerDisabledBlocks := []string{}
+	imageContent := suite.GetPNGImageBuffer(imageWidth, imageHeight)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "image/png")
+		w.WriteHeader(http.StatusOK)
+		w.Write(imageContent.Bytes())
+	}))
+	suite.httpTestServers = append(suite.httpTestServers, server)
+	imageUrl := server.URL
+
+	pipeline := suite.GetTestPipeline(
+		fmt.Sprintf(`{
+			"slug": "%s",
+			"title": "Test two Blocks",
+			"description": "First Block downloads image and second block adds text to it",
+			"blocks": [
+				{
+					"id": "http_request",
+					"slug": "test-block-first-slug",
+					"description": "Download Image from provided URL",
+					"input": {
+						"url": "%s"
+					}
+				},
+				{
+					"id": "image_add_text",
+					"slug": "test-block-second-slug",
+					"description": "Add text to downloaded image",
+					"input_config": {
+						"property": {
+							"image": {
+								"origin": "test-block-first-slug"
+							}
+						}
+					},
+					"input": {
+						"text": "Hello, world!",
+						"font_size": 50,
+						"font_color": "#000000"
+					}
+				}
+			]
+		}`,
+			testPipelineSlug,
+			imageUrl,
+		),
+	)
+
+	server1, worker1, err := suite.NewWorkerServerWithHandlers(true)
+	suite.Nil(err)
+	server1.GetPipelineRegistry().Add(pipeline)
+	server2, worker2, err := suite.NewWorkerServerWithHandlers(true)
+	suite.Nil(err)
+	server2.GetPipelineRegistry().Add(pipeline)
+
+	workerRegistry1 := server1.GetWorkerRegistry()
+	workerRegistry2 := server2.GetWorkerRegistry()
+	workerRegistry1.Add(worker2)
+	workerRegistry2.Add(worker1)
+
+	notificationChannel1 := make(chan interfaces.Processing)
+	notificationChannel2 := make(chan interfaces.Processing)
+
+	processingRegistry1 := server1.GetProcessingRegistry()
+	processingRegistry2 := server2.GetProcessingRegistry()
+
+	processingRegistry1.SetNotificationChannel(notificationChannel1)
+	processingRegistry2.SetNotificationChannel(notificationChannel2)
+
+	blockRegistry1 := server1.GetBlockRegistry()
+	blockRegistry2 := server2.GetBlockRegistry()
+
+	for _, blockId := range firstWorkerDisabledBlocks {
+		blockRegistry1.GetAvailableBlocks()[blockId].SetAvailable(false)
+	}
+	for _, blockId := range secondWorkerDisabledBlocks {
+		blockRegistry2.GetAvailableBlocks()[blockId].SetAvailable(false)
+	}
+
+	inputData := schemas.PipelineStartInputSchema{
+		Pipeline: schemas.PipelineInputSchema{
+			Slug: testPipelineSlug,
+		},
+		Block: schemas.BlockInputSchema{
+			Slug: "test-block-first-slug",
+			Input: map[string]interface{}{
+				"url": imageUrl,
+			},
+		},
+	}
+
+	// When
+	processingResponse, statusCode, errorResponse, err := suite.SendProcessingStartRequest(
+		server1,
+		inputData,
+		nil,
+	)
+
+	// Then
+	suite.Empty(errorResponse)
+	suite.Nil(err, errorResponse)
+	suite.Equal(http.StatusOK, statusCode, errorResponse)
+	suite.NotNil(processingResponse.ProcessingID)
+
+	completedProcessing11 := <-notificationChannel1
+	suite.Equal(completedProcessing11.GetId(), processingResponse.ProcessingID)
+	suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing11.GetStatus())
+	suite.Nil(completedProcessing11.GetError())
+
+	processingRegistry1Processing := processingRegistry1.Get(processingResponse.ProcessingID.String())
+	suite.NotNil(processingRegistry1Processing)
+	suite.Equal(imageContent.String(), completedProcessing11.GetOutput().GetValue().String())
+	suite.Equal(completedProcessing11.GetId(), processingRegistry1Processing.GetId())
+
+	transferredProcessing12 := <-notificationChannel1
+	suite.Equal(transferredProcessing12.GetId(), processingResponse.ProcessingID)
+	suite.Equal(interfaces.ProcessingStatusTransferred, transferredProcessing12.GetStatus())
+	suite.Nil(transferredProcessing12.GetError())
+
+	processingRegistry12Processing := processingRegistry1.Get(processingResponse.ProcessingID.String())
+	suite.NotNil(processingRegistry1Processing)
+	suite.Equal(transferredProcessing12.GetId(), processingRegistry12Processing.GetId())
+
+	completedProcessing21 := <-notificationChannel2
+	suite.Equal(completedProcessing21.GetId(), processingResponse.ProcessingID)
+	suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing21.GetStatus())
+	processingRegistry2Processing1 := processingRegistry2.Get(processingResponse.ProcessingID.String())
+	suite.NotNil(processingRegistry2Processing1)
+	suite.Equal(completedProcessing21.GetId(), processingRegistry2Processing1.GetId())
+}
+
+func (suite *FunctionalTestSuite) TestTwoWorkersResumeProcessing2Times() {
+	// Given
+	imageWidth, imageHeight := 100, 100
+	testPipelineSlug := "test-two-http-blocks"
+	firstWorkerDisabledBlocks := []string{"image_add_text", "image_blur"}
+	secondWorkerDisabledBlocks := []string{"http_request", "image_resize"}
+	imageContent := suite.GetPNGImageBuffer(imageWidth, imageHeight)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "image/png")
+		w.WriteHeader(http.StatusOK)
+		w.Write(imageContent.Bytes())
+	}))
+	suite.httpTestServers = append(suite.httpTestServers, server)
+	imageUrl := server.URL
+
+	pipeline := suite.GetTestPipeline(
+		fmt.Sprintf(`{
+			"slug": "%s",
+			"title": "Test two Blocks",
+			"description": "First Block downloads image and second block adds text to it",
+			"blocks": [
+				{
+					"id": "http_request",
+					"slug": "test-block-first-slug",
+					"description": "Download Image from provided URL",
+					"input": {
+						"url": "%s"
+					}
+				},
+				{
+					"id": "image_add_text",
+					"slug": "test-block-second-slug",
+					"description": "Add text to downloaded image",
+					"input_config": {
+						"property": {
+							"image": {
+								"origin": "test-block-first-slug"
+							}
+						}
+					},
+					"input": {
+						"text": "Hello, world!",
+						"font_size": 50,
+						"font_color": "#000000"
+					}
+				},
+				{
+					"id": "image_resize",
+					"slug": "test-block-third-slug",
+					"description": "Resize image with text to 50x50",
+					"input_config": {
+						"property": {
+							"image": {
+								"origin": "test-block-second-slug"
+							}
+						}
+					},
+					"input": {
+						"width": 50,
+						"height": 50
+					}
+				},
+				{
+					"id": "image_blur",
+					"slug": "test-block-fourth-slug",
+					"description": "Blur image with sigma 1.0",
+					"input_config": {
+						"property": {
+							"image": {
+								"origin": "test-block-third-slug"
+							}
+						}
+					},
+					"input": {
+						"sigma": 1.0
+					}
+				}
+			]
+		}`,
+			testPipelineSlug,
+			imageUrl,
+		),
+	)
+
+	server1, worker1, err := suite.NewWorkerServerWithHandlers(true)
+	suite.Nil(err)
+	server1.GetPipelineRegistry().Add(pipeline)
+	server2, worker2, err := suite.NewWorkerServerWithHandlers(true)
+	suite.Nil(err)
+	server2.GetPipelineRegistry().Add(pipeline)
+
+	workerRegistry1 := server1.GetWorkerRegistry()
+	workerRegistry2 := server2.GetWorkerRegistry()
+	workerRegistry1.Add(worker2)
+	workerRegistry2.Add(worker1)
+
+	notificationChannel1 := make(chan interfaces.Processing)
+	notificationChannel2 := make(chan interfaces.Processing)
+
+	processingRegistry1 := server1.GetProcessingRegistry()
+	processingRegistry2 := server2.GetProcessingRegistry()
+
+	processingRegistry1.SetNotificationChannel(notificationChannel1)
+	processingRegistry2.SetNotificationChannel(notificationChannel2)
+
+	blockRegistry1 := server1.GetBlockRegistry()
+	blockRegistry2 := server2.GetBlockRegistry()
+
+	for _, blockId := range firstWorkerDisabledBlocks {
+		blockRegistry1.GetAvailableBlocks()[blockId].SetAvailable(false)
+	}
+	for _, blockId := range secondWorkerDisabledBlocks {
+		blockRegistry2.GetAvailableBlocks()[blockId].SetAvailable(false)
+	}
+
+	inputData := schemas.PipelineStartInputSchema{
+		Pipeline: schemas.PipelineInputSchema{
+			Slug: testPipelineSlug,
+		},
+		Block: schemas.BlockInputSchema{
+			Slug: "test-block-first-slug",
+			Input: map[string]interface{}{
+				"url": imageUrl,
+			},
+		},
+	}
+
+	// When
+	processingResponse, statusCode, errorResponse, err := suite.SendProcessingStartRequest(
+		server1,
+		inputData,
+		nil,
+	)
+
+	// Then
+	suite.Empty(errorResponse)
+	suite.Nil(err, errorResponse)
+	suite.Equal(http.StatusOK, statusCode, errorResponse)
+	suite.NotNil(processingResponse.ProcessingID)
+
+	completedProcessing11 := <-notificationChannel1
+	suite.Equal(completedProcessing11.GetId(), processingResponse.ProcessingID)
+	suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing11.GetStatus())
+	suite.Nil(completedProcessing11.GetError())
+
+	transferredProcessing12 := <-notificationChannel1
+	suite.Equal(transferredProcessing12.GetId(), processingResponse.ProcessingID)
+	suite.Equal(interfaces.ProcessingStatusTransferred, transferredProcessing12.GetStatus())
+	suite.Nil(transferredProcessing12.GetError())
+
+	completedProcessing22 := <-notificationChannel2
+	suite.Equal(completedProcessing22.GetId(), processingResponse.ProcessingID)
+	suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing22.GetStatus())
+
+	transferredProcessing23 := <-notificationChannel2
+	suite.Equal(transferredProcessing23.GetId(), processingResponse.ProcessingID)
+	suite.Equal(interfaces.ProcessingStatusTransferred, transferredProcessing23.GetStatus())
+
+	completedProcessing13 := <-notificationChannel1
+	suite.Equal(completedProcessing13.GetId(), processingResponse.ProcessingID)
+	suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing13.GetStatus())
+
+	transferredProcessing14 := <-notificationChannel1
+	suite.Equal(transferredProcessing14.GetId(), processingResponse.ProcessingID)
+	suite.Equal(interfaces.ProcessingStatusTransferred, transferredProcessing14.GetStatus())
+
+	completedProcessing24 := <-notificationChannel2
+	suite.Equal(completedProcessing24.GetId(), processingResponse.ProcessingID)
+	suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing24.GetStatus())
+}

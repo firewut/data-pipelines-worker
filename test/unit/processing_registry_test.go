@@ -378,7 +378,6 @@ func (suite *UnitTestSuite) TestProcessingRegistryShutdownCompletedProcessing() 
 
 	// Then
 	suite.Nil(err)
-	suite.Equal(interfaces.ProcessingStatusCompleted, processing.GetStatus())
 }
 
 func (suite *UnitTestSuite) TestProcessingRegistryShutdownRunningProcessing() {

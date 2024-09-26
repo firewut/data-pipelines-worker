@@ -68,6 +68,8 @@ func (br *BlockRegistry) DetectBlocks() {
 	httpBlock := blocks.NewBlockHTTP()
 	openAIBlock := blocks.NewBlockOpenAIRequestCompletion()
 	imageAddTextBlock := blocks.NewBlockImageAddText()
+	imageResizeBlock := blocks.NewBlockImageResize()
+	imageBlurBlock := blocks.NewBlockImageBlur()
 
 	br.blocksDetector = map[interfaces.Block]interfaces.BlockDetector{
 		httpBlock: blocks.NewDetectorHTTP(
@@ -80,6 +82,12 @@ func (br *BlockRegistry) DetectBlocks() {
 		),
 		imageAddTextBlock: blocks.NewDetectorImageAddText(
 			_config.Blocks[imageAddTextBlock.GetId()].Detector,
+		),
+		imageResizeBlock: blocks.NewDetectorImageResize(
+			_config.Blocks[imageResizeBlock.GetId()].Detector,
+		),
+		imageBlurBlock: blocks.NewDetectorImageBlur(
+			_config.Blocks[imageBlurBlock.GetId()].Detector,
 		),
 	}
 

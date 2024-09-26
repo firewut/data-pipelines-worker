@@ -17,7 +17,7 @@ type DetectorBlockImageBlur struct {
 	BlockDetectorParent
 }
 
-func NewDetectorBlockImageBlur(
+func NewDetectorImageBlur(
 	detectorConfig config.BlockConfigDetector,
 ) *DetectorBlockImageBlur {
 	return &DetectorBlockImageBlur{
@@ -86,12 +86,7 @@ func (p *ProcessorImageBlur) Process(
 	}
 	config.GetLogger().Debugf("Image format: %s", format)
 
-	sigma, err := helpers.GetValue[float64](_data, "sigma")
-	if err != nil {
-		return nil, err
-	}
-
-	blurredImage := imaging.Blur(img, sigma)
+	blurredImage := imaging.Blur(img, blockConfig.Sigma)
 
 	err = png.Encode(output, blurredImage)
 	if err != nil {
