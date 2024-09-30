@@ -80,7 +80,7 @@ func NewServer() *Server {
 		pipelineRegistry:   pipelineRegistry,
 		blockRegistry:      blockRegistry,
 		processingRegistry: processingRegistry,
-		Ready:              make(chan struct{}),
+		Ready:              make(chan struct{}, 1),
 	}
 	worker.echo.Use(middleware.Logger())
 	worker.echo.Use(middleware.Recover())

@@ -307,6 +307,15 @@ func (wr *WorkerRegistry) ResumeProcessingAtWorker(
 	inputData schemas.PipelineStartInputSchema,
 ) error {
 	var pipelineResumeOutput schemas.PipelineResumeOutputSchema
+
+	config.GetLogger().Info(
+		"Resuming processing the Pipeline %s block %s [%s] at Worker %s",
+		pipelineSlug,
+		inputData.Block.Slug,
+		processingId,
+		worker.GetAPIEndpoint(),
+	)
+
 	if _, err := wr.QueryWorkerAPI(
 		worker,
 		fmt.Sprintf(
