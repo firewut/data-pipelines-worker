@@ -15,7 +15,7 @@ type BlockDetector interface {
 }
 
 type BlockProcessor interface {
-	Process(context.Context, Block, ProcessableBlockData) (*bytes.Buffer, error)
+	Process(context.Context, Block, ProcessableBlockData) (*bytes.Buffer, bool, error)
 }
 
 type Block interface {
@@ -36,7 +36,7 @@ type Block interface {
 	SetProcessor(BlockProcessor)
 	GetProcessor() BlockProcessor
 
-	Process(context.Context, BlockProcessor, ProcessableBlockData) (*bytes.Buffer, error)
+	Process(context.Context, BlockProcessor, ProcessableBlockData) (*bytes.Buffer, bool, error)
 }
 
 type ProcessableBlockData interface {

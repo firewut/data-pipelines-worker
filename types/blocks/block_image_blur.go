@@ -13,19 +13,19 @@ import (
 	"data-pipelines-worker/types/interfaces"
 )
 
-type DetectorBlockImageBlur struct {
+type DetectorImageBlur struct {
 	BlockDetectorParent
 }
 
 func NewDetectorImageBlur(
 	detectorConfig config.BlockConfigDetector,
-) *DetectorBlockImageBlur {
-	return &DetectorBlockImageBlur{
+) *DetectorImageBlur {
+	return &DetectorImageBlur{
 		BlockDetectorParent: NewDetectorParent(detectorConfig),
 	}
 }
 
-func (d *DetectorBlockImageBlur) Detect() bool {
+func (d *DetectorImageBlur) Detect() bool {
 	d.Lock()
 	defer d.Unlock()
 
@@ -43,15 +43,14 @@ func (p *ProcessorImageBlur) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, error) {
+) (*bytes.Buffer, bool, error) {
 	var (
 		output      *bytes.Buffer         = &bytes.Buffer{}
 		blockConfig *BlockImageBlurConfig = &BlockImageBlurConfig{}
 	)
 	_data := data.GetInputData().(map[string]interface{})
 
-	logger := config.GetLogger()
-	logger.Debugf("Starting HTTP request for block %s", data.GetSlug())
+	// logger := config.GetLogger()
 
 	// Default value from YAML config
 	defaultBlockConfig := &BlockImageBlurConfig{}
@@ -76,13 +75,13 @@ func (p *ProcessorImageBlur) Process(
 	// }
 	imageBytes, err := helpers.GetValue[[]byte](_data, "image")
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	imgBuf := bytes.NewBuffer(imageBytes)
 	img, format, err := image.Decode(imgBuf)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	config.GetLogger().Debugf("Image format: %s", format)
 
@@ -93,7 +92,7 @@ func (p *ProcessorImageBlur) Process(
 		config.GetLogger().Fatalf("Failed to encode PNG image: %v", err)
 	}
 
-	return output, nil
+	return output, false, nil
 }
 
 type BlockImageBlurConfig struct {
@@ -136,7 +135,7 @@ func NewBlockImageBlur() *BlockImageBlur {
 						"required": ["image"]
 					},
 					"output": {
-						"description": "Blurd image",
+						"description": "Blurred image",
 						"type": ["string", "null"],
 						"format": "file"
 					}

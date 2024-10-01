@@ -547,7 +547,7 @@ func (suite *FunctionalTestSuite) TestTwoWorkersResumeProcessing2Times() {
 	pipeline := suite.GetTestPipeline(
 		fmt.Sprintf(`{
 			"slug": "%s",
-			"title": "Test two Blocks",
+			"title": "Test four Blocks",
 			"description": "First Block downloads image and second block adds text to it",
 			"blocks": [
 				{

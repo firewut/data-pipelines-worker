@@ -312,15 +312,17 @@ func (suite *UnitTestSuite) TestProcessingRegistryStartProcessingTwoBlocks() {
 
 	// When
 	go func() {
-		processing1Output, err := registry.StartProcessing(processing1)
+		processing1Output, stop, err := registry.StartProcessing(processing1)
 		suite.Nil(err)
+		suite.False(stop)
 		suite.NotEmpty(processing1Output)
 	}()
 	completedProcessing1 := <-notificationChannel
 
 	go func() {
-		processing2Output, err := registry.StartProcessing(processing2)
+		processing2Output, stop, err := registry.StartProcessing(processing2)
 		suite.Nil(err)
+		suite.False(stop)
 		suite.NotEmpty(processing2Output)
 	}()
 	completedProcessing2 := <-notificationChannel

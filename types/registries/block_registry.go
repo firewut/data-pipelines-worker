@@ -70,6 +70,7 @@ func (br *BlockRegistry) DetectBlocks() {
 	imageAddTextBlock := blocks.NewBlockImageAddText()
 	imageResizeBlock := blocks.NewBlockImageResize()
 	imageBlurBlock := blocks.NewBlockImageBlur()
+	stopPipelineBlock := blocks.NewBlockStopPipeline()
 
 	br.blocksDetector = map[interfaces.Block]interfaces.BlockDetector{
 		httpBlock: blocks.NewDetectorHTTP(
@@ -88,6 +89,9 @@ func (br *BlockRegistry) DetectBlocks() {
 		),
 		imageBlurBlock: blocks.NewDetectorImageBlur(
 			_config.Blocks[imageBlurBlock.GetId()].Detector,
+		),
+		stopPipelineBlock: blocks.NewDetectorStopPipeline(
+			_config.Blocks[stopPipelineBlock.GetId()].Detector,
 		),
 	}
 

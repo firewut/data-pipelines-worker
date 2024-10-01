@@ -58,7 +58,7 @@ func (pr *ProcessingRegistry) processCompleted() {
 	logger := config.GetLogger()
 	for processing := range pr.processingCompletedChannel {
 		logger.Debugf(
-			"Processing completed: %s %s\n",
+			"Processing completed: %s %s",
 			processing.GetId(),
 			processing.GetInstanceId(),
 		)
@@ -162,6 +162,7 @@ func (pr *ProcessingRegistry) Shutdown(ctx context.Context) error {
 
 func (pr *ProcessingRegistry) StartProcessing(processing interfaces.Processing) (
 	interfaces.ProcessingOutput,
+	bool,
 	error,
 ) {
 	pr.Add(processing)

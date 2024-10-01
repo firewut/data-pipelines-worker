@@ -51,12 +51,13 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessIncorrectInput() {
 	}
 
 	// Process the block
-	result, err := block.Process(
+	result, stop, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorHTTP(),
 		data,
 	)
 	suite.Empty(result)
+	suite.False(stop)
 	suite.NotNil(err)
 	suite.Contains(
 		err.Error(),
@@ -79,13 +80,14 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessSuccess() {
 	}
 
 	// Process the block
-	result, err := block.Process(
+	result, stop, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorHTTP(),
 		data,
 	)
 
 	suite.NotNil(result)
+	suite.False(stop)
 	suite.Nil(err)
 	suite.Equal("Hello, world!\n", result.String())
 }
@@ -111,7 +113,7 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessCancel() {
 	var err error
 	go func() {
 		defer wg.Done()
-		_, err = block.Process(
+		_, _, err = block.Process(
 			ctx,
 			blocks.NewProcessorHTTP(),
 			data,
@@ -145,12 +147,13 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessError() {
 	}
 
 	// Process the block
-	result, err := block.Process(
+	result, stop, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorHTTP(),
 		data,
 	)
 	suite.NotNil(result)
+	suite.False(stop)
 	suite.NotNil(err)
 	suite.Contains(result.String(), "Server panic")
 	suite.Contains(

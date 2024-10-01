@@ -120,6 +120,7 @@ func (p *PipelineData) Process(
 	inputData schemas.PipelineStartInputSchema,
 	resultStorages []interfaces.Storage,
 ) (uuid.UUID, error) {
+	logger := config.GetLogger()
 	processingId := inputData.GetProcessingID()
 
 	// Check if the block exists in the pipeline
@@ -169,7 +170,6 @@ func (p *PipelineData) Process(
 				inputConfigValue, err = blockData.GetInputConfigData(
 					pipelineBlockDataRegistry.GetAll(),
 				)
-
 				if err != nil {
 					tmpProcessing.Stop(interfaces.ProcessingStatusFailed, err)
 					return
@@ -230,11 +230,33 @@ func (p *PipelineData) Process(
 				return
 			}
 
+			logger.Debugf(
+				"Starting processing data for block %s [%s]",
+				block.GetId(),
+				blockData.GetSlug(),
+			)
+
 			for blockInputIndex, blockInput := range blockInputData {
 				blockData.SetInputData(blockInput)
 				processing := NewProcessing(processingId, p, block, blockData)
-				processingResult, err := processingRegistry.StartProcessing(processing)
+				processingResult, stopProcessing, err := processingRegistry.StartProcessing(processing)
 				if err != nil {
+					logger.Errorf(
+						"Error processing data for block %s [%s]. Error: %s",
+						block.GetId(),
+						blockData.GetSlug(),
+						err,
+					)
+					return
+				}
+
+				if stopProcessing {
+					logger.Infof(
+						"Pipeline stopped by block %s [%s]",
+						block.GetId(),
+						blockData.GetSlug(),
+					)
+					processing.Stop(interfaces.ProcessingStatusStopped, nil)
 					return
 				}
 
@@ -252,7 +274,7 @@ func (p *PipelineData) Process(
 
 				for _, saveOutputResult := range saveOutputResults {
 					if saveOutputResult.Error != nil {
-						config.GetLogger().Errorf(
+						logger.Errorf(
 							"Error saving output for block %s to storage %s: %s",
 							tmpProcessing.GetData().GetSlug(),
 							saveOutputResult.StorageLocation.GetStorageName(),

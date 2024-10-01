@@ -7,7 +7,6 @@ import (
 
 	gjm "github.com/firewut/go-json-map"
 	openai "github.com/sashabaranov/go-openai"
-	"github.com/xeipuuv/gojsonschema"
 
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/interfaces"
@@ -26,33 +25,19 @@ func (p *ProcessorOpenAIRequestCompletion) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, error) {
+) (*bytes.Buffer, bool, error) {
 	var output *bytes.Buffer
 
 	config := config.GetConfig()
 
-	pipelineSchemaLoader := gojsonschema.NewRawLoader(data)
-	validationResult, err := block.GetSchema().Validate(pipelineSchemaLoader)
-
-	if err != nil {
-		panic(err)
-	}
-	if !validationResult.Valid() {
-		errStr := fmt.Sprintf("Pipeline schema is invalid for pipeline: %s", data.GetStringRepresentation())
-		for _, err := range validationResult.Errors() {
-			errStr += fmt.Sprintf("\n- %s", err)
-		}
-		panic(errStr)
-	}
-
 	_data := data.GetData().(map[string]interface{})
 	model_value, err := gjm.GetProperty(_data, "input.model")
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	prompt_value, err := gjm.GetProperty(_data, "input.prompt")
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	client := openai.NewClient(config.OpenAI.Token)
@@ -71,12 +56,12 @@ func (p *ProcessorOpenAIRequestCompletion) Process(
 
 	if err != nil {
 		fmt.Printf("ChatCompletion error: %v\n", err)
-		return output, err
+		return output, false, err
 	}
 
 	fmt.Println(resp.Choices[0].Message.Content)
 
-	return output, nil
+	return output, false, nil
 }
 
 type BlockOpenAIRequestCompletion struct {

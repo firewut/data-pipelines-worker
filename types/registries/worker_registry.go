@@ -308,7 +308,7 @@ func (wr *WorkerRegistry) ResumeProcessingAtWorker(
 ) error {
 	var pipelineResumeOutput schemas.PipelineResumeOutputSchema
 
-	config.GetLogger().Info(
+	config.GetLogger().Infof(
 		"Resuming processing the Pipeline %s block %s [%s] at Worker %s",
 		pipelineSlug,
 		inputData.Block.Slug,

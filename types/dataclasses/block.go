@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/oliveagle/jsonpath"
@@ -251,10 +252,8 @@ func (b *BlockData) GetInputConfigData(
 
 								// jsonPath same level as `origin`
 								if jsonPath, ok := property_config.(map[string]interface{})["jsonPath"].(string); ok {
-									var data interface{}
-									err := json.Unmarshal(resultValue.Bytes(), &data)
+									data, err := handleResultValue(resultValue.Bytes())
 									if err != nil {
-										fmt.Println("Error unmarshaling JSON:", err)
 										return nil, err
 									}
 
@@ -340,4 +339,23 @@ func mergeMaps(maps []map[string]interface{}) []map[string]interface{} {
 	}
 
 	return results
+}
+
+func handleResultValue(resultValue []byte) (interface{}, error) {
+	// Convert to string for further checks
+	strValue := string(resultValue)
+
+	// Check if the resultValue is a potential JSON (starts with '{', '[', '"', etc.)
+	strValue = strings.TrimSpace(strValue) // Remove surrounding whitespaces
+	if len(strValue) > 0 && (strValue[0] == '{' || strValue[0] == '[' || strValue[0] == '"') {
+		var data interface{}
+		// Attempt to unmarshal as JSON
+		err := json.Unmarshal(resultValue, &data)
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshaling JSON: %w", err)
+		}
+		return data, nil
+	}
+
+	return strValue, nil
 }

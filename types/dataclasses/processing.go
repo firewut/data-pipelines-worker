@@ -24,8 +24,9 @@ type Processing struct {
 	processor interfaces.BlockProcessor
 	data      interfaces.ProcessableBlockData
 
-	err                         error
 	output                      *ProcessingOutput
+	stop                        bool
+	err                         error
 	registryNotificationChannel chan interfaces.Processing
 	startTimestamp              int64
 	endTimestamp                int64
@@ -138,35 +139,40 @@ func (p *Processing) SetRegistryNotificationChannel(channel chan interfaces.Proc
 	p.registryNotificationChannel = channel
 }
 
-func (p *Processing) Start() (interfaces.ProcessingOutput, error) {
+func (p *Processing) Start() (interfaces.ProcessingOutput, bool, error) {
 	if p.GetStatus() != interfaces.ProcessingStatusPending {
 		p.sendResult(false)
-		return nil, fmt.Errorf("processing with id %s is not in pending state", p.GetId().String())
+		return nil, false, fmt.Errorf("processing with id %s is not in pending state", p.GetId().String())
 	}
 	p.SetStatus(interfaces.ProcessingStatusRunning)
 
 	// Call Process and pass the processing context
-	result, err := p.block.Process(p.ctx, p.processor, p.data)
+	result, stop, err := p.block.Process(p.ctx, p.processor, p.data)
 	if err != nil {
 		p.SetStatus(interfaces.ProcessingStatusFailed)
 		if err == context.Canceled {
 			// Handle cancellation specifically
 			p.sendResult(true)
-			return nil, fmt.Errorf("processing with id %s was cancelled", p.GetId().String())
+			return nil, false, fmt.Errorf("processing with id %s was cancelled", p.GetId().String())
 		}
 
 		p.sendResult(false)
-		return nil, err
+		return nil, false, err
 	}
 
 	p.Lock()
+
+	p.output = NewProcessingOutput(p.data.GetSlug(), stop, result)
+	p.stop = stop
 	p.status = interfaces.ProcessingStatusCompleted
-	p.output = NewProcessingOutput(p.data.GetSlug(), result)
+	if stop {
+		p.status = interfaces.ProcessingStatusStopped
+	}
 
 	p.sendResult(false)
 	p.Unlock()
 
-	return p.output, nil
+	return p.output, stop, nil
 }
 
 func (p *Processing) Stop(status interfaces.ProcessingStatus, err error) {
@@ -225,18 +231,24 @@ func (p *Processing) GetProcessingTime() time.Duration {
 
 type ProcessingOutput struct {
 	blockSlug string
+	stop      bool
 	data      *bytes.Buffer
 }
 
-func NewProcessingOutput(blockSlug string, data *bytes.Buffer) *ProcessingOutput {
+func NewProcessingOutput(blockSlug string, stop bool, data *bytes.Buffer) *ProcessingOutput {
 	return &ProcessingOutput{
 		blockSlug: blockSlug,
+		stop:      stop,
 		data:      data,
 	}
 }
 
 func (po *ProcessingOutput) GetId() string {
 	return po.blockSlug
+}
+
+func (po *ProcessingOutput) GetStop() bool {
+	return po.stop
 }
 
 func (po *ProcessingOutput) GetValue() *bytes.Buffer {

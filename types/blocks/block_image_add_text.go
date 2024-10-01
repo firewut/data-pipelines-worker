@@ -46,15 +46,14 @@ func (p *ProcessorImageAddText) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, error) {
+) (*bytes.Buffer, bool, error) {
 	var (
 		output      *bytes.Buffer            = &bytes.Buffer{}
 		blockConfig *BlockImageAddTextConfig = &BlockImageAddTextConfig{}
 	)
 	_data := data.GetInputData().(map[string]interface{})
 
-	logger := config.GetLogger()
-	logger.Debugf("Starting HTTP request for block %s", data.GetSlug())
+	// logger := config.GetLogger()
 
 	// Default value from YAML config
 	defaultBlockConfig := &BlockImageAddTextConfig{}
@@ -69,7 +68,7 @@ func (p *ProcessorImageAddText) Process(
 
 	text, err := helpers.GetValue[string](_data, "text")
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	// var imageBytes []byte
@@ -80,13 +79,13 @@ func (p *ProcessorImageAddText) Process(
 	// }
 	imageBytes, err := helpers.GetValue[[]byte](_data, "image")
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	imgBuf := bytes.NewBuffer(imageBytes)
 	img, format, err := image.Decode(imgBuf)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	config.GetLogger().Debugf("Image format: %s", format)
 
@@ -97,12 +96,12 @@ func (p *ProcessorImageAddText) Process(
 	dc := gg.NewContextForImage(img)
 	fontBytes, err := config.LoadFont(blockConfig.Font)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	fontParsed, err := opentype.Parse(fontBytes)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	fontFace, err := opentype.NewFace(fontParsed, &opentype.FaceOptions{
@@ -111,7 +110,7 @@ func (p *ProcessorImageAddText) Process(
 		Hinting: font.HintingFull,
 	})
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	defer fontFace.Close()
 
@@ -156,7 +155,7 @@ func (p *ProcessorImageAddText) Process(
 		config.GetLogger().Fatalf("Failed to encode PNG image: %v", err)
 	}
 
-	return output, nil
+	return output, false, nil
 }
 
 type BlockImageAddTextConfig struct {

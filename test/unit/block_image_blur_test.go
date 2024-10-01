@@ -59,7 +59,7 @@ func (suite *UnitTestSuite) TestBlockImageBlurProcessIncorrectInput() {
 	}
 
 	// When
-	result, err := block.Process(
+	result, stop, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorImageBlur(),
 		data,
@@ -67,6 +67,7 @@ func (suite *UnitTestSuite) TestBlockImageBlurProcessIncorrectInput() {
 
 	// Then
 	suite.Empty(result)
+	suite.False(stop)
 	suite.NotNil(err)
 }
 
@@ -100,7 +101,7 @@ func (suite *UnitTestSuite) TestBlockImageBlurProcessSuccess() {
 		}
 
 		// When
-		result, err := block.Process(
+		result, stop, err := block.Process(
 			suite.GetContextWithcancel(),
 			blocks.NewProcessorImageBlur(),
 			data,
@@ -108,6 +109,7 @@ func (suite *UnitTestSuite) TestBlockImageBlurProcessSuccess() {
 
 		// Then
 		suite.NotNil(result)
+		suite.False(stop)
 		suite.Nil(err)
 
 		image, err := png.Decode(bytes.NewReader(result.Bytes()))

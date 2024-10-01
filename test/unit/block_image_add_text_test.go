@@ -60,7 +60,7 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessIncorrectInput() {
 	}
 
 	// When
-	result, err := block.Process(
+	result, stop, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorImageAddText(),
 		data,
@@ -68,6 +68,7 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessIncorrectInput() {
 
 	// Then
 	suite.Empty(result)
+	suite.False(stop)
 	suite.NotNil(err)
 }
 
@@ -136,7 +137,7 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessSuccess() {
 		}
 
 		// When
-		result, err := block.Process(
+		result, stop, err := block.Process(
 			suite.GetContextWithcancel(),
 			blocks.NewProcessorImageAddText(),
 			data,
@@ -144,6 +145,7 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessSuccess() {
 
 		// Then
 		suite.NotNil(result)
+		suite.False(stop)
 		suite.Nil(err)
 
 		image, err := png.Decode(bytes.NewReader(result.Bytes()))

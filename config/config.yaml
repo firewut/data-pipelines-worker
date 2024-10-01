@@ -86,3 +86,13 @@ blocks:
       policy: "none"
     config:
       sigma: 1.5
+  
+  stop_pipeline:
+    detector:
+      check_interval: 1m
+      conditions:
+        libraries: []
+    reliability:
+      policy: "none"
+    config:
+      stop: false

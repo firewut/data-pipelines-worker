@@ -17,6 +17,7 @@ const (
 	ProcessingStatusCompleted
 	ProcessingStatusFailed
 	ProcessingStatusTransferred
+	ProcessingStatusStopped
 )
 
 type Processing interface {
@@ -34,7 +35,7 @@ type Processing interface {
 
 	SetRegistryNotificationChannel(chan Processing)
 
-	Start() (ProcessingOutput, error)
+	Start() (ProcessingOutput, bool, error)
 	Shutdown(context.Context) error
 
 	// Stop unstarted processing
@@ -43,5 +44,6 @@ type Processing interface {
 
 type ProcessingOutput interface {
 	GetId() string
+	GetStop() bool
 	GetValue() *bytes.Buffer
 }

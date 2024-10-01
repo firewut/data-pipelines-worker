@@ -112,6 +112,406 @@ func (suite *UnitTestSuite) TestPipelineProcess() {
 	suite.Equal(mockedResponse, processingOutput.GetValue().String())
 }
 
+func (suite *UnitTestSuite) TestPipelineProcessStopPipelineTrue() {
+	// Given
+	mockedResponse := `{"action": "declined"}`
+	successUrl := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK, 0)
+
+	pipeline := suite.GetTestPipeline(
+		fmt.Sprintf(
+			`{
+				"slug": "test-pipeline-slug-two-blocks",
+				"title": "Test Pipeline",
+				"description": "Test Pipeline Description",
+				"blocks": [
+					{
+						"id": "http_request",
+						"slug": "test-block-first-slug",
+						"description": "Request Local Resourse",
+						"input": {
+							"url": "%s"
+						}
+					},
+					{
+						"id": "stop_pipeline",
+						"slug": "stop-pipeline-if-declined",
+						"description": "Stop Pipeline if Declined",
+						"input_config": {
+							"property": {
+								"data": {
+									"origin": "test-block-first-slug",
+									"jsonPath": "$.action"
+								}
+							}
+						},
+						"input": {
+							"condition": "==",
+							"value": "declined"
+						}
+					}
+				]
+			}`,
+			successUrl,
+		),
+	)
+	pipeline, processingData, pipelineRegistry := suite.RegisterTestPipelineAndInputForProcessing(
+		pipeline,
+		"test-pipeline-slug-two-blocks",
+		"test-block-first-slug",
+		nil,
+	)
+	mockStorage := suite.NewMockLocalStorage(1)
+	pipelineRegistry.SetPipelineResultStorages(
+		[]interfaces.Storage{
+			mockStorage,
+		},
+	)
+	notificationChannel := make(chan interfaces.Processing)
+	processingRegistry := suite.GetProcessingRegistry()
+	processingRegistry.SetNotificationChannel(notificationChannel)
+
+	// When
+	processingId, err := pipeline.Process(
+		suite.GetWorkerRegistry(),
+		suite.GetBlockRegistry(),
+		suite.GetProcessingRegistry(),
+		processingData,
+		pipelineRegistry.GetPipelineResultStorages(),
+	)
+
+	// Then
+	suite.Nil(err)
+	suite.NotEmpty(processingId)
+
+	// Wait for Notifications
+	processing1 := <-notificationChannel
+	suite.NotNil(processing1)
+	suite.Equal(processingId, processing1.GetId())
+	suite.Equal(interfaces.ProcessingStatusCompleted, processing1.GetStatus())
+
+	processing1Output := processing1.GetOutput()
+	suite.NotNil(processing1Output)
+	suite.Equal(mockedResponse, processing1Output.GetValue().String())
+
+	processing2 := <-notificationChannel
+	suite.NotNil(processing2)
+	suite.Equal(processingId, processing2.GetId())
+	suite.Equal(interfaces.ProcessingStatusStopped, processing2.GetStatus())
+
+	processing2Output := processing2.GetOutput()
+	suite.NotNil(processing2Output)
+	suite.True(processing2Output.GetStop())
+}
+
+func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalse() {
+	// Given
+	mockedResponse := `{"action": "accepted"}`
+	successUrl := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK, 0)
+
+	pipeline := suite.GetTestPipeline(
+		fmt.Sprintf(
+			`{
+				"slug": "test-pipeline-slug-two-blocks",
+				"title": "Test Pipeline",
+				"description": "Test Pipeline Description",
+				"blocks": [
+					{
+						"id": "http_request",
+						"slug": "test-block-first-slug",
+						"description": "Request Local Resourse",
+						"input": {
+							"url": "%s"
+						}
+					},
+					{
+						"id": "stop_pipeline",
+						"slug": "stop-pipeline-if-declined",
+						"description": "Stop Pipeline if Declined",
+						"input_config": {
+							"property": {
+								"data": {
+									"origin": "test-block-first-slug",
+									"jsonPath": "$.action"
+								}
+							}
+						},
+						"input": {
+							"condition": "==",
+							"value": "declined"
+						}
+					}
+				]
+			}`,
+			successUrl,
+		),
+	)
+	pipeline, processingData, pipelineRegistry := suite.RegisterTestPipelineAndInputForProcessing(
+		pipeline,
+		"test-pipeline-slug-two-blocks",
+		"test-block-first-slug",
+		nil,
+	)
+	mockStorage := suite.NewMockLocalStorage(2)
+	pipelineRegistry.SetPipelineResultStorages(
+		[]interfaces.Storage{
+			mockStorage,
+		},
+	)
+	notificationChannel := make(chan interfaces.Processing)
+	processingRegistry := suite.GetProcessingRegistry()
+	processingRegistry.SetNotificationChannel(notificationChannel)
+
+	// When
+	processingId, err := pipeline.Process(
+		suite.GetWorkerRegistry(),
+		suite.GetBlockRegistry(),
+		suite.GetProcessingRegistry(),
+		processingData,
+		pipelineRegistry.GetPipelineResultStorages(),
+	)
+
+	// Then
+	suite.Nil(err)
+	suite.NotEmpty(processingId)
+
+	// Wait for Notifications
+	processing1 := <-notificationChannel
+	suite.NotNil(processing1)
+	suite.Equal(processingId, processing1.GetId())
+	suite.Equal(interfaces.ProcessingStatusCompleted, processing1.GetStatus())
+
+	processing1Output := processing1.GetOutput()
+	suite.NotNil(processing1Output)
+	suite.Equal(mockedResponse, processing1Output.GetValue().String())
+
+	processing2 := <-notificationChannel
+	suite.NotNil(processing2)
+	suite.Equal(processingId, processing2.GetId())
+	suite.Equal(interfaces.ProcessingStatusCompleted, processing2.GetStatus())
+
+	processing2Output := processing2.GetOutput()
+	suite.NotNil(processing2Output)
+	suite.False(processing2Output.GetStop())
+}
+
+func (suite *UnitTestSuite) TestPipelineProcessStopPipelineTrueThreeBlocks() {
+	// Given
+	mockedResponse := `{"action": "accepted"}`
+	thirdBlockInput := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK, 0)
+	firstBlockInput := suite.GetMockHTTPServerURL(thirdBlockInput, http.StatusOK, 0)
+
+	pipeline := suite.GetTestPipeline(
+		fmt.Sprintf(
+			`{
+				"slug": "test-pipeline-slug-three-blocks",
+				"title": "Test Pipeline",
+				"description": "Test Pipeline Description",
+				"blocks": [
+					{
+						"id": "http_request",
+						"slug": "test-block-first-slug",
+						"description": "Request Local Resourse",
+						"input": {
+							"url": "%s"
+						}
+					},
+					{
+						"id": "stop_pipeline",
+						"slug": "stop-pipeline-if-declined",
+						"description": "Stop Pipeline if Declined",
+						"input_config": {
+							"property": {
+								"data": {
+									"origin": "test-block-first-slug",
+									"jsonPath": "$"
+								}
+							}
+						},
+						"input": {
+							"condition": "==",
+							"value": "%s"
+						}
+					},
+					{
+						"id": "http_request",
+						"slug": "test-block-third-slug",
+						"description": "Request Result from First Block",
+						"input_config": {
+							"property": {
+								"url": {
+									"origin": "test-block-first-slug"
+								}
+							}
+						}
+					}
+				]
+			}`,
+			firstBlockInput,
+			thirdBlockInput,
+		),
+	)
+	pipeline, processingData, pipelineRegistry := suite.RegisterTestPipelineAndInputForProcessing(
+		pipeline,
+		"test-pipeline-slug-three-blocks",
+		"test-block-first-slug",
+		nil,
+	)
+	mockStorage := suite.NewMockLocalStorage(3)
+	pipelineRegistry.SetPipelineResultStorages(
+		[]interfaces.Storage{
+			mockStorage,
+		},
+	)
+	notificationChannel := make(chan interfaces.Processing)
+	processingRegistry := suite.GetProcessingRegistry()
+	processingRegistry.SetNotificationChannel(notificationChannel)
+
+	// When
+	processingId, err := pipeline.Process(
+		suite.GetWorkerRegistry(),
+		suite.GetBlockRegistry(),
+		suite.GetProcessingRegistry(),
+		processingData,
+		pipelineRegistry.GetPipelineResultStorages(),
+	)
+
+	// Then
+	suite.Nil(err)
+	suite.NotEmpty(processingId)
+
+	// Wait for Notifications
+	processing1 := <-notificationChannel
+	suite.NotNil(processing1)
+	suite.Equal(processingId, processing1.GetId())
+	suite.Equal(interfaces.ProcessingStatusCompleted, processing1.GetStatus())
+
+	processing1Output := processing1.GetOutput()
+	suite.NotNil(processing1Output)
+	suite.Equal(thirdBlockInput, processing1Output.GetValue().String())
+
+	processing2 := <-notificationChannel
+	suite.NotNil(processing2)
+	suite.Equal(processingId, processing2.GetId())
+	suite.Equal(interfaces.ProcessingStatusStopped, processing2.GetStatus())
+
+	processing2Output := processing2.GetOutput()
+	suite.NotNil(processing2Output)
+	suite.True(processing2Output.GetStop())
+}
+func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalseThreeBlocks() {
+	// Given
+	mockedResponse := `{"action": "accepted"}`
+	thirdBlockInput := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK, 0)
+	firstBlockInput := suite.GetMockHTTPServerURL(thirdBlockInput, http.StatusOK, 0)
+
+	pipeline := suite.GetTestPipeline(
+		fmt.Sprintf(
+			`{
+				"slug": "test-pipeline-slug-three-blocks",
+				"title": "Test Pipeline",
+				"description": "Test Pipeline Description",
+				"blocks": [
+					{
+						"id": "http_request",
+						"slug": "test-block-first-slug",
+						"description": "Request Local Resourse",
+						"input": {
+							"url": "%s"
+						}
+					},
+					{
+						"id": "stop_pipeline",
+						"slug": "stop-pipeline-if-declined",
+						"description": "Stop Pipeline if Declined",
+						"input_config": {
+							"property": {
+								"data": {
+									"origin": "test-block-first-slug",
+									"jsonPath": "$"
+								}
+							}
+						},
+						"input": {
+							"condition": "!=",
+							"value": "%s"
+						}
+					},
+					{
+						"id": "http_request",
+						"slug": "test-block-third-slug",
+						"description": "Request Result from First Block",
+						"input_config": {
+							"property": {
+								"url": {
+									"origin": "test-block-first-slug"
+								}
+							}
+						}
+					}
+				]
+			}`,
+			firstBlockInput,
+			thirdBlockInput,
+		),
+	)
+	pipeline, processingData, pipelineRegistry := suite.RegisterTestPipelineAndInputForProcessing(
+		pipeline,
+		"test-pipeline-slug-three-blocks",
+		"test-block-first-slug",
+		nil,
+	)
+	mockStorage := suite.NewMockLocalStorage(3)
+	pipelineRegistry.SetPipelineResultStorages(
+		[]interfaces.Storage{
+			mockStorage,
+		},
+	)
+	notificationChannel := make(chan interfaces.Processing)
+	processingRegistry := suite.GetProcessingRegistry()
+	processingRegistry.SetNotificationChannel(notificationChannel)
+
+	// When
+	processingId, err := pipeline.Process(
+		suite.GetWorkerRegistry(),
+		suite.GetBlockRegistry(),
+		suite.GetProcessingRegistry(),
+		processingData,
+		pipelineRegistry.GetPipelineResultStorages(),
+	)
+
+	// Then
+	suite.Nil(err)
+	suite.NotEmpty(processingId)
+
+	// Wait for Notifications
+	processing1 := <-notificationChannel
+	suite.NotNil(processing1)
+	suite.Equal(processingId, processing1.GetId())
+	suite.Equal(interfaces.ProcessingStatusCompleted, processing1.GetStatus())
+
+	processing1Output := processing1.GetOutput()
+	suite.NotNil(processing1Output)
+	suite.Equal(thirdBlockInput, processing1Output.GetValue().String())
+
+	processing2 := <-notificationChannel
+	suite.NotNil(processing2)
+	suite.Equal(processingId, processing2.GetId())
+	suite.Equal(interfaces.ProcessingStatusCompleted, processing2.GetStatus())
+
+	processing2Output := processing2.GetOutput()
+	suite.NotNil(processing2Output)
+	suite.False(processing2Output.GetStop())
+
+	processing3 := <-notificationChannel
+	suite.NotNil(processing3)
+	suite.Equal(processingId, processing3.GetId())
+	suite.Equal(interfaces.ProcessingStatusCompleted, processing3.GetStatus())
+
+	processing3Output := processing3.GetOutput()
+	suite.NotNil(processing3Output)
+	suite.Equal(thirdBlockInput, processing1Output.GetValue().String())
+}
+
 func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
 	// Given
 	mockedSecondBlockResponse := fmt.Sprintf(

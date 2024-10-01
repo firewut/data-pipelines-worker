@@ -13,19 +13,19 @@ import (
 	"data-pipelines-worker/types/interfaces"
 )
 
-type DetectorBlockImageResize struct {
+type DetectorImageResize struct {
 	BlockDetectorParent
 }
 
 func NewDetectorImageResize(
 	detectorConfig config.BlockConfigDetector,
-) *DetectorBlockImageResize {
-	return &DetectorBlockImageResize{
+) *DetectorImageResize {
+	return &DetectorImageResize{
 		BlockDetectorParent: NewDetectorParent(detectorConfig),
 	}
 }
 
-func (d *DetectorBlockImageResize) Detect() bool {
+func (d *DetectorImageResize) Detect() bool {
 	d.Lock()
 	defer d.Unlock()
 
@@ -43,15 +43,14 @@ func (p *ProcessorImageResize) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, error) {
+) (*bytes.Buffer, bool, error) {
 	var (
 		output      *bytes.Buffer           = &bytes.Buffer{}
 		blockConfig *BlockImageResizeConfig = &BlockImageResizeConfig{}
 	)
 	_data := data.GetInputData().(map[string]interface{})
 
-	logger := config.GetLogger()
-	logger.Debugf("Starting HTTP request for block %s", data.GetSlug())
+	// logger := config.GetLogger()
 
 	// Default value from YAML config
 	defaultBlockConfig := &BlockImageResizeConfig{}
@@ -76,13 +75,13 @@ func (p *ProcessorImageResize) Process(
 	// }
 	imageBytes, err := helpers.GetValue[[]byte](_data, "image")
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	imgBuf := bytes.NewBuffer(imageBytes)
 	img, format, err := image.Decode(imgBuf)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	config.GetLogger().Debugf("Image format: %s", format)
 
@@ -93,7 +92,7 @@ func (p *ProcessorImageResize) Process(
 		config.GetLogger().Fatalf("Failed to encode PNG image: %v", err)
 	}
 
-	return output, nil
+	return output, false, nil
 }
 
 type BlockImageResizeConfig struct {

@@ -60,7 +60,7 @@ func (suite *UnitTestSuite) TestBlockImageResizeProcessIncorrectInput() {
 	}
 
 	// When
-	result, err := block.Process(
+	result, stop, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorImageResize(),
 		data,
@@ -68,6 +68,7 @@ func (suite *UnitTestSuite) TestBlockImageResizeProcessIncorrectInput() {
 
 	// Then
 	suite.Empty(result)
+	suite.False(stop)
 	suite.NotNil(err)
 }
 
@@ -111,7 +112,7 @@ func (suite *UnitTestSuite) TestBlockImageResizeProcessSuccess() {
 		}
 
 		// When
-		result, err := block.Process(
+		result, stop, err := block.Process(
 			suite.GetContextWithcancel(),
 			blocks.NewProcessorImageResize(),
 			data,
@@ -119,6 +120,7 @@ func (suite *UnitTestSuite) TestBlockImageResizeProcessSuccess() {
 
 		// Then
 		suite.NotNil(result)
+		suite.False(stop)
 		suite.Nil(err)
 
 		image, err := png.Decode(bytes.NewReader(result.Bytes()))
