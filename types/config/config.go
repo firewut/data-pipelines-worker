@@ -101,6 +101,7 @@ type OpenAIConfig struct {
 	sync.Mutex
 
 	CredentialsPath string `yaml:"openai_credentials_path" json:"-"`
+	EnvVarName      string `yaml:"env_var_name" json:"-"`
 	Token           string `yaml:"-" json:"-"`
 	Client          *openai.Client
 }
@@ -257,7 +258,16 @@ func NewConfig() Config {
 	}
 
 	openAIConfig := &OpenAIConfig{}
-	if config.OpenAI.CredentialsPath != "" {
+	if config.OpenAI.EnvVarName != "" {
+		openAIConfig.EnvVarName = config.OpenAI.EnvVarName
+		token := os.Getenv(config.OpenAI.EnvVarName)
+		if len(token) > 0 {
+			openAIConfig.Token = os.Getenv(config.OpenAI.EnvVarName)
+			openAIConfig.Client = openai.NewClient(openAIConfig.Token)
+		}
+	}
+
+	if openAIConfig.Client == nil && config.OpenAI.CredentialsPath != "" {
 		credentailsPath := config.OpenAI.CredentialsPath
 		file, err := os.ReadFile(credentailsPath)
 

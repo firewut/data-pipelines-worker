@@ -28,6 +28,7 @@ pipeline:
 
 openai:
   openai_credentials_path: "./openai_credentials.json"
+  env_var_name: "OPENAI_API_KEY"
 
 blocks:
   http_request:
