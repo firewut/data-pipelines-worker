@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/google/uuid"
+
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/interfaces"
-
-	"github.com/google/uuid"
 )
 
 var (
@@ -66,7 +66,7 @@ func (br *BlockRegistry) DetectBlocks() {
 	_config := config.GetConfig()
 
 	httpBlock := blocks.NewBlockHTTP()
-	openAIBlock := blocks.NewBlockOpenAIRequestCompletion()
+	openAIRequestCompletionBlock := blocks.NewBlockOpenAIRequestCompletion()
 	imageAddTextBlock := blocks.NewBlockImageAddText()
 	imageResizeBlock := blocks.NewBlockImageResize()
 	imageBlurBlock := blocks.NewBlockImageBlur()
@@ -77,9 +77,9 @@ func (br *BlockRegistry) DetectBlocks() {
 			&http.Client{},
 			_config.Blocks[httpBlock.GetId()].Detector,
 		),
-		openAIBlock: blocks.NewDetectorHTTP(
-			&http.Client{},
-			_config.Blocks[openAIBlock.GetId()].Detector,
+		openAIRequestCompletionBlock: blocks.NewDetectorOpenAI(
+			_config.OpenAI.GetClient(),
+			_config.Blocks[openAIRequestCompletionBlock.GetId()].Detector,
 		),
 		imageAddTextBlock: blocks.NewDetectorImageAddText(
 			_config.Blocks[imageAddTextBlock.GetId()].Detector,

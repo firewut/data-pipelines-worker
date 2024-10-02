@@ -51,6 +51,9 @@ blocks:
       max_retries: 5
       retry_delay: 1
       retry_codes: [500, 502, 503, 504]
+    config:
+      model: "gpt-4o"
+      prompt: "Hello ChatGPT, how are you?"
 
   image_add_text:
     detector:

@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	openai "github.com/sashabaranov/go-openai"
 	"github.com/xeipuuv/gojsonschema"
 	"gopkg.in/yaml.v2"
 )
@@ -22,13 +23,28 @@ var (
 	onceConfig sync.Once
 )
 
+func GetConfig(forceNewInstance ...bool) Config {
+	if len(forceNewInstance) > 0 && forceNewInstance[0] {
+		newInstance := NewConfig()
+		config = newInstance
+		onceConfig = sync.Once{}
+		return newInstance
+	}
+
+	onceConfig.Do(func() {
+		config = NewConfig()
+	})
+
+	return config
+}
+
 type Config struct {
 	Log           LogConfig      `yaml:"log" json:"-"`
 	HTTPAPIServer HTTPAPIServer  `yaml:"http_api_server" json:"-"`
 	DNSSD         DNSSD          `yaml:"dns_sd" json:"-"`
 	Storage       StorageConfig  `yaml:"storage" json:"-"`
 	Pipeline      PipelineConfig `yaml:"pipeline" json:"-"`
-	OpenAI        OpenAIConfig   `yaml:"openai" json:"-"`
+	OpenAI        *OpenAIConfig  `yaml:"openai" json:"-"`
 
 	Blocks map[string]BlockConfig `yaml:"blocks" json:"-"`
 }
@@ -82,8 +98,25 @@ type openAIToken struct {
 }
 
 type OpenAIConfig struct {
+	sync.Mutex
+
 	CredentialsPath string `yaml:"openai_credentials_path" json:"-"`
 	Token           string `yaml:"-" json:"-"`
+	Client          *openai.Client
+}
+
+func (o *OpenAIConfig) SetClient(client *openai.Client) {
+	o.Lock()
+	defer o.Unlock()
+
+	o.Client = client
+}
+
+func (o *OpenAIConfig) GetClient() *openai.Client {
+	o.Lock()
+	defer o.Unlock()
+
+	return o.Client
 }
 
 type BlockConfig struct {
@@ -223,6 +256,7 @@ func NewConfig() Config {
 		config.Pipeline = pipelineConfig
 	}
 
+	openAIConfig := &OpenAIConfig{}
 	if config.OpenAI.CredentialsPath != "" {
 		credentailsPath := config.OpenAI.CredentialsPath
 		file, err := os.ReadFile(credentailsPath)
@@ -239,9 +273,7 @@ func NewConfig() Config {
 			}
 		}
 
-		openAIConfig := OpenAIConfig{
-			CredentialsPath: config.OpenAI.CredentialsPath,
-		}
+		openAIConfig.CredentialsPath = config.OpenAI.CredentialsPath
 
 		token := openAIToken{}
 		if err = json.Unmarshal(file, &token); err != nil {
@@ -249,20 +281,14 @@ func NewConfig() Config {
 		}
 
 		openAIConfig.Token = token.Token
-		config.OpenAI = openAIConfig
+		openAIConfig.Client = openai.NewClient(token.Token)
 	}
+	config.OpenAI = openAIConfig
 
 	if httpAPIPort != nil {
 		config.HTTPAPIServer.Port = *httpAPIPort
 		config.DNSSD.ServicePort = *httpAPIPort
 	}
 
-	return config
-}
-
-func GetConfig() Config {
-	onceConfig.Do(func() {
-		config = NewConfig()
-	})
 	return config
 }

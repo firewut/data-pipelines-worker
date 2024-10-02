@@ -2,12 +2,13 @@ package unit_test
 
 import (
 	"bytes"
+	"image"
+	"image/png"
+
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/dataclasses"
 	"data-pipelines-worker/types/helpers"
 	"data-pipelines-worker/types/validators"
-	"image"
-	"image/png"
 )
 
 func (suite *UnitTestSuite) TestBlockImageResize() {
