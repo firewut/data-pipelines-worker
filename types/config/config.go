@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/joho/godotenv"
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/xeipuuv/gojsonschema"
 	"gopkg.in/yaml.v2"
@@ -163,6 +164,11 @@ type BlockConfigReliabilityExponentialBackoff struct {
 }
 
 func NewConfig() Config {
+	err := godotenv.Load()
+	if err != nil {
+		panic(err)
+	}
+
 	config := Config{}
 
 	httpAPIPort := flag.Int("http-api-port", 8080, "HTTP API port")

@@ -1,0 +1,29 @@
+{
+    "slug": "openai-test",
+    "title": "Youtube video generation pipeline from prompt",
+    "description": "Generates videos for youtube Channel <CHANNEL>. Uses Prompt in the Block.",
+    "blocks": [
+        {
+            "id": "openai_chat_completion",
+            "slug": "get-event-text",
+            "description": "Get a text from OpenAI Chat Completion API",
+            "input": {
+                "model": "gpt-4o",
+                "prompt": "You must look for Historical event ( use google ) which happened today years ago. Write a short story about it. Add some interesting facts and make it engaging. The story should be around 30 words."
+            }
+        },
+        {
+            "id": "openai_tts_request",
+            "slug": "get-event-tts",
+            "description": "Make a request to OpenAI TTS API to convert text to speech",
+            "input_config": {
+                "property": {
+                    "text": {
+                        "origin": "get-event-text",
+                        "jsonPath": "$"
+                    }
+                }
+            }
+        }
+    ]
+}
