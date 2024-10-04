@@ -9,7 +9,8 @@
             "description": "Get a text from OpenAI Chat Completion API",
             "input": {
                 "model": "gpt-4o-2024-08-06",
-                "prompt": "You must look for Historical event ( use google ) which happened today years ago. Write a short story about it. Add some interesting facts and make it engaging. The story should be around 30 words."
+                "system_prompt": "You must look for Historical event ( use google ) which happened today years ago. Write a short story about it. Add some interesting facts and make it engaging. The story should be around 30 words.",
+                "user_prompt": "What happened today years ago?"
             }
         },
         {
@@ -23,6 +24,23 @@
                         "jsonPath": "$"
                     }
                 }
+            }
+        },
+        {
+            "id": "openai_image_request",
+            "slug": "get-event-image",
+            "description": "Make a request to OpenAI Image API to get an image",
+            "input_config": {
+                "property": {
+                    "prompt": {
+                        "origin": "get-event-text",
+                        "jsonPath": "$"
+                    }
+                }
+            },
+            "input": {
+                "quality": "hd",
+                "size": "1024x1792"
             }
         }
     ]

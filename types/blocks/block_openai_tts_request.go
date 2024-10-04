@@ -112,7 +112,8 @@ func NewBlockOpenAIRequestTTS() *BlockOpenAIRequestTTS {
 							},
 							"text": {
 								"description": "Text to convert to audio",
-								"type": "string"
+								"type": "string",
+								"minLength": 10
 							},
 							"voice": {
 								"description": "Voice to use",
