@@ -40,23 +40,15 @@ func (p *ProcessorStopPipeline) Process(
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
 ) (*bytes.Buffer, bool, error) {
-	var (
-		output      *bytes.Buffer            = &bytes.Buffer{}
-		blockConfig *BlockStopPipelineConfig = &BlockStopPipelineConfig{}
-	)
+	output := &bytes.Buffer{}
+	blockConfig := &BlockStopPipelineConfig{}
+
+	_config := config.GetConfig()
 	_data := data.GetInputData().(map[string]interface{})
 
-	// logger := config.GetLogger()
-
-	// Default value from YAML config
-	defaultBlockConfig := &BlockStopPipelineConfig{}
-	helpers.MapToYAMLStruct(block.GetConfigSection(), defaultBlockConfig)
-
-	// User defined values from data
+	defaultBlockConfig := block.(*BlockStopPipeline).GetBlockConfig(_config)
 	userBlockConfig := &BlockStopPipelineConfig{}
 	helpers.MapToJSONStruct(_data, userBlockConfig)
-
-	// Merge the default and user defined maps to BlockConfig
 	helpers.MergeStructs(defaultBlockConfig, userBlockConfig, blockConfig)
 
 	stop, err := helpers.EvaluateCondition(blockConfig.Data, blockConfig.Value, blockConfig.Condition)
@@ -76,9 +68,18 @@ type BlockStopPipeline struct {
 	Config *BlockStopPipelineConfig
 }
 
-func NewBlockStopPipeline() *BlockStopPipeline {
-	_config := config.GetConfig()
+var _ interfaces.Block = (*BlockStopPipeline)(nil)
 
+func (b *BlockStopPipeline) GetBlockConfig(_config config.Config) *BlockStopPipelineConfig {
+	blockConfig := _config.Blocks[b.GetId()].Config
+
+	defaultBlockConfig := &BlockStopPipelineConfig{}
+	helpers.MapToYAMLStruct(blockConfig, defaultBlockConfig)
+
+	return defaultBlockConfig
+}
+
+func NewBlockStopPipeline() *BlockStopPipeline {
 	block := &BlockStopPipeline{
 		BlockParent: BlockParent{
 			Id:          "stop_pipeline",
@@ -123,7 +124,6 @@ func NewBlockStopPipeline() *BlockStopPipeline {
 		panic(err)
 	}
 
-	block.SetConfigSection(_config.Blocks[block.GetId()].Config)
 	block.SetProcessor(NewProcessorStopPipeline())
 
 	return block

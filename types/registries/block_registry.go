@@ -61,7 +61,6 @@ func NewBlockRegistry() *BlockRegistry {
 
 func (br *BlockRegistry) DetectBlocks() {
 	br.Lock()
-	defer br.Unlock()
 
 	_config := config.GetConfig()
 
@@ -101,18 +100,31 @@ func (br *BlockRegistry) DetectBlocks() {
 	}
 
 	br.Blocks = make(map[string]interfaces.Block)
+	br.Unlock()
+
+	startUpWg := &sync.WaitGroup{}
+
 	for block, detector := range br.blocksDetector {
-		block.SetAvailable(false)
+		startUpWg.Add(1)
 
-		if detector.Detect() {
-			block.SetAvailable(true)
-		}
+		go func() {
+			br.Lock()
+			defer br.Unlock()
+			defer startUpWg.Done()
 
-		br.shutdownWg.Add(1)
-		detector.Start(block, detector.Detect)
+			block.SetAvailable(false)
+			if detector.Detect() {
+				block.SetAvailable(true)
+			}
 
-		br.Blocks[block.GetId()] = block
+			br.shutdownWg.Add(1)
+			detector.Start(block, detector.Detect)
+
+			br.Blocks[block.GetId()] = block
+		}()
 	}
+
+	startUpWg.Wait()
 }
 
 func (br *BlockRegistry) Add(block interfaces.Block) {

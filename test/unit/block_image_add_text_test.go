@@ -7,7 +7,6 @@ import (
 
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/dataclasses"
-	"data-pipelines-worker/types/helpers"
 	"data-pipelines-worker/types/validators"
 )
 
@@ -19,13 +18,8 @@ func (suite *UnitTestSuite) TestBlockImageAddText() {
 	suite.Equal("Add text to Image", block.GetDescription())
 	suite.NotNil(block.GetSchema())
 	suite.NotEmpty(block.GetSchemaString())
-	suite.NotEmpty(block.GetConfigSection())
 
-	blockConfig := &blocks.BlockImageAddTextConfig{}
-	helpers.MapToYAMLStruct(
-		block.GetConfigSection(),
-		blockConfig,
-	)
+	blockConfig := block.GetBlockConfig(suite._config)
 	suite.Equal(50.0, blockConfig.FontSize)
 }
 
@@ -58,6 +52,7 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessIncorrectInput() {
 			"image": nil,
 		},
 	}
+	data.SetBlock(block)
 
 	// When
 	result, stop, err := block.Process(
@@ -135,6 +130,7 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessSuccess() {
 				"image":         imageBuffer.Bytes(),
 			},
 		}
+		data.SetBlock(block)
 
 		// When
 		result, stop, err := block.Process(

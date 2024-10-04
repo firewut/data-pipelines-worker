@@ -9,6 +9,7 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 
 	"data-pipelines-worker/types/config"
+	"data-pipelines-worker/types/generics"
 	"data-pipelines-worker/types/helpers"
 	"data-pipelines-worker/types/interfaces"
 )
@@ -25,21 +26,15 @@ func (p *ProcessorOpenAIRequestTTS) Process(
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
 ) (*bytes.Buffer, bool, error) {
-	var (
-		output      *bytes.Buffer                = &bytes.Buffer{}
-		blockConfig *BlockOpenAIRequestTTSConfig = &BlockOpenAIRequestTTSConfig{}
-	)
+	output := &bytes.Buffer{}
+	blockConfig := &BlockOpenAIRequestTTSConfig{}
+
 	_config := config.GetConfig()
 	_data := data.GetInputData().(map[string]interface{})
 
-	defaultBlockConfig := &BlockOpenAIRequestTTSConfig{}
-	helpers.MapToYAMLStruct(block.GetConfigSection(), defaultBlockConfig)
-
-	// User defined values from data
+	defaultBlockConfig := block.(*BlockOpenAIRequestTTS).GetBlockConfig(_config)
 	userBlockConfig := &BlockOpenAIRequestTTSConfig{}
 	helpers.MapToJSONStruct(_data, userBlockConfig)
-
-	// Merge the default and user defined maps to BlockConfig
 	helpers.MergeStructs(defaultBlockConfig, userBlockConfig, blockConfig)
 
 	client := _config.OpenAI.GetClient()
@@ -80,12 +75,22 @@ type BlockOpenAIRequestTTSConfig struct {
 }
 
 type BlockOpenAIRequestTTS struct {
+	generics.ConfigurableBlock[BlockOpenAIRequestTTSConfig]
 	BlockParent
 }
 
-func NewBlockOpenAIRequestTTS() *BlockOpenAIRequestTTS {
-	_config := config.GetConfig()
+var _ interfaces.Block = (*BlockOpenAIRequestTTS)(nil)
 
+func (b *BlockOpenAIRequestTTS) GetBlockConfig(_config config.Config) *BlockOpenAIRequestTTSConfig {
+	blockConfig := _config.Blocks[b.GetId()].Config
+
+	defaultBlockConfig := &BlockOpenAIRequestTTSConfig{}
+	helpers.MapToYAMLStruct(blockConfig, defaultBlockConfig)
+
+	return defaultBlockConfig
+}
+
+func NewBlockOpenAIRequestTTS() *BlockOpenAIRequestTTS {
 	block := &BlockOpenAIRequestTTS{
 		BlockParent: BlockParent{
 			Id:          "openai_tts_request",
@@ -146,7 +151,6 @@ func NewBlockOpenAIRequestTTS() *BlockOpenAIRequestTTS {
 		panic(err)
 	}
 
-	block.SetConfigSection(_config.Blocks[block.GetId()].Config)
 	block.SetProcessor(NewProcessorOpenAIRequestTTS())
 
 	return block

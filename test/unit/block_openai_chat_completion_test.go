@@ -3,7 +3,6 @@ package unit_test
 import (
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/dataclasses"
-	"data-pipelines-worker/types/helpers"
 	"data-pipelines-worker/types/validators"
 	"net/http"
 
@@ -18,15 +17,12 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestCompletion() {
 	suite.Equal("Block to perform request to OpenAI's Chat Completion", block.GetDescription())
 	suite.NotNil(block.GetSchema())
 	suite.NotEmpty(block.GetSchemaString())
-	suite.NotEmpty(block.GetConfigSection())
 
-	blockConfig := &blocks.BlockOpenAIRequestCompletionConfig{}
-	helpers.MapToYAMLStruct(
-		block.GetConfigSection(),
-		blockConfig,
-	)
-	suite.Equal("gpt-4o", blockConfig.Model)
-	suite.Equal("Hello ChatGPT, how are you?", blockConfig.Prompt)
+	blockConfig := block.GetBlockConfig(suite._config)
+	suite.NotEmpty(blockConfig)
+	suite.Equal("gpt-4o-2024-08-06", blockConfig.Model)
+	suite.Equal("You are a helpful assistant.", blockConfig.SystemPrompt)
+	suite.Equal("Hello ChatGPT, how are you?", blockConfig.UserPrompt)
 }
 
 func (suite *UnitTestSuite) TestBlockOpenAIRequestCompletionValidateSchemaOk() {
@@ -54,10 +50,11 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestCompletionProcessIncorrectInpu
 		Id:   "openai_chat_completion",
 		Slug: "request-openai-chat-completion",
 		Input: map[string]interface{}{
-			"model":  nil,
-			"prompt": nil,
+			"model":       nil,
+			"user_prompt": nil,
 		},
 	}
+	data.SetBlock(block)
 
 	// When
 	result, stop, err := block.Process(
@@ -79,10 +76,10 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestCompletionProcessEmptyClient()
 		Id:   "openai_chat_completion",
 		Slug: "request-openai-chat-completion",
 		Input: map[string]interface{}{
-			"model":  "gpt-4o",
-			"prompt": "Hello world!",
+			"user_prompt": "Hello world!",
 		},
 	}
+	data.SetBlock(block)
 
 	suite._config.OpenAI.SetClient(nil)
 
@@ -106,16 +103,17 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestCompletionProcessSuccess() {
 		Id:   "openai_chat_completion",
 		Slug: "request-openai-chat-completion",
 		Input: map[string]interface{}{
-			"model":  "gpt-4o",
-			"prompt": "Hello world!",
+			"system_prompt": "You are a helpful assistant.",
+			"user_prompt":   "Hello world!",
 		},
 	}
+	data.SetBlock(block)
 
 	mockedResponse := `{
 		"id":"chatcmpl-123",
 		"object":"chat.completion",
 		"created":1677652288,
-		"model":"gpt-4o",
+		"model":"gpt-4o-2024-08-06",
 		"system_fingerprint":"fp_44709d6fcb",
 		"choices":[
 			{

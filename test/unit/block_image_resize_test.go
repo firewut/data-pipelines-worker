@@ -7,7 +7,6 @@ import (
 
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/dataclasses"
-	"data-pipelines-worker/types/helpers"
 	"data-pipelines-worker/types/validators"
 )
 
@@ -19,13 +18,8 @@ func (suite *UnitTestSuite) TestBlockImageResize() {
 	suite.Equal("Resize Image", block.GetDescription())
 	suite.NotNil(block.GetSchema())
 	suite.NotEmpty(block.GetSchemaString())
-	suite.NotEmpty(block.GetConfigSection())
 
-	blockConfig := &blocks.BlockImageResizeConfig{}
-	helpers.MapToYAMLStruct(
-		block.GetConfigSection(),
-		blockConfig,
-	)
+	blockConfig := block.GetBlockConfig(suite._config)
 	suite.Equal(100, blockConfig.Width)
 	suite.Equal(100, blockConfig.Height)
 	suite.True(blockConfig.KeepAspectRatio)
@@ -59,6 +53,7 @@ func (suite *UnitTestSuite) TestBlockImageResizeProcessIncorrectInput() {
 			"image": nil,
 		},
 	}
+	data.SetBlock(block)
 
 	// When
 	result, stop, err := block.Process(
@@ -111,6 +106,7 @@ func (suite *UnitTestSuite) TestBlockImageResizeProcessSuccess() {
 				"keep_aspect_ratio": tc.keepAspectRatio,
 			},
 		}
+		data.SetBlock(block)
 
 		// When
 		result, stop, err := block.Process(

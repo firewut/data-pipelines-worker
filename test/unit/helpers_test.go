@@ -28,8 +28,7 @@ func (suite *UnitTestSuite) TestGetValue() {
 func (suite *UnitTestSuite) TestMapToYAMLStruct() {
 	block := blocks.NewBlockImageResize()
 
-	defaultBlockConfig := &blocks.BlockImageResizeConfig{}
-	helpers.MapToYAMLStruct(block.GetConfigSection(), defaultBlockConfig)
+	defaultBlockConfig := block.GetBlockConfig(suite._config)
 
 	suite.Equal(100, defaultBlockConfig.Width)
 }

@@ -3,7 +3,6 @@ package unit_test
 import (
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/dataclasses"
-	"data-pipelines-worker/types/helpers"
 	"data-pipelines-worker/types/validators"
 	"net/http"
 
@@ -18,13 +17,8 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTTS() {
 	suite.Equal("Block to generate audio from text using OpenAI", block.GetDescription())
 	suite.NotNil(block.GetSchema())
 	suite.NotEmpty(block.GetSchemaString())
-	suite.NotEmpty(block.GetConfigSection())
 
-	blockConfig := &blocks.BlockOpenAIRequestTTSConfig{}
-	helpers.MapToYAMLStruct(
-		block.GetConfigSection(),
-		blockConfig,
-	)
+	blockConfig := block.GetBlockConfig(suite._config)
 	suite.EqualValues("tts-1", blockConfig.Model)
 	suite.Equal("Hello ChatGPT, how are you?", blockConfig.Text)
 }
@@ -57,11 +51,12 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTTSProcessIncorrectInput() {
 			"text": nil,
 		},
 	}
+	data.SetBlock(block)
 
 	// When
 	result, stop, err := block.Process(
 		suite.GetContextWithcancel(),
-		blocks.NewProcessorOpenAIRequestCompletion(),
+		blocks.NewProcessorOpenAIRequestTTS(),
 		data,
 	)
 
@@ -75,19 +70,20 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTTSProcessEmptyClient() {
 	// Given
 	block := blocks.NewBlockOpenAIRequestTTS()
 	data := &dataclasses.BlockData{
-		Id:   "openai_chat_completion",
-		Slug: "request-openai-chat-completion",
+		Id:   "openai_tts_request",
+		Slug: "request-openai-tts",
 		Input: map[string]interface{}{
 			"text": "Hello world!",
 		},
 	}
+	data.SetBlock(block)
 
 	suite._config.OpenAI.SetClient(nil)
 
 	// When
 	result, stop, err := block.Process(
 		suite.GetContextWithcancel(),
-		blocks.NewProcessorOpenAIRequestCompletion(),
+		blocks.NewProcessorOpenAIRequestTTS(),
 		data,
 	)
 
@@ -107,6 +103,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTTSProcessSuccess() {
 			"text": "Hello world!",
 		},
 	}
+	data.SetBlock(block)
 
 	mockedResponse := `tts-content`
 	ttsAPIEndpoint := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK, 0)

@@ -59,6 +59,7 @@ func (p *PipelineData) UnmarshalJSON(data []byte) error {
 	// Loop through each BlockData
 	for i, block := range aux.Blocks {
 		registryBlock := registryBlocks[block.GetId()]
+
 		block.SetPipeline(p)
 		block.SetBlock(registryBlock)
 

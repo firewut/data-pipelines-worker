@@ -19,6 +19,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/grandcat/zeroconf"
 	"github.com/labstack/gommon/log"
+	"github.com/sashabaranov/go-openai"
 	"github.com/stretchr/testify/suite"
 
 	"data-pipelines-worker/api/schemas"
@@ -81,6 +82,45 @@ func (suite *UnitTestSuite) SetupTest() {
 	// Make Mock HTTP Server for each URL Block Detector
 	_config := config.GetConfig()
 	_config.Storage.Local.RootPath = os.TempDir()
+
+	mockedResponse := `{
+		"id":"chatcmpl-123",
+		"object":"chat.completion",
+		"created":1677652288,
+		"model":"gpt-4o-2024-08-06",
+		"system_fingerprint":"fp_44709d6fcb",
+		"choices":[
+			{
+				"index":0,
+				"message":{
+					"role":"assistant",
+					"content":"\n\nHello there, how may I assist you today?"
+				},
+				"logprobs":null,
+				"finish_reason":"stop"
+			}
+		],
+		"usage":{
+			"prompt_tokens":9,
+			"completion_tokens":12,
+			"total_tokens":21,
+			"completion_tokens_details":{
+				"reasoning_tokens":0
+			}
+		}
+	}`
+	modelsListEndpoint := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK, 0)
+	openaiClient := openai.NewClientWithConfig(
+		openai.ClientConfig{
+			BaseURL:            modelsListEndpoint,
+			APIType:            openai.APITypeOpenAI,
+			AssistantVersion:   "v2",
+			OrgID:              "",
+			HTTPClient:         &http.Client{},
+			EmptyMessagesLimit: 0,
+		},
+	)
+	_config.OpenAI.SetClient(openaiClient)
 
 	for blockId, blockConfig := range _config.Blocks {
 		if blockConfig.Detector.Conditions["url"] != nil {

@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 
 	openai "github.com/sashabaranov/go-openai"
 
 	"data-pipelines-worker/types/config"
+	"data-pipelines-worker/types/generics"
 	"data-pipelines-worker/types/helpers"
 	"data-pipelines-worker/types/interfaces"
 )
@@ -18,10 +20,7 @@ type DetectorOpenAI struct {
 	Client *openai.Client
 }
 
-func NewDetectorOpenAI(
-	client *openai.Client,
-	detectorConfig config.BlockConfigDetector,
-) *DetectorOpenAI {
+func NewDetectorOpenAI(client *openai.Client, detectorConfig config.BlockConfigDetector) *DetectorOpenAI {
 	return &DetectorOpenAI{
 		BlockDetectorParent: NewDetectorParent(detectorConfig),
 		Client:              client,
@@ -52,64 +51,86 @@ func (p *ProcessorOpenAIRequestCompletion) Process(
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
 ) (*bytes.Buffer, bool, error) {
-	var (
-		output      *bytes.Buffer                       = &bytes.Buffer{}
-		blockConfig *BlockOpenAIRequestCompletionConfig = &BlockOpenAIRequestCompletionConfig{}
-	)
+	output := &bytes.Buffer{}
+	blockConfig := &BlockOpenAIRequestCompletionConfig{}
+
 	_config := config.GetConfig()
 	_data := data.GetInputData().(map[string]interface{})
 
-	defaultBlockConfig := &BlockOpenAIRequestCompletionConfig{}
-	helpers.MapToYAMLStruct(block.GetConfigSection(), defaultBlockConfig)
-
-	// User defined values from data
+	defaultBlockConfig := block.(*BlockOpenAIRequestCompletion).GetBlockConfig(_config)
 	userBlockConfig := &BlockOpenAIRequestCompletionConfig{}
 	helpers.MapToJSONStruct(_data, userBlockConfig)
-
-	// Merge the default and user defined maps to BlockConfig
 	helpers.MergeStructs(defaultBlockConfig, userBlockConfig, blockConfig)
 
 	client := _config.OpenAI.GetClient()
 	if client == nil {
 		return output, false, errors.New("openAI client is not configured")
 	}
+
+	messages := make([]openai.ChatCompletionMessage, 0)
+	if blockConfig.SystemPrompt != "" {
+		messages = append(messages, openai.ChatCompletionMessage{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: blockConfig.SystemPrompt,
+		})
+	}
+	messages = append(messages, openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleUser,
+		Content: blockConfig.UserPrompt,
+	})
+
 	resp, err := client.CreateChatCompletion(
 		ctx,
 		openai.ChatCompletionRequest{
-			Model: blockConfig.Model,
-			Messages: []openai.ChatCompletionMessage{
-				{
-					Role:    openai.ChatMessageRoleUser,
-					Content: blockConfig.Prompt,
-				},
-			},
+			Model:    blockConfig.Model,
+			Messages: messages,
 		},
 	)
 
 	output = bytes.NewBufferString(resp.Choices[0].Message.Content)
-
 	return output, false, err
 }
 
 type BlockOpenAIRequestCompletionConfig struct {
-	Model  string `yaml:"model" json:"model"`
-	Prompt string `yaml:"prompt" json:"prompt"`
+	Model        string `yaml:"model" json:"model"`
+	SystemPrompt string `yaml:"system_prompt" json:"system_prompt"`
+	UserPrompt   string `yaml:"user_prompt" json:"user_prompt"`
 }
 
 type BlockOpenAIRequestCompletion struct {
+	generics.ConfigurableBlock[BlockOpenAIRequestCompletionConfig]
 	BlockParent
 }
 
-func NewBlockOpenAIRequestCompletion() *BlockOpenAIRequestCompletion {
-	_config := config.GetConfig()
+var _ interfaces.Block = (*BlockOpenAIRequestCompletion)(nil)
 
+func (b *BlockOpenAIRequestCompletion) GetBlockConfig(_config config.Config) *BlockOpenAIRequestCompletionConfig {
+	blockConfig := _config.Blocks[b.GetId()].Config
+
+	defaultBlockConfig := &BlockOpenAIRequestCompletionConfig{}
+	helpers.MapToYAMLStruct(blockConfig, defaultBlockConfig)
+
+	return defaultBlockConfig
+}
+
+func NewBlockOpenAIRequestCompletion() *BlockOpenAIRequestCompletion {
 	block := &BlockOpenAIRequestCompletion{
 		BlockParent: BlockParent{
-			Id:          "openai_chat_completion",
-			Name:        "OpenAI Chat Completion",
-			Description: "Block to perform request to OpenAI's Chat Completion",
-			Version:     "1",
-			SchemaString: `{
+			Id:           "openai_chat_completion",
+			Name:         "OpenAI Chat Completion",
+			Description:  "Block to perform request to OpenAI's Chat Completion",
+			Version:      "1",
+			SchemaString: "",
+			SchemaPtr:    nil,
+			Schema:       nil,
+		},
+	}
+
+	_config := config.GetConfig()
+	defaultBlockConfig := block.GetBlockConfig(_config)
+
+	block.SetSchemaString(
+		fmt.Sprintf(`{
 				"type": "object",
 				"properties": {
 					"input": {
@@ -119,15 +140,21 @@ func NewBlockOpenAIRequestCompletion() *BlockOpenAIRequestCompletion {
 							"model": {
 								"description": "Model to use",
 								"type": "string",
-								"default": "gpt-4o",
-								"enum": ["gpt-4o"]
+								"default": "%s",
+								"enum": ["%s"]
 							},
-							"prompt": {
-								"description": "Prompt to generate completion from",
-								"type": "string"
+							"system_prompt": {
+								"description": "Prompt for OpenAI agent",
+								"type": "string",
+								"default": "%s"
+							},
+							"user_prompt": {
+								"description": "Prompt for user request",
+								"type": "string",
+								"default": "%s"
 							}
 						},
-						"required": ["model", "prompt"]
+						"required": ["user_prompt"]
 					},
 					"output": {
 						"description": "OpenAI Completion output",
@@ -136,16 +163,17 @@ func NewBlockOpenAIRequestCompletion() *BlockOpenAIRequestCompletion {
 				},
 				"required": ["input"]
 			}`,
-			SchemaPtr: nil,
-			Schema:    nil,
-		},
-	}
+			defaultBlockConfig.Model,
+			defaultBlockConfig.Model,
+			defaultBlockConfig.SystemPrompt,
+			defaultBlockConfig.UserPrompt,
+		),
+	)
 
 	if err := block.ApplySchema(block.GetSchemaString()); err != nil {
 		panic(err)
 	}
 
-	block.SetConfigSection(_config.Blocks[block.GetId()].Config)
 	block.SetProcessor(NewProcessorOpenAIRequestCompletion())
 
 	return block

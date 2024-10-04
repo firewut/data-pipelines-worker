@@ -73,8 +73,7 @@ type BlockParent struct {
 	Schema       interface{}          `json:"schema"`
 	Available    bool                 `json:"available"`
 
-	configSection map[string]interface{}
-	processor     interfaces.BlockProcessor
+	processor interfaces.BlockProcessor
 }
 
 func (b *BlockParent) GetId() string {
@@ -118,7 +117,17 @@ func (b *BlockParent) ApplySchema(schemaString string) error {
 	return err
 }
 
+func (b *BlockParent) SetSchemaString(schemaString string) {
+	b.Lock()
+	defer b.Unlock()
+
+	b.SchemaString = schemaString
+}
+
 func (b *BlockParent) GetSchemaString() string {
+	b.Lock()
+	defer b.Unlock()
+
 	return b.SchemaString
 }
 
@@ -172,7 +181,7 @@ func (b *BlockParent) Process(
 		return result, false, fmt.Errorf(errStr, b.GetId(), data.GetStringRepresentation())
 	}
 
-	return processor.Process(ctx, b, data)
+	return processor.Process(ctx, data.GetBlock(), data)
 }
 
 func (b *BlockParent) SetAvailable(available bool) {
@@ -201,18 +210,4 @@ func (b *BlockParent) GetProcessor() interfaces.BlockProcessor {
 	defer b.Unlock()
 
 	return b.processor
-}
-
-func (b *BlockParent) GetConfigSection() map[string]interface{} {
-	b.Lock()
-	defer b.Unlock()
-
-	return b.configSection
-}
-
-func (b *BlockParent) SetConfigSection(configSection map[string]interface{}) {
-	b.Lock()
-	defer b.Unlock()
-
-	b.configSection = configSection
 }

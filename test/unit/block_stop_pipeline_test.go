@@ -3,7 +3,6 @@ package unit_test
 import (
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/dataclasses"
-	"data-pipelines-worker/types/helpers"
 	"data-pipelines-worker/types/validators"
 )
 
@@ -15,13 +14,8 @@ func (suite *UnitTestSuite) TestBlockStopPipeline() {
 	suite.Equal("Stop the pipeline if a condition is met", block.GetDescription())
 	suite.NotNil(block.GetSchema())
 	suite.NotEmpty(block.GetSchemaString())
-	suite.Equal(block.GetConfigSection(), map[string]interface{}{"stop": false})
 
-	blockConfig := &blocks.BlockStopPipelineConfig{}
-	helpers.MapToYAMLStruct(
-		block.GetConfigSection(),
-		blockConfig,
-	)
+	blockConfig := block.GetBlockConfig(suite._config)
 	suite.Empty(blockConfig.Value)
 	suite.Empty(blockConfig.Condition)
 	suite.Empty(blockConfig.Data)
@@ -57,6 +51,7 @@ func (suite *UnitTestSuite) TestBlockStopPipelineProcessIncorrectInput() {
 			"value":     nil,
 		},
 	}
+	data.SetBlock(block)
 
 	// When
 	result, stop, err := block.Process(
@@ -112,6 +107,7 @@ func (suite *UnitTestSuite) TestBlockStopPipelineProcessSuccess() {
 				"value":     tc.value,
 			},
 		}
+		data.SetBlock(block)
 
 		// When
 		result, stop, err := block.Process(

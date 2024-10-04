@@ -7,7 +7,6 @@ import (
 
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/dataclasses"
-	"data-pipelines-worker/types/helpers"
 	"data-pipelines-worker/types/validators"
 )
 
@@ -19,13 +18,8 @@ func (suite *UnitTestSuite) TestBlockImageBlur() {
 	suite.Equal("Blur Image", block.GetDescription())
 	suite.NotNil(block.GetSchema())
 	suite.NotEmpty(block.GetSchemaString())
-	suite.NotEmpty(block.GetConfigSection())
 
-	blockConfig := &blocks.BlockImageBlurConfig{}
-	helpers.MapToYAMLStruct(
-		block.GetConfigSection(),
-		blockConfig,
-	)
+	blockConfig := block.GetBlockConfig(suite._config)
 	suite.Equal(1.5, blockConfig.Sigma)
 }
 
@@ -57,6 +51,7 @@ func (suite *UnitTestSuite) TestBlockImageBlurProcessIncorrectInput() {
 			"image": nil,
 		},
 	}
+	data.SetBlock(block)
 
 	// When
 	result, stop, err := block.Process(
@@ -99,6 +94,7 @@ func (suite *UnitTestSuite) TestBlockImageBlurProcessSuccess() {
 				"sigma": tc.sigma,
 			},
 		}
+		data.SetBlock(block)
 
 		// When
 		result, stop, err := block.Process(

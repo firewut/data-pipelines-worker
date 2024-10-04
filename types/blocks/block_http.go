@@ -11,6 +11,7 @@ import (
 	gjm "github.com/firewut/go-json-map"
 
 	"data-pipelines-worker/types/config"
+	"data-pipelines-worker/types/generics"
 	"data-pipelines-worker/types/helpers"
 	"data-pipelines-worker/types/interfaces"
 )
@@ -109,8 +110,24 @@ func (p *ProcessorHTTP) Process(
 	return output, false, nil
 }
 
+type BlockHTTPConfig struct {
+}
+
 type BlockHTTP struct {
+	generics.ConfigurableBlock[BlockHTTPConfig]
+
 	BlockParent
+}
+
+var _ interfaces.Block = (*BlockHTTP)(nil)
+
+func (b *BlockHTTP) GetBlockConfig(_config config.Config) *BlockHTTPConfig {
+	blockConfig := _config.Blocks[b.GetId()].Config
+
+	defaultBlockConfig := &BlockHTTPConfig{}
+	helpers.MapToYAMLStruct(blockConfig, defaultBlockConfig)
+
+	return defaultBlockConfig
 }
 
 func NewBlockHTTP() *BlockHTTP {

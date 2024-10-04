@@ -23,11 +23,12 @@ type Block interface {
 	GetName() string
 	GetDescription() string
 	GetVersion() string
+	SetSchemaString(string)
 	GetSchemaString() string
 	GetSchema() *gojsonschema.Schema
-	GetConfigSection() map[string]interface{}
-	SetConfigSection(map[string]interface{})
 	ApplySchema(string) error
+
+	// GetBlockConfig(config.Config) interface{}
 
 	SetAvailable(bool)
 	GetAvailable() bool

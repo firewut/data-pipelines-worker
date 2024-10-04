@@ -52,8 +52,9 @@ blocks:
       retry_delay: 1
       retry_codes: [500, 502, 503, 504]
     config:
-      model: "gpt-4o"
-      prompt: "Hello ChatGPT, how are you?"
+      model: "gpt-4o-2024-08-06"
+      system_prompt: "You are a helpful assistant."
+      user_prompt: "Hello ChatGPT, how are you?"
 
   openai_tts_request:
     detector:

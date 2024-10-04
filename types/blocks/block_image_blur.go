@@ -9,6 +9,7 @@ import (
 	"github.com/disintegration/imaging"
 
 	"data-pipelines-worker/types/config"
+	"data-pipelines-worker/types/generics"
 	"data-pipelines-worker/types/helpers"
 	"data-pipelines-worker/types/interfaces"
 )
@@ -44,23 +45,15 @@ func (p *ProcessorImageBlur) Process(
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
 ) (*bytes.Buffer, bool, error) {
-	var (
-		output      *bytes.Buffer         = &bytes.Buffer{}
-		blockConfig *BlockImageBlurConfig = &BlockImageBlurConfig{}
-	)
+	output := &bytes.Buffer{}
+	blockConfig := &BlockImageBlurConfig{}
+
+	_config := config.GetConfig()
 	_data := data.GetInputData().(map[string]interface{})
 
-	// logger := config.GetLogger()
-
-	// Default value from YAML config
-	defaultBlockConfig := &BlockImageBlurConfig{}
-	helpers.MapToYAMLStruct(block.GetConfigSection(), defaultBlockConfig)
-
-	// User defined values from data
+	defaultBlockConfig := block.(*BlockImageBlur).GetBlockConfig(_config)
 	userBlockConfig := &BlockImageBlurConfig{}
 	helpers.MapToJSONStruct(_data, userBlockConfig)
-
-	// Merge the default and user defined maps to BlockConfig
 	helpers.MergeStructs(defaultBlockConfig, userBlockConfig, blockConfig)
 
 	// var imageBytes []byte
@@ -100,13 +93,22 @@ type BlockImageBlurConfig struct {
 }
 
 type BlockImageBlur struct {
+	generics.ConfigurableBlock[BlockImageBlurConfig]
 	BlockParent
-	Config *BlockImageBlurConfig
+}
+
+var _ interfaces.Block = (*BlockImageBlur)(nil)
+
+func (b *BlockImageBlur) GetBlockConfig(_config config.Config) *BlockImageBlurConfig {
+	blockConfig := _config.Blocks[b.GetId()].Config
+
+	defaultBlockConfig := &BlockImageBlurConfig{}
+	helpers.MapToYAMLStruct(blockConfig, defaultBlockConfig)
+
+	return defaultBlockConfig
 }
 
 func NewBlockImageBlur() *BlockImageBlur {
-	_config := config.GetConfig()
-
 	block := &BlockImageBlur{
 		BlockParent: BlockParent{
 			Id:          "image_blur",
@@ -150,7 +152,6 @@ func NewBlockImageBlur() *BlockImageBlur {
 		panic(err)
 	}
 
-	block.SetConfigSection(_config.Blocks[block.GetId()].Config)
 	block.SetProcessor(NewProcessorImageBlur())
 
 	return block

@@ -9,6 +9,7 @@ import (
 	"github.com/disintegration/imaging"
 
 	"data-pipelines-worker/types/config"
+	"data-pipelines-worker/types/generics"
 	"data-pipelines-worker/types/helpers"
 	"data-pipelines-worker/types/interfaces"
 )
@@ -44,23 +45,15 @@ func (p *ProcessorImageResize) Process(
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
 ) (*bytes.Buffer, bool, error) {
-	var (
-		output      *bytes.Buffer           = &bytes.Buffer{}
-		blockConfig *BlockImageResizeConfig = &BlockImageResizeConfig{}
-	)
+	output := &bytes.Buffer{}
+	blockConfig := &BlockImageResizeConfig{}
+
+	_config := config.GetConfig()
 	_data := data.GetInputData().(map[string]interface{})
 
-	// logger := config.GetLogger()
-
-	// Default value from YAML config
-	defaultBlockConfig := &BlockImageResizeConfig{}
-	helpers.MapToYAMLStruct(block.GetConfigSection(), defaultBlockConfig)
-
-	// User defined values from data
+	defaultBlockConfig := block.(*BlockImageResize).GetBlockConfig(_config)
 	userBlockConfig := &BlockImageResizeConfig{}
 	helpers.MapToJSONStruct(_data, userBlockConfig)
-
-	// Merge the default and user defined maps to BlockConfig
 	helpers.MergeStructs(defaultBlockConfig, userBlockConfig, blockConfig)
 
 	// var imageBytes []byte
@@ -102,13 +95,22 @@ type BlockImageResizeConfig struct {
 }
 
 type BlockImageResize struct {
+	generics.ConfigurableBlock[BlockImageResizeConfig]
 	BlockParent
-	Config *BlockImageResizeConfig
+}
+
+var _ interfaces.Block = (*BlockImageResize)(nil)
+
+func (b *BlockImageResize) GetBlockConfig(_config config.Config) *BlockImageResizeConfig {
+	blockConfig := _config.Blocks[b.GetId()].Config
+
+	defaultBlockConfig := &BlockImageResizeConfig{}
+	helpers.MapToYAMLStruct(blockConfig, defaultBlockConfig)
+
+	return defaultBlockConfig
 }
 
 func NewBlockImageResize() *BlockImageResize {
-	_config := config.GetConfig()
-
 	block := &BlockImageResize{
 		BlockParent: BlockParent{
 			Id:          "image_resize",
@@ -161,7 +163,6 @@ func NewBlockImageResize() *BlockImageResize {
 		panic(err)
 	}
 
-	block.SetConfigSection(_config.Blocks[block.GetId()].Config)
 	block.SetProcessor(NewProcessorImageResize())
 
 	return block

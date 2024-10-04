@@ -12,6 +12,7 @@ import (
 	"golang.org/x/image/font/opentype"
 
 	"data-pipelines-worker/types/config"
+	"data-pipelines-worker/types/generics"
 	"data-pipelines-worker/types/helpers"
 	"data-pipelines-worker/types/interfaces"
 )
@@ -47,23 +48,15 @@ func (p *ProcessorImageAddText) Process(
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
 ) (*bytes.Buffer, bool, error) {
-	var (
-		output      *bytes.Buffer            = &bytes.Buffer{}
-		blockConfig *BlockImageAddTextConfig = &BlockImageAddTextConfig{}
-	)
+	output := &bytes.Buffer{}
+	blockConfig := &BlockImageAddTextConfig{}
+
+	_config := config.GetConfig()
 	_data := data.GetInputData().(map[string]interface{})
 
-	// logger := config.GetLogger()
-
-	// Default value from YAML config
-	defaultBlockConfig := &BlockImageAddTextConfig{}
-	helpers.MapToYAMLStruct(block.GetConfigSection(), defaultBlockConfig)
-
-	// User defined values from data
+	defaultBlockConfig := block.(*BlockImageAddText).GetBlockConfig(_config)
 	userBlockConfig := &BlockImageAddTextConfig{}
 	helpers.MapToJSONStruct(_data, userBlockConfig)
-
-	// Merge the default and user defined maps to BlockConfig
 	helpers.MergeStructs(defaultBlockConfig, userBlockConfig, blockConfig)
 
 	text, err := helpers.GetValue[string](_data, "text")
@@ -166,13 +159,22 @@ type BlockImageAddTextConfig struct {
 }
 
 type BlockImageAddText struct {
+	generics.ConfigurableBlock[BlockImageAddTextConfig]
 	BlockParent
-	Config *BlockImageAddTextConfig
+}
+
+var _ interfaces.Block = (*BlockImageAddText)(nil)
+
+func (b *BlockImageAddText) GetBlockConfig(_config config.Config) *BlockImageAddTextConfig {
+	blockConfig := _config.Blocks[b.GetId()].Config
+
+	defaultBlockConfig := &BlockImageAddTextConfig{}
+	helpers.MapToYAMLStruct(blockConfig, defaultBlockConfig)
+
+	return defaultBlockConfig
 }
 
 func NewBlockImageAddText() *BlockImageAddText {
-	_config := config.GetConfig()
-
 	fontsEmbedded, err := config.ListFonts()
 	if err != nil {
 		panic(err)
@@ -257,7 +259,6 @@ func NewBlockImageAddText() *BlockImageAddText {
 		panic(err)
 	}
 
-	block.SetConfigSection(_config.Blocks[block.GetId()].Config)
 	block.SetProcessor(NewProcessorImageAddText())
 
 	return block

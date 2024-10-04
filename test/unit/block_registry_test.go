@@ -86,7 +86,7 @@ func (suite *UnitTestSuite) TestBlockRegistryDetectBlocks() {
 	suite.Greater(len(registeredBlocks), 0)
 
 	for _, block := range registeredBlocks {
-		suite.True(block.IsAvailable())
+		suite.True(block.IsAvailable(), block.GetId())
 	}
 }
 
