@@ -68,6 +68,16 @@ blocks:
       response_format: "mp3"
       speed: 1.0
   
+  openai_transcription_request:
+    detector:
+      check_interval: 1m
+      conditions:
+    reliability:
+    config:
+      model: "whisper-1"
+      language: "en"
+      format: "verbose_json"
+  
   openai_image_request:
     detector:
       check_interval: 1m

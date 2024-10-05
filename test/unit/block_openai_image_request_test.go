@@ -1,14 +1,15 @@
 package unit_test
 
 import (
-	"data-pipelines-worker/types/blocks"
-	"data-pipelines-worker/types/dataclasses"
-	"data-pipelines-worker/types/validators"
 	"encoding/base64"
 	"fmt"
 	"net/http"
 
 	"github.com/sashabaranov/go-openai"
+
+	"data-pipelines-worker/types/blocks"
+	"data-pipelines-worker/types/dataclasses"
+	"data-pipelines-worker/types/validators"
 )
 
 func (suite *UnitTestSuite) TestBlockOpenAIRequestImage() {
@@ -22,7 +23,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestImage() {
 
 	blockConfig := block.GetBlockConfig(suite._config)
 	suite.Equal("standard", blockConfig.Quality)
-	suite.Equal("256x256", blockConfig.Size)
+	suite.Equal("1024x1024", blockConfig.Size)
 	suite.Equal("natural", blockConfig.Style)
 }
 

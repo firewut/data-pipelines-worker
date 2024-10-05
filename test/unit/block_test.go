@@ -996,6 +996,7 @@ func (suite *UnitTestSuite) TestGetInputConfigDataTypeDefaultInputArray() {
 				"slug": "request-image-for-tts-segment",
 				"description": "Request an Image for Text in Transcription Segment",
 				"input_config": {
+					"type": "array",
 					"property": {
 						"body": {
 							"origin": "request-tts-transcription",

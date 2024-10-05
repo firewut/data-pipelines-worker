@@ -67,6 +67,7 @@ func (br *BlockRegistry) DetectBlocks() {
 	httpBlock := blocks.NewBlockHTTP()
 	openAIRequestCompletionBlock := blocks.NewBlockOpenAIRequestCompletion()
 	openAIRequestTTSBlock := blocks.NewBlockOpenAIRequestTTS()
+	openAIRequestTranscriptionBlock := blocks.NewBlockOpenAIRequestTranscription()
 	openAIRequestImageBlock := blocks.NewBlockOpenAIRequestImage()
 	imageAddTextBlock := blocks.NewBlockImageAddText()
 	imageResizeBlock := blocks.NewBlockImageResize()
@@ -85,6 +86,10 @@ func (br *BlockRegistry) DetectBlocks() {
 		openAIRequestTTSBlock: blocks.NewDetectorOpenAI(
 			_config.OpenAI.GetClient(),
 			_config.Blocks[openAIRequestTTSBlock.GetId()].Detector,
+		),
+		openAIRequestTranscriptionBlock: blocks.NewDetectorOpenAI(
+			_config.OpenAI.GetClient(),
+			_config.Blocks[openAIRequestTranscriptionBlock.GetId()].Detector,
 		),
 		openAIRequestImageBlock: blocks.NewDetectorOpenAI(
 			_config.OpenAI.GetClient(),

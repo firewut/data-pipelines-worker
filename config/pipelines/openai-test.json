@@ -10,7 +10,7 @@
             "input": {
                 "model": "gpt-4o-2024-08-06",
                 "system_prompt": "You must look for Historical event ( use google ) which happened today years ago. Write a short story about it. Add some interesting facts and make it engaging. The story should be around 30 words.",
-                "user_prompt": "What happened today years ago?"
+                "user_prompt": "What happened today October 5 years ago?"
             }
         },
         {
@@ -27,14 +27,27 @@
             }
         },
         {
+            "id": "openai_transcription_request",
+            "slug": "get-event-transcription",
+            "description": "Make a request to OpenAI TTS API to convert text to speech",
+            "input_config": {
+                "property": {
+                    "audio_file": {
+                        "origin": "get-event-tts"
+                    }
+                }
+            }
+        },
+        {
             "id": "openai_image_request",
             "slug": "get-event-image",
             "description": "Make a request to OpenAI Image API to get an image",
             "input_config": {
+                "type": "array",
                 "property": {
                     "prompt": {
-                        "origin": "get-event-text",
-                        "jsonPath": "$"
+                        "origin": "get-event-transcription",
+                        "jsonPath": "$.segments[*].text"
                     }
                 }
             },
