@@ -171,7 +171,14 @@ func (p *PipelineData) Process(
 				inputConfigValue, err = blockData.GetInputConfigData(
 					pipelineBlockDataRegistry.GetAll(),
 				)
+
 				if err != nil {
+					logger.Errorf(
+						"Error getting input config data for block %s [%s]. Error: %s",
+						block.GetId(),
+						blockData.GetSlug(),
+						err,
+					)
 					tmpProcessing.Stop(interfaces.ProcessingStatusFailed, err)
 					return
 				}
@@ -231,7 +238,7 @@ func (p *PipelineData) Process(
 				return
 			}
 
-			logger.Debugf(
+			logger.Infof(
 				"Starting processing data for block %s [%s]",
 				block.GetId(),
 				blockData.GetSlug(),

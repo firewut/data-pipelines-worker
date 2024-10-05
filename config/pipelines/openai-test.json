@@ -9,8 +9,8 @@
             "description": "Get a text from OpenAI Chat Completion API",
             "input": {
                 "model": "gpt-4o-2024-08-06",
-                "system_prompt": "You must look for Historical event ( use google ) which happened today years ago. Write a short story about it. Add some interesting facts and make it engaging. The story should be around 30 words.",
-                "user_prompt": "What happened today October 5 years ago?"
+                "system_prompt": "You must look for Historical event ( use google ) which happened today years ago. Write a short story about it. Add some interesting facts and make it engaging. The story MUST BE 15 words long!!!!!!!!",
+                "user_prompt": "What happened years ago at date October 5 ?"
             }
         },
         {

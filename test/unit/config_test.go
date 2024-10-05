@@ -9,7 +9,7 @@ import (
 func (suite *UnitTestSuite) TestGetConfig() {
 	_config := config.GetConfig()
 
-	suite.Equal("debug", _config.Log.Level)
+	suite.Equal("info", _config.Log.Level)
 	suite.Equal("0.0.0.0", _config.HTTPAPIServer.Host)
 	suite.Equal(8080, _config.HTTPAPIServer.Port)
 

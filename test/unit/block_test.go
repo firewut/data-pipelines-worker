@@ -2,6 +2,7 @@ package unit_test
 
 import (
 	"bytes"
+	"reflect"
 
 	"data-pipelines-worker/types/dataclasses"
 )
@@ -1095,13 +1096,13 @@ func (suite *UnitTestSuite) TestGetInputConfigDataTypeDefaultInputArray() {
 	suite.Empty(firstInputData)
 	suite.NotEmpty(secondInputData)
 
-	suite.Len(secondInputData, 1)
+	suite.Len(secondInputData, 2)
 	suite.Equal(
-		[]interface{}{
-			" Segment one Content.",
-			" Segment two Content",
+		[]map[string]interface{}{
+			{"body": " Segment one Content."},
+			{"body": " Segment two Content"},
 		},
-		secondInputData[0]["body"],
+		secondInputData,
 	)
 
 	suite.NotEmpty(thirdInputData)
@@ -1119,74 +1120,106 @@ func (suite *UnitTestSuite) TestGetInputConfigDataTypeDefaultInputArray() {
 	)
 }
 
-// func (suite *UnitTestSuite) TestGetInputConfigDataJSONPathOutputConfig() {
-// 	// Given
-// 	pipelineString := `{
-// 		"slug": "test-pipeline-slug-two-blocks",
-// 		"title": "Test Pipeline",
-// 		"description": "Test Pipeline Description",
-// 		"blocks": [
-// 			{
-// 				"id": "http_request",
-// 				"slug": "request-tts-transcription",
-// 				"description": "Request TTS Transcription",
-// 				"input": {
-// 					"url": "https://localhost:8080",
-// 					"method": "POST"
-// 				}
-// 			},
-// 			{
-// 				"id": "http_request",
-// 				"slug": "request-image-for-tts-segment",
-// 				"description": "Request an Image for Text in Transcription Segment",
-// 				"input_config": {
-// 					"property": {
-// 						"body": {
-// 							"origin": "request-tts-transcription",
-// 							"jsonPath": "$.segments[*].text"
-// 						}
-// 					}
-// 				},
-// 				"input": {
-// 					"url": "https://localhost:8080",
-// 					"method": "POST"
-// 				},
-// 				"output_config": {
-// 					"type": "array"
-// 				}
-// 			}
-// 		]
-// 	}`
+func (suite *UnitTestSuite) TestOpenAIPipeline() {
+	// Given
+	pipelineString := `{
+		"slug": "openai-test",
+		"title": "Youtube video generation pipeline from prompt",
+		"description": "Generates videos for youtube Channel <CHANNEL>. Uses Prompt in the Block.",
+		"blocks": [
+			{
+				"id": "openai_chat_completion",
+				"slug": "get-event-text",
+				"description": "Get a text from OpenAI Chat Completion API",
+				"input": {
+					"model": "gpt-4o-2024-08-06",
+					"system_prompt": "You must look for Historical event ( use google ) which happened today years ago. Write a short story about it. Add some interesting facts and make it engaging. The story MUST BE 15 words long!!!!!!!!",
+					"user_prompt": "What happened years ago at date October 5 ?"
+				}
+			},
+			{
+				"id": "openai_tts_request",
+				"slug": "get-event-tts",
+				"description": "Make a request to OpenAI TTS API to convert text to speech",
+				"input_config": {
+					"property": {
+						"text": {
+							"origin": "get-event-text",
+							"jsonPath": "$"
+						}
+					}
+				}
+			},
+			{
+				"id": "openai_transcription_request",
+				"slug": "get-event-transcription",
+				"description": "Make a request to OpenAI TTS API to convert text to speech",
+				"input_config": {
+					"property": {
+						"audio_file": {
+							"origin": "get-event-tts"
+						}
+					}
+				}
+			},
+			{
+				"id": "openai_image_request",
+				"slug": "get-event-image",
+				"description": "Make a request to OpenAI Image API to get an image",
+				"input_config": {
+					"type": "array",
+					"property": {
+						"prompt": {
+							"origin": "get-event-transcription",
+							"jsonPath": "$.segments[*].text"
+						}
+					}
+				},
+				"input": {
+					"quality": "hd",
+					"size": "1024x1792"
+				}
+			}
+		]
+	}`
+	pipelineResults := map[string][]*bytes.Buffer{
+		"get-event-text": {
+			bytes.NewBufferString(
+				`On October 5, 1962, the world was forever changed as the Beatles released their debut single in the UK. This marked the start of their legendary musical journey, leading to global fame. Interestingly, John Lennon's harmonica playing added a distinct touch, propelling them toward unprecedented stardom in the music industry.`,
+			),
+		},
+		"get-event-tts": {
+			bytes.NewBufferString("tts-binary-content"),
+		},
+		"get-event-transcription": {
+			bytes.NewBufferString(
+				`{"task":"transcribe","language":"english","duration":21.690000534057617,"segments":[{"id":0,"seek":0,"start":0,"end":8.140000343322754,"text":" On October 5, 1962, the world was forever changed as the Beatles released their debut single in the UK.","tokens":[50364,1282,7617,1025,11,39498,11,264,1002,390,5680,3105,382,264,38376,4736,641,13828,2167,294,264,7051,13,50771],"temperature":0,"avg_logprob":-0.29121363162994385,"compression_ratio":1.4727272987365723,"no_speech_prob":0.00016069135745055974,"transient":false},{"id":1,"seek":0,"start":8.140000343322754,"end":12.899999618530273,"text":" This marked the start of their legendary musical journey, leading to global fame.","tokens":[50771,639,12658,264,722,295,641,16698,9165,4671,11,5775,281,4338,16874,13,51009],"temperature":0,"avg_logprob":-0.29121363162994385,"compression_ratio":1.4727272987365723,"no_speech_prob":0.00016069135745055974,"transient":false},{"id":2,"seek":0,"start":12.899999618530273,"end":16.739999771118164,"text":" Interestingly, John Lennon's harmonica playing added a distinct touch,","tokens":[51009,30564,11,2619,441,1857,266,311,14750,2262,2433,3869,257,10644,2557,11,51201],"temperature":0,"avg_logprob":-0.29121363162994385,"compression_ratio":1.4727272987365723,"no_speech_prob":0.00016069135745055974,"transient":false},{"id":3,"seek":0,"start":16.739999771118164,"end":20.540000915527344,"text":" propelling them toward unprecedented stardom in the music industry.","tokens":[51201,25577,2669,552,7361,21555,342,515,298,294,264,1318,3518,13,51391],"temperature":0,"avg_logprob":-0.29121363162994385,"compression_ratio":1.4727272987365723,"no_speech_prob":0.00016069135745055974,"transient":false}],"words":null,"text":"On October 5, 1962, the world was forever changed as the Beatles released their debut single in the UK. This marked the start of their legendary musical journey, leading to global fame. Interestingly, John Lennon's harmonica playing added a distinct touch, propelling them toward unprecedented stardom in the music industry."}`,
+			),
+		},
+	}
 
-// 	pipelineResults := map[string][]*bytes.Buffer{
-// 		"request-tts-transcription": {
-// 			bytes.NewBufferString(suite.GetTestTranscriptionResult()),
-// 		},
-// 	}
+	pipeline := suite.GetTestPipeline(pipelineString)
+	suite.NotNil(pipeline)
 
-// 	pipeline := suite.GetTestPipeline(pipelineString)
-// 	suite.NotNil(pipeline)
+	blocks := pipeline.GetBlocks()
+	suite.NotEmpty(blocks)
 
-// 	blocks := pipeline.GetBlocks()
-// 	suite.NotEmpty(blocks)
+	imageRequestblock := blocks[3]
+	suite.NotNil(imageRequestblock)
 
-// 	firstBlock := blocks[0]
-// 	suite.NotNil(firstBlock)
+	// When
+	transcriptions, err := imageRequestblock.GetInputConfigData(pipelineResults)
 
-// 	secondBlock := blocks[1]
-// 	suite.NotNil(secondBlock)
+	// Then
+	suite.Nil(err)
+	suite.NotEmpty(transcriptions)
+	suite.Equal(reflect.Slice, reflect.TypeOf(transcriptions).Kind())
+	suite.Len(transcriptions, 4)
 
-// 	// When
-// 	firstInputData, err := firstBlock.GetInputConfigData(pipelineResults)
-// 	suite.Nil(err)
-// 	secondInputData, err := secondBlock.GetInputConfigData(pipelineResults)
-// 	suite.Nil(err)
-
-// 	// Then
-// 	suite.Empty(firstInputData)
-// 	suite.NotEmpty(secondInputData)
-
-// 	suite.Len(secondInputData, 2)
-// 	suite.Equal(" Segment one Content", secondInputData[0]["body"])
-// 	suite.Equal(" Segment two Content", secondInputData[1]["body"])
-// }
+	suite.Equal([]map[string]interface{}{
+		{"prompt": " On October 5, 1962, the world was forever changed as the Beatles released their debut single in the UK."},
+		{"prompt": " This marked the start of their legendary musical journey, leading to global fame."},
+		{"prompt": " Interestingly, John Lennon's harmonica playing added a distinct touch,"},
+		{"prompt": " propelling them toward unprecedented stardom in the music industry."},
+	}, transcriptions)
+}

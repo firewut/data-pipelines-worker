@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 
@@ -242,6 +243,7 @@ func (b *BlockData) GetInputConfigData(
 									resultValue,
 									schema,
 								)
+
 								if err != nil {
 									valueCasted = resultValue.String()
 								}
@@ -252,7 +254,7 @@ func (b *BlockData) GetInputConfigData(
 
 								// jsonPath same level as `origin`
 								if jsonPath, ok := property_config.(map[string]interface{})["jsonPath"].(string); ok {
-									data, err := handleResultValue(resultValue.Bytes())
+									data, err := HandleResultValue(resultValue.Bytes())
 									if err != nil {
 										return nil, err
 									}
@@ -261,9 +263,22 @@ func (b *BlockData) GetInputConfigData(
 									if err != nil {
 										return nil, err
 									}
+									if inputTypeArray && reflect.TypeOf(jsonPathData).Kind() == reflect.Slice {
+										if _, ok := jsonPathData.([]interface{}); ok {
+											originData = make(map[string]interface{})
 
-									originData = map[string]interface{}{
-										property: jsonPathData,
+											for _, data := range jsonPathData.([]interface{}) {
+												inputData = append(
+													inputData, map[string]interface{}{
+														property: data,
+													},
+												)
+											}
+										}
+									} else {
+										originData = map[string]interface{}{
+											property: jsonPathData,
+										}
 									}
 								}
 
@@ -341,7 +356,7 @@ func mergeMaps(maps []map[string]interface{}) []map[string]interface{} {
 	return results
 }
 
-func handleResultValue(resultValue []byte) (interface{}, error) {
+func HandleResultValue(resultValue []byte) (interface{}, error) {
 	// Convert to string for further checks
 	strValue := string(resultValue)
 
