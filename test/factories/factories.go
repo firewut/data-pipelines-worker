@@ -1,9 +1,14 @@
 package factories
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"image"
+	"image/color"
+	"image/png"
 	"net"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strconv"
@@ -11,8 +16,10 @@ import (
 	"time"
 
 	"github.com/grandcat/zeroconf"
+	"github.com/sashabaranov/go-openai"
 
 	"data-pipelines-worker/api"
+	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/dataclasses"
 	"data-pipelines-worker/types/interfaces"
 )
@@ -23,16 +30,16 @@ func NewServer() *api.Server {
 	return server
 }
 
-func NewServerWithHandlers() *api.Server {
-	server := api.NewServer()
+func NewServerWithHandlers(configs ...config.Config) *api.Server {
+	server := api.NewServer(configs...)
 	server.SetPort(0)
 	server.SetAPIMiddlewares()
 	server.SetAPIHandlers()
 	return server
 }
 
-func NewWorkerServerWithHandlers(ctx context.Context, available bool) (*api.Server, interfaces.Worker, error) {
-	server := NewServerWithHandlers()
+func NewWorkerServerWithHandlers(ctx context.Context, available bool, configs ...config.Config) (*api.Server, interfaces.Worker, error) {
+	server := NewServerWithHandlers(configs...)
 	go server.Start(ctx)
 
 	<-server.Ready
@@ -129,4 +136,54 @@ func NewWorkerRegistryEntry(
 			},
 		},
 	), nil
+}
+
+func NewOpenAIClient(url string) *openai.Client {
+	return openai.NewClientWithConfig(
+		openai.ClientConfig{
+			BaseURL:            url,
+			APIType:            openai.APITypeOpenAI,
+			AssistantVersion:   "v2",
+			OrgID:              "",
+			HTTPClient:         &http.Client{},
+			EmptyMessagesLimit: 0,
+		},
+	)
+}
+
+func GetPNGImageBuffer(width int, height int) bytes.Buffer {
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+
+	// Fill it with white color
+	_color := color.RGBA{100, 100, 100, 100}
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			img.Set(x, y, _color)
+		}
+	}
+
+	// Draw lines every 50 pixels (vertical and horizontal)
+	lineColor := color.RGBA{0, 0, 0, 255} // Black color for lines
+
+	// Draw vertical lines
+	for x := 0; x < width; x += 50 {
+		for y := 0; y < height; y++ {
+			img.Set(x, y, lineColor)
+		}
+	}
+
+	// Draw horizontal lines
+	for y := 0; y < height; y += 50 {
+		for x := 0; x < width; x++ {
+			img.Set(x, y, lineColor)
+		}
+	}
+
+	buf := new(bytes.Buffer)
+	err := png.Encode(buf, img)
+	if err != nil {
+		panic(err)
+	}
+
+	return *buf
 }

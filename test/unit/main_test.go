@@ -5,9 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"image"
-	"image/color"
-	"image/png"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -19,10 +16,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/grandcat/zeroconf"
 	"github.com/labstack/gommon/log"
-	"github.com/sashabaranov/go-openai"
 	"github.com/stretchr/testify/suite"
 
 	"data-pipelines-worker/api/schemas"
+	"data-pipelines-worker/test/factories"
 	"data-pipelines-worker/types"
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/config"
@@ -79,47 +76,19 @@ func (suite *UnitTestSuite) TearDownSuite() {
 }
 
 func (suite *UnitTestSuite) SetupTest() {
-	// Make Mock HTTP Server for each URL Block Detector
 	_config := config.GetConfig()
 	_config.Storage.Local.RootPath = os.TempDir()
 
-	mockedResponse := `{
-		"id":"chatcmpl-123",
-		"object":"chat.completion",
-		"created":1677652288,
-		"model":"gpt-4o-2024-08-06",
-		"system_fingerprint":"fp_44709d6fcb",
-		"choices":[
-			{
-				"index":0,
-				"message":{
-					"role":"assistant",
-					"content":"\n\nHello there, how may I assist you today?"
-				},
-				"logprobs":null,
-				"finish_reason":"stop"
-			}
-		],
-		"usage":{
-			"prompt_tokens":9,
-			"completion_tokens":12,
-			"total_tokens":21,
-			"completion_tokens_details":{
-				"reasoning_tokens":0
-			}
-		}
+	// Make Mock HTTP Server for each URL Block Detector
+	openAIModelsList := `{
+		"data": [
+			{"id": "gpt-3.5-turbo"},
+			{"id": "text-davinci-003"},
+			{"id": "text-curie-001"}
+		]
 	}`
-	modelsListEndpoint := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK, 0)
-	openaiClient := openai.NewClientWithConfig(
-		openai.ClientConfig{
-			BaseURL:            modelsListEndpoint,
-			APIType:            openai.APITypeOpenAI,
-			AssistantVersion:   "v2",
-			OrgID:              "",
-			HTTPClient:         &http.Client{},
-			EmptyMessagesLimit: 0,
-		},
-	)
+	modelsListEndpoint := suite.GetMockHTTPServerURL(openAIModelsList, http.StatusOK, 0)
+	openaiClient := factories.NewOpenAIClient(modelsListEndpoint)
 	_config.OpenAI.SetClient(openaiClient)
 
 	for blockId, blockConfig := range _config.Blocks {
@@ -639,39 +608,4 @@ func (suite *UnitTestSuite) GetBlockRegistry(forceNewInstance ...bool) interface
 
 func (suite *UnitTestSuite) GetProcessingRegistry(forceNewInstance ...bool) interfaces.ProcessingRegistry {
 	return registries.GetProcessingRegistry(forceNewInstance...)
-}
-
-func (suite *UnitTestSuite) GetPNGImageBuffer(width int, height int) bytes.Buffer {
-	img := image.NewRGBA(image.Rect(0, 0, width, height))
-
-	// Fill it with white color
-	_color := color.RGBA{100, 100, 100, 100}
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
-			img.Set(x, y, _color)
-		}
-	}
-
-	// Draw lines every 50 pixels (vertical and horizontal)
-	lineColor := color.RGBA{0, 0, 0, 255} // Black color for lines
-
-	// Draw vertical lines
-	for x := 0; x < width; x += 50 {
-		for y := 0; y < height; y++ {
-			img.Set(x, y, lineColor)
-		}
-	}
-
-	// Draw horizontal lines
-	for y := 0; y < height; y += 50 {
-		for x := 0; x < width; x++ {
-			img.Set(x, y, lineColor)
-		}
-	}
-
-	buf := new(bytes.Buffer)
-	err := png.Encode(buf, img)
-	suite.Nil(err)
-
-	return *buf
 }

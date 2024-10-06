@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/png"
 
+	"data-pipelines-worker/test/factories"
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/dataclasses"
 	"data-pipelines-worker/types/validators"
@@ -115,7 +116,7 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessSuccess() {
 
 	images := make([]image.Image, 0)
 	for _, tc := range testCases {
-		imageBuffer := suite.GetPNGImageBuffer(width, height)
+		imageBuffer := factories.GetPNGImageBuffer(width, height)
 
 		block := blocks.NewBlockImageAddText()
 		data := &dataclasses.BlockData{

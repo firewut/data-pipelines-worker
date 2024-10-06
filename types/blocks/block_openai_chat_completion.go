@@ -86,6 +86,9 @@ func (p *ProcessorOpenAIRequestCompletion) Process(
 			Messages: messages,
 		},
 	)
+	if err != nil {
+		return output, false, err
+	}
 
 	output = bytes.NewBufferString(resp.Choices[0].Message.Content)
 	return output, false, err

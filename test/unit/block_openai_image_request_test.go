@@ -7,6 +7,7 @@ import (
 
 	"github.com/sashabaranov/go-openai"
 
+	"data-pipelines-worker/test/factories"
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/dataclasses"
 	"data-pipelines-worker/types/validators"
@@ -110,7 +111,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestImageProcessSuccess() {
 	data.SetBlock(block)
 
 	width, height := 256, 256
-	pngBuffer := suite.GetPNGImageBuffer(width, height)
+	pngBuffer := factories.GetPNGImageBuffer(width, height)
 	mockedResponse := fmt.Sprintf(
 		`{
 			"created": 1683501845,

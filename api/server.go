@@ -39,8 +39,13 @@ type Server struct {
 	processingRegistry interfaces.ProcessingRegistry
 }
 
-func NewServer() *Server {
-	_config := config.GetConfig()
+func NewServer(configs ...config.Config) *Server {
+	var _config config.Config
+	if len(configs) == 0 {
+		_config = config.GetConfig()
+	} else {
+		_config = configs[0]
+	}
 
 	workerRegistry := registries.GetWorkerRegistry(true)
 	blockRegistry := registries.GetBlockRegistry(true)

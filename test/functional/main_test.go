@@ -18,7 +18,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/labstack/gommon/log"
-	"github.com/sashabaranov/go-openai"
 	"github.com/stretchr/testify/suite"
 
 	"data-pipelines-worker/api"
@@ -66,57 +65,30 @@ func (suite *FunctionalTestSuite) TearDownSuite() {
 }
 
 func (suite *FunctionalTestSuite) SetupTest() {
-	// Make Mock HTTP Server for each URL Block Detector
 	_config := config.GetConfig()
+	_config.Storage.Local.RootPath = os.TempDir()
 
-	mockedResponse := `{
-		"id":"chatcmpl-123",
-		"object":"chat.completion",
-		"created":1677652288,
-		"model":"gpt-4o-2024-08-06",
-		"system_fingerprint":"fp_44709d6fcb",
-		"choices":[
-			{
-				"index":0,
-				"message":{
-					"role":"assistant",
-					"content":"\n\nHello there, how may I assist you today?"
-				},
-				"logprobs":null,
-				"finish_reason":"stop"
-			}
-		],
-		"usage":{
-			"prompt_tokens":9,
-			"completion_tokens":12,
-			"total_tokens":21,
-			"completion_tokens_details":{
-				"reasoning_tokens":0
-			}
-		}
+	// Make Mock HTTP Server for each URL Block Detector
+	openAIModelsList := `{
+		"data": [
+			{"id": "gpt-3.5-turbo"},
+			{"id": "text-davinci-003"},
+			{"id": "text-curie-001"}
+		]
 	}`
-	modelsListEndpoint := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK, 0)
-	openaiClient := openai.NewClientWithConfig(
-		openai.ClientConfig{
-			BaseURL:            modelsListEndpoint,
-			APIType:            openai.APITypeOpenAI,
-			AssistantVersion:   "v2",
-			OrgID:              "",
-			HTTPClient:         &http.Client{},
-			EmptyMessagesLimit: 0,
-		},
-	)
-	_config.OpenAI.SetClient(openaiClient)
+	modelsListEndpoint := suite.GetMockHTTPServerURL(openAIModelsList, http.StatusOK, 0)
+	openaiClient := factories.NewOpenAIClient(modelsListEndpoint)
+	suite._config.OpenAI.SetClient(openaiClient)
 
 	suite.apiServers = make([]*APIServer, 0)
-	for blockId, blockConfig := range _config.Blocks {
+	for blockId, blockConfig := range suite._config.Blocks {
 		if blockConfig.Detector.Conditions["url"] != nil {
 			successUrl := suite.GetMockHTTPServerURL(
 				"Mocked Response OK",
 				http.StatusOK,
 				0,
 			)
-			_config.Blocks[blockId].Detector.Conditions["url"] = successUrl
+			suite._config.Blocks[blockId].Detector.Conditions["url"] = successUrl
 		}
 	}
 }
@@ -171,7 +143,10 @@ func (suite *FunctionalTestSuite) GetMockHTTPServerURL(
 	).URL
 }
 
-func (suite *FunctionalTestSuite) NewWorkerServerWithHandlers(available bool) (*api.Server, interfaces.Worker, error) {
+func (suite *FunctionalTestSuite) NewWorkerServerWithHandlers(
+	available bool,
+	configs ...config.Config,
+) (*api.Server, interfaces.Worker, error) {
 	suite.Lock()
 	defer suite.Unlock()
 
@@ -179,6 +154,7 @@ func (suite *FunctionalTestSuite) NewWorkerServerWithHandlers(available bool) (*
 	server, worker, err := factories.NewWorkerServerWithHandlers(
 		context.Background(),
 		available,
+		configs...,
 	)
 	suite.Nil(err)
 	suite.NotEmpty(server)

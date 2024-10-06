@@ -273,6 +273,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryStartProcessingTwoBlocks() {
 	registry.SetNotificationChannel(notificationChannel)
 
 	block := blocks.NewBlockHTTP()
+	blockId := block.GetId()
 
 	mockedSecondBlockResponse := fmt.Sprintf("Hello, world! Mocked value is %s", uuid.NewString())
 	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, time.Millisecond)
@@ -292,7 +293,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryStartProcessingTwoBlocks() {
 		pipeline,
 		block,
 		&dataclasses.BlockData{
-			Id:    block.GetId(),
+			Id:    blockId,
 			Slug:  "test-block-first-slug",
 			Input: inputDataSchema.Block.Input,
 		},
@@ -302,7 +303,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryStartProcessingTwoBlocks() {
 		pipeline,
 		block,
 		&dataclasses.BlockData{
-			Id:    block.GetId(),
+			Id:    blockId,
 			Slug:  "test-block-second-slug",
 			Input: inputDataSchema.Block.Input,
 		},

@@ -171,6 +171,107 @@ func (suite *UnitTestSuite) TestGetInputDataByPriorityMerged() {
 	}
 }
 
+func (suite *UnitTestSuite) TestMergeMaps() {
+	// Given
+	cases := []struct {
+		left     []map[string]interface{}
+		right    []map[string]interface{}
+		expected []map[string]interface{}
+	}{
+		{
+			left: []map[string]interface{}{
+				{
+					"key1": "value1",
+				},
+			},
+			right: []map[string]interface{}{
+				{
+					"key2": "value2",
+				},
+			},
+			expected: []map[string]interface{}{
+				{
+					"key1": "value1",
+					"key2": "value2",
+				},
+			},
+		},
+		{
+			left: []map[string]interface{}{
+				{
+					"url":    "https://test-blocks.com/first",
+					"method": "GET",
+				},
+			},
+			right: []map[string]interface{}{
+				{
+					"method": "POST",
+				},
+			},
+			expected: []map[string]interface{}{
+				{
+					"url":    "https://test-blocks.com/first",
+					"method": "GET",
+				},
+				{
+					"url":    "https://test-blocks.com/first",
+					"method": "POST",
+				},
+			},
+		},
+		{
+			left: []map[string]interface{}{
+				{
+					"prompt":  "On October 5, 1962, the world was forever changed as the Beatles released their debut single in the UK.",
+					"quality": "hd",
+					"size":    "1024x1792",
+				},
+				{
+					"prompt": "This marked the start of their legendary musical journey, leading to global fame.",
+				},
+			},
+			right: []map[string]interface{}{
+				{
+					"prompt": "Interestingly, John Lennon's harmonica playing added a distinct touch",
+				},
+				{
+					"prompt": "propelling them toward unprecedented stardom in the music industry.",
+				},
+			},
+			expected: []map[string]interface{}{
+				{
+					"prompt":  "On October 5, 1962, the world was forever changed as the Beatles released their debut single in the UK.",
+					"quality": "hd",
+					"size":    "1024x1792",
+				},
+				{
+					"prompt":  "This marked the start of their legendary musical journey, leading to global fame.",
+					"quality": "hd",
+					"size":    "1024x1792",
+				},
+				{
+					"prompt":  "Interestingly, John Lennon's harmonica playing added a distinct touch",
+					"quality": "hd",
+					"size":    "1024x1792",
+				},
+				{
+					"prompt":  "propelling them toward unprecedented stardom in the music industry.",
+					"quality": "hd",
+					"size":    "1024x1792",
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		// When
+		result := dataclasses.MergeMaps(append(c.left, c.right...))
+
+		// Then
+		suite.Equal(c.expected, result)
+	}
+}
+
 func (suite *UnitTestSuite) TestGetInputConfigDataNoInputConfig() {
 	// Given
 	pipelineString := `{
@@ -288,6 +389,9 @@ func (suite *UnitTestSuite) TestGetInputConfigDataOneDependency() {
 							"origin": "test-block-first-slug"
 						}
 					}
+				},
+				"input": {
+					"method": "POST"
 				}
 			}
 		]
@@ -322,9 +426,10 @@ func (suite *UnitTestSuite) TestGetInputConfigDataOneDependency() {
 	suite.NotEmpty(secondInputData)
 
 	suite.Len(secondInputData, 1)
-	suite.Equal(
-		"https://test-blocks.com/first/response",
-		secondInputData[0]["url"],
+	suite.Equal(secondInputData[0],
+		map[string]interface{}{
+			"url": "https://test-blocks.com/first/response",
+		},
 	)
 }
 

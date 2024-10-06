@@ -161,11 +161,18 @@ func (p *PipelineData) Process(
 		for blockRelativeIndex, blockData := range processBlocks {
 			blockIndex := blockRelativeIndex + len(processedBlocks)
 			block := blockData.GetBlock()
+			if block == nil {
+				logger.Errorf(
+					"Block not found for block data %s",
+					blockData.GetSlug(),
+				)
+				return
+			}
 
 			tmpProcessing := NewProcessing(processingId, p, block, blockData)
 			processingRegistry.Add(tmpProcessing)
 
-			var inputConfigValue interface{}
+			var inputConfigValue []map[string]interface{}
 			if blockData.GetInputConfig() != nil {
 				var err error
 				inputConfigValue, err = blockData.GetInputConfigData(
@@ -208,6 +215,9 @@ func (p *PipelineData) Process(
 				},
 			)
 
+			// Check
+			blockInputData = MergeMaps(append(blockInputData, inputConfigValue...))
+
 			// Check registry if Block is Available
 			if !blockRegistry.IsAvailable(block) {
 				_inputData := schemas.PipelineStartInputSchema{
@@ -245,9 +255,17 @@ func (p *PipelineData) Process(
 			)
 
 			for blockInputIndex, blockInput := range blockInputData {
+				logger.Infof(
+					"Processing data for block %s [%s] with input %d",
+					block.GetId(),
+					blockData.GetSlug(),
+					blockInputIndex,
+				)
+
 				blockData.SetInputData(blockInput)
 				processing := NewProcessing(processingId, p, block, blockData)
 				processingResult, stopProcessing, err := processingRegistry.StartProcessing(processing)
+
 				if err != nil {
 					logger.Errorf(
 						"Error processing data for block %s [%s]. Error: %s",
@@ -258,6 +276,13 @@ func (p *PipelineData) Process(
 					return
 				}
 
+				logger.Infof(
+					"Processing data for block %s [%s] with input %d completed",
+					block.GetId(),
+					blockData.GetSlug(),
+					blockInputIndex,
+				)
+
 				if stopProcessing {
 					logger.Infof(
 						"Pipeline stopped by block %s [%s]",
@@ -267,6 +292,13 @@ func (p *PipelineData) Process(
 					processing.Stop(interfaces.ProcessingStatusStopped, nil)
 					return
 				}
+
+				logger.Infof(
+					"Saving output for block %s [%s] with input %d",
+					block.GetId(),
+					blockData.GetSlug(),
+					blockInputIndex,
+				)
 
 				pipelineBlockDataRegistry.AddBlockData(
 					processingResult.GetId(),
@@ -283,10 +315,20 @@ func (p *PipelineData) Process(
 				for _, saveOutputResult := range saveOutputResults {
 					if saveOutputResult.Error != nil {
 						logger.Errorf(
-							"Error saving output for block %s to storage %s: %s",
-							tmpProcessing.GetData().GetSlug(),
+							"Error saving output for block %s [%s] processing %s to storage %s: %s",
+							block.GetId(),
+							blockData.GetSlug(),
+							processing.GetData().GetId(),
 							saveOutputResult.StorageLocation.GetStorageName(),
 							saveOutputResult.Error,
+						)
+					} else {
+						logger.Infof(
+							"Saved output for block %s [%s] processing %s to storage %s",
+							block.GetId(),
+							blockData.GetSlug(),
+							processing.GetData().GetId(),
+							saveOutputResult.StorageLocation.GetStorageName(),
 						)
 					}
 				}

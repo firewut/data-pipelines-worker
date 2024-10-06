@@ -260,7 +260,7 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingWorker1HasNoSe
 	testPipelineSlug := "test-two-http-blocks"
 	firstWorkerDisabledBlocks := []string{"image_add_text"}
 	secondWorkerDisabledBlocks := []string{"http_request"}
-	imageContent := suite.GetPNGImageBuffer(imageWidth, imageHeight)
+	imageContent := factories.GetPNGImageBuffer(imageWidth, imageHeight)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "image/png")
@@ -397,7 +397,7 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingWorker1HasNoSe
 	testPipelineSlug := "test-two-http-blocks"
 	firstWorkerDisabledBlocks := []string{"image_add_text"}
 	secondWorkerDisabledBlocks := []string{}
-	imageContent := suite.GetPNGImageBuffer(imageWidth, imageHeight)
+	imageContent := factories.GetPNGImageBuffer(imageWidth, imageHeight)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "image/png")
@@ -534,7 +534,7 @@ func (suite *FunctionalTestSuite) TestTwoWorkersResumeProcessing2Times() {
 	testPipelineSlug := "test-two-http-blocks"
 	firstWorkerDisabledBlocks := []string{"image_add_text", "image_blur"}
 	secondWorkerDisabledBlocks := []string{"http_request", "image_resize"}
-	imageContent := suite.GetPNGImageBuffer(imageWidth, imageHeight)
+	imageContent := factories.GetPNGImageBuffer(imageWidth, imageHeight)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "image/png")

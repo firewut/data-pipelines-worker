@@ -128,6 +128,7 @@ func (b *BlockData) GetInputDataByPriority(
 	blockInputDataConfig []interface{},
 ) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0)
+
 	for _, item := range blockInputDataConfig {
 		if blockInput, ok := item.(BlockInputData); ok {
 			if blockInput.Condition {
@@ -200,8 +201,6 @@ func (b *BlockData) GetInputConfigData(
 
 	b.Lock()
 	defer b.Unlock()
-
-	// b.Input = make(map[string]interface{})
 
 	// Check if `property` in `input_config` is not empty
 	if _, ok := b.InputConfig["property"]; !ok {
@@ -301,7 +300,8 @@ func (b *BlockData) GetInputConfigData(
 	}
 
 	if inputTypeArray {
-		inputData = mergeMaps(inputData)
+		inputData = MergeMaps(inputData)
+
 	} else {
 		inputDataNotArray := make(map[string]interface{})
 		for _, data := range inputData {
@@ -318,42 +318,104 @@ func (b *BlockData) GetInputConfigData(
 	return inputData, nil
 }
 
-func mergeMaps(maps []map[string]interface{}) []map[string]interface{} {
+// MergeMaps function definition remains unchanged
+func MergeMaps(maps []map[string]interface{}) []map[string]interface{} {
 	if len(maps) == 0 {
 		return nil
 	}
 
-	// Create a map to group values by keys
-	grouped := make(map[string][]interface{})
+	var result []map[string]interface{}
 
-	// Collect values by keys
-	for _, m := range maps {
-		for key, value := range m {
-			grouped[key] = append(grouped[key], value)
+	// Recursively merge two maps
+	merge := func(base, current map[string]interface{}) map[string]interface{} {
+		merged := make(map[string]interface{})
+
+		// Start by copying the base map into the merged map
+		for key, value := range base {
+			merged[key] = value
 		}
-	}
 
-	// Determine the number of result maps
-	numResults := 0
-	for _, values := range grouped {
-		if numResults < len(values) {
-			numResults = len(values)
-		}
-	}
-
-	// Create result maps by combining values at each index
-	results := make([]map[string]interface{}, numResults)
-	for i := 0; i < numResults; i++ {
-		resultMap := make(map[string]interface{})
-		for key, values := range grouped {
-			if i < len(values) {
-				resultMap[key] = values[i]
+		// Recursively merge in the current map
+		for key, value := range current {
+			// Handle byte slice comparison
+			if existingVal, exists := merged[key]; exists {
+				switch existingVal := existingVal.(type) {
+				case []byte:
+					if currentVal, ok := value.([]byte); ok {
+						// Compare byte slices
+						if !bytes.Equal(existingVal, currentVal) {
+							merged[key] = value // Update value if they are different
+						}
+					} else {
+						merged[key] = value // Update value if not []byte
+					}
+				default:
+					merged[key] = value // Update value if type is different
+				}
+			} else {
+				merged[key] = value
 			}
 		}
-		results[i] = resultMap
+
+		return merged
 	}
 
-	return results
+	for _, currentMap := range maps {
+		shouldMerge := false
+
+		// Check if current map can be merged with any in the result
+		for i, resMap := range result {
+			conflictingKeys := false
+
+			// Check for key conflicts
+			for key, val := range currentMap {
+				if existingVal, exists := resMap[key]; exists {
+					switch existingVal := existingVal.(type) {
+					case []byte:
+						if currentVal, ok := val.([]byte); ok {
+							// Compare byte slices
+							if !bytes.Equal(existingVal, currentVal) {
+								conflictingKeys = true
+								break
+							}
+						} else {
+							conflictingKeys = true
+							break
+						}
+					default:
+						if existingVal != val {
+							conflictingKeys = true
+							break
+						}
+					}
+				}
+			}
+
+			// If no conflicts, merge the maps
+			if !conflictingKeys {
+				result[i] = merge(resMap, currentMap)
+				shouldMerge = true
+				break
+			}
+		}
+
+		// If no mergeable map found, append a new map
+		if !shouldMerge {
+			newMap := make(map[string]interface{})
+
+			// Inherit fields from the last map in result (if any)
+			if len(result) > 0 {
+				newMap = merge(result[len(result)-1], currentMap)
+			} else {
+				// If result is empty, just copy the current map
+				newMap = merge(newMap, currentMap)
+			}
+
+			result = append(result, newMap)
+		}
+	}
+
+	return result
 }
 
 func HandleResultValue(resultValue []byte) (interface{}, error) {
