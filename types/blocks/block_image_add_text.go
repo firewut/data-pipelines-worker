@@ -8,8 +8,8 @@ import (
 	"image/png"
 
 	"github.com/fogleman/gg"
+	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
-	"golang.org/x/image/font/opentype"
 
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/generics"
@@ -64,12 +64,6 @@ func (p *ProcessorImageAddText) Process(
 		return nil, false, err
 	}
 
-	// var imageBytes []byte
-	// imageBytesString, err := helpers.GetValue[string](_data, "image")
-	// if err == nil {
-	// 	imageBytes = []byte(imageBytesString)
-	// } else {
-	// }
 	imageBytes, err := helpers.GetValue[[]byte](_data, "image")
 	if err != nil {
 		return nil, false, err
@@ -86,54 +80,117 @@ func (p *ProcessorImageAddText) Process(
 		blockConfig.Font = defaultBlockConfig.Font
 	}
 
-	dc := gg.NewContextForImage(img)
 	fontBytes, err := config.LoadFont(blockConfig.Font)
 	if err != nil {
 		return nil, false, err
 	}
-
-	fontParsed, err := opentype.Parse(fontBytes)
+	fontParsed, err := truetype.Parse(fontBytes)
 	if err != nil {
 		return nil, false, err
 	}
-
-	fontFace, err := opentype.NewFace(fontParsed, &opentype.FaceOptions{
-		Size:    blockConfig.FontSize,
-		DPI:     72,
-		Hinting: font.HintingFull,
-	})
-	if err != nil {
-		return nil, false, err
-	}
+	fontFace := truetype.NewFace(
+		fontParsed,
+		&truetype.Options{
+			Size:    blockConfig.FontSize,
+			DPI:     72,
+			Hinting: font.HintingNone,
+		},
+	)
 	defer fontFace.Close()
+
+	dc := gg.NewContextForImage(img)
 
 	dc.SetFontFace(fontFace)
 
-	// Set text Color from config
-	dc.SetHexColor(blockConfig.FontColor)
+	lineHeight := blockConfig.FontSize * 1.2 // Increase the line height for better readability
+	maxWidth := float64(dc.Width())          // Use the full width of the context
 
+	var (
+		x           float64
+		y           float64
+		ax          float64
+		ay          float64
+		width       float64
+		lineSpacing float64 = 1.2
+		align       gg.Align
+	)
 	switch blockConfig.TextPosition {
 	case "top-left":
-		dc.DrawStringAnchored(text, 0, blockConfig.FontSize, 0, 0)
+		x = lineHeight
+		y = lineHeight
+		ax = 0
+		ay = 0
+		width = maxWidth - lineHeight*2
+		align = gg.AlignLeft
 	case "top-center":
-		dc.DrawStringAnchored(text, float64(dc.Width())/2, blockConfig.FontSize, 0.5, 0)
+		x = lineHeight
+		y = lineHeight
+		ax = 0
+		ay = 0
+		width = maxWidth - lineHeight*2
+		align = gg.AlignCenter
 	case "top-right":
-		dc.DrawStringAnchored(text, float64(dc.Width()), blockConfig.FontSize, 1, 0)
+		x = lineHeight
+		y = lineHeight
+		ax = 0
+		ay = 0
+		width = maxWidth - lineHeight*2
+		align = gg.AlignRight
 	case "center-left":
-		dc.DrawStringAnchored(text, 0, float64(dc.Height())/2, 0, 0.5)
+		x = lineHeight
+		y = float64(dc.Height()) / 2
+		ax = 0
+		ay = 0
+		width = maxWidth - lineHeight*2
+		align = gg.AlignLeft
 	case "center-center":
-		dc.DrawStringAnchored(text, float64(dc.Width())/2, float64(dc.Height())/2, 0.5, 0.5)
+		x = lineHeight
+		y = float64(dc.Height()) / 2
+		ax = 0
+		ay = 0
+		width = maxWidth - lineHeight*2
+		align = gg.AlignCenter
 	case "center-right":
-		dc.DrawStringAnchored(text, float64(dc.Width()), float64(dc.Height())/2, 1, 0.5)
+		x = lineHeight
+		y = float64(dc.Height()) / 2
+		ax = 0
+		ay = 0
+		width = maxWidth - lineHeight*2
+		align = gg.AlignRight
 	case "bottom-left":
-		dc.DrawStringAnchored(text, 0, float64(dc.Height())-blockConfig.FontSize, 0, 1)
+		x = lineHeight
+		y = float64(dc.Height()) - lineHeight
+		ax = 0
+		ay = 1
+		width = maxWidth - lineHeight*2
+		align = gg.AlignLeft
 	case "bottom-center":
-		dc.DrawStringAnchored(text, float64(dc.Width())/2, float64(dc.Height())-blockConfig.FontSize, 0.5, 1)
+		x = lineHeight
+		y = float64(dc.Height()) - lineHeight
+		ax = 0
+		ay = 1
+		width = maxWidth - lineHeight*2
+		align = gg.AlignCenter
 	case "bottom-right":
-		dc.DrawStringAnchored(text, float64(dc.Width()), float64(dc.Height())-blockConfig.FontSize, 1, 1)
+		x = lineHeight
+		y = float64(dc.Height()) - lineHeight
+		ax = 0
+		ay = 1
+		width = maxWidth - lineHeight*2
+		align = gg.AlignRight
 	default:
-		dc.DrawStringAnchored(text, float64(dc.Width())/2, float64(dc.Height())/2, 0.5, 0.5)
+		x = lineHeight
+		y = float64(dc.Height()) / 2
+		ax = 0
+		ay = 0
+		width = maxWidth - lineHeight*2
+		align = gg.AlignCenter
 	}
+
+	drawTextWithBackground(
+		dc, text, x, y, ax, ay, width, lineSpacing, align,
+		blockConfig,
+	)
 
 	// Convert the image to RGBA to ensure alpha channel is present
 	rgbaImage := image.NewRGBA(dc.Image().Bounds())
@@ -152,11 +209,88 @@ func (p *ProcessorImageAddText) Process(
 }
 
 type BlockImageAddTextConfig struct {
-	Font         string  `yaml:"font" json:"font"`
-	FontSize     float64 `yaml:"font_size" json:"font_size"`
-	FontColor    string  `yaml:"font_color" json:"font_color"`
-	TextPosition string  `yaml:"text_position" json:"text_position"`
+	Font           string  `yaml:"font" json:"font"`
+	FontSize       float64 `yaml:"font_size" json:"font_size"`
+	FontColor      string  `yaml:"font_color" json:"font_color"`
+	TextPosition   string  `yaml:"text_position" json:"text_position"`
+	TextBgColor    string  `yaml:"text_bg_color" json:"text_bg_color"`
+	TextBgAlpha    float64 `yaml:"text_bg_alpha" json:"text_bg_alpha"`
+	TextBgMargin   float64 `yaml:"text_bg_margin" json:"text_bg_margin"`
+	TextBgAllWidth bool    `yaml:"text_bg_all_width" json:"text_bg_all_width"`
 }
+
+func drawTextWithBackground(dc *gg.Context, s string, x, y, ax, ay float64, width, lineSpacing float64, align gg.Align, blockConfig *BlockImageAddTextConfig) {
+	lines := dc.WordWrap(s, width)
+
+	// Sync height formula with MeasureMultilineString
+	h := float64(len(lines)) * dc.FontHeight() * lineSpacing
+	h -= (lineSpacing - 1) * dc.FontHeight()
+
+	x -= ax * width
+	y -= ay * h
+
+	switch align {
+	case gg.AlignLeft:
+		ax = 0
+	case gg.AlignCenter:
+		ax = 0.5
+		x += width / 2
+	case gg.AlignRight:
+		ax = 1
+		x += width
+	}
+
+	ay = 1
+	lineHeight := dc.FontHeight() * lineSpacing // Calculate the line height
+
+	// Initialize variables to gather dimensions
+	margin := blockConfig.TextBgMargin
+	totalHeight := lineHeight*float64(len(lines)) + margin*2
+
+	bgr, bgg, bgb := helpers.HexToRGB(blockConfig.TextBgColor)
+	dc.SetRGBA255(int(bgr), int(bgg), int(bgb), int(blockConfig.TextBgAlpha*255))
+
+	if blockConfig.TextBgAllWidth {
+		dc.DrawRectangle(0, y-margin/2, float64(dc.Width()), totalHeight)
+	} else {
+		dc.DrawRectangle(x-margin, y-margin/2, ax+margin, totalHeight)
+	}
+	dc.Fill()
+
+	// Second pass: Draw the text over the rectangle
+	for _, line := range lines {
+		// Draw the text anchored
+		dc.SetHexColor(blockConfig.FontColor)
+		dc.DrawStringAnchored(line, x, y, ax, ay)
+		y += lineHeight // Move y down for the next line
+	}
+
+}
+
+// TextClip(
+// 	txt=params["text"],
+// 	fontsize=params["fontsize"],
+// 	size=(0.8 * background_clip.size[0], 0),
+// 	color=params["text_color"],
+// 	method=params["text_method"],
+// )
+// .set_position("center")
+// .set_duration(params["duration"])
+
+// ColorClip(
+// 	size=(settings.video_width, int(text_clip.size[1] * 1.4)),
+// 	color=params.get(
+// 		"text_bg_color", (0, 0, 0)
+// 	),  # Default to black if no color is specified
+// 	duration=params["duration"],
+// )
+// .set_opacity(0.8)
+// .set_duration(
+// 	text_clip.duration,
+// )
+// .set_position(
+// 	"center",
+// )
 
 type BlockImageAddText struct {
 	generics.ConfigurableBlock[BlockImageAddTextConfig]
@@ -221,6 +355,30 @@ func NewBlockImageAddText() *BlockImageAddText {
 									%s
 								],
 								"default": "Roboto-Regular.ttf"
+							},
+							"text_bg_color": {
+								"description": "Text Background Color",
+								"type": "string",
+								"format": "color",
+								"default": "#000000"
+							},
+							"text_bg_margin": {
+								"description": "Text Background Margin",
+								"type": "number",
+								"format": "float",
+								"default": 10
+							},
+							"text_bg_alpha": {
+								"description": "Text Background Opacity",
+								"type": "number",
+								"format": "float",
+								"default": 0.5
+							},
+							"text_bg_all_width": {
+								"description": "Text Background all width. Always true for now",
+								"type": "boolean",
+								"default": true,
+								"enum": [true]
 							},
 							"text_position": {
 								"description": "Text position",

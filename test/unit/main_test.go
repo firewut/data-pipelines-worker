@@ -583,6 +583,9 @@ func (suite *UnitTestSuite) GetTestTranscriptionResult() string {
 func (suite *UnitTestSuite) GetShutDownContext(
 	duration time.Duration,
 ) context.Context {
+	suite.Lock()
+	defer suite.Unlock()
+
 	ctx, cancel := context.WithTimeout(context.Background(), duration)
 	suite.contextCancels = append(suite.contextCancels, cancel)
 
@@ -590,6 +593,9 @@ func (suite *UnitTestSuite) GetShutDownContext(
 }
 
 func (suite *UnitTestSuite) GetContextWithcancel() context.Context {
+	suite.Lock()
+	defer suite.Unlock()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	suite.contextCancels = append(suite.contextCancels, cancel)
 

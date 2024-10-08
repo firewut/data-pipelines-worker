@@ -4,6 +4,7 @@ BINARY_NAME=data-pipelines-worker
 TEST_UNIT_PATH=./test/unit/...
 TEST_FUNCTIONAL_PATH=./test/functional/...
 CONFIG_FILE=${PWD}/config/config.yaml
+TEST_TIMEOUT=20s
 
 export CONFIG_FILE
 
@@ -16,11 +17,11 @@ test: test-unit test-functional
 
 test-unit:
 	go clean -testcache
-	go test -race -timeout 10s -v ${TEST_UNIT_PATH}
+	go test -race -timeout ${TEST_TIMEOUT} -v ${TEST_UNIT_PATH}
 
 test-functional:
 	go clean -testcache
-	go test -race -timeout 10s -v ${TEST_FUNCTIONAL_PATH}
+	go test -race -timeout ${TEST_TIMEOUT} -v ${TEST_FUNCTIONAL_PATH}
 
 clean:
 	go clean

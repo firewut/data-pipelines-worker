@@ -310,6 +310,8 @@ func (suite *FunctionalTestSuite) TestPipelineArrayFromJSONPathStart() {
 		suite.Equal(completedProcessing4.GetId(), processingResponse.ProcessingID)
 		suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing4.GetStatus())
 		suite.Nil(completedProcessing4.GetError())
+		suite.Equal("openai_image_request", completedProcessing4.GetBlock().GetId())
+
 	}
 }
 
@@ -542,5 +544,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayFromJSONPathResume() {
 		suite.Equal(completedProcessing4.GetId(), processingResponse.ProcessingID)
 		suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing4.GetStatus())
 		suite.Nil(completedProcessing4.GetError())
+		suite.Equal("openai_image_request", completedProcessing4.GetBlock().GetId())
+
 	}
 }

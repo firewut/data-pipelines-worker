@@ -100,6 +100,10 @@ blocks:
       font_size: 50
       font_color: "#000000"
       text_position: "center-center"
+      text_bg_color: "#000000"
+      text_bg_all_width: true
+      text_bg_alpha: 0.5
+      text_bg_margin: 10 
     
   image_resize:
     detector:
