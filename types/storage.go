@@ -255,6 +255,7 @@ func (s *MINIOStorage) ListObjects(location interfaces.StorageLocation) ([]inter
 		context.Background(),
 		s.GetStorageDirectory(),
 		minio.ListObjectsOptions{
+			Prefix:    location.GetFileName(),
 			Recursive: true,
 		},
 	) {
