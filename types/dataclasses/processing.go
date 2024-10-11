@@ -43,6 +43,8 @@ func NewProcessing(
 	data interfaces.ProcessableBlockData,
 ) *Processing {
 	ctx, ctxCancel := context.WithCancel(context.Background())
+	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingID{}, id)
+
 	return &Processing{
 		Id:                          id,
 		instanceId:                  uuid.New(),
@@ -147,7 +149,7 @@ func (p *Processing) Start() (interfaces.ProcessingOutput, bool, error) {
 	p.SetStatus(interfaces.ProcessingStatusRunning)
 
 	// Call Process and pass the processing context
-	result, stop, err := p.block.Process(p.ctx, p.processor, p.data)
+	result, stop, _, err := p.block.Process(p.ctx, p.processor, p.data)
 	if err != nil {
 		p.SetStatus(interfaces.ProcessingStatusFailed)
 		if err == context.Canceled {
@@ -159,6 +161,8 @@ func (p *Processing) Start() (interfaces.ProcessingOutput, bool, error) {
 		p.sendResult(false)
 		return nil, false, err
 	}
+
+	// TODO: Implement retry logic in `fetch_moderation_from_telegram`
 
 	p.Lock()
 

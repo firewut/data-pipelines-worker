@@ -57,7 +57,7 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessIncorrectInput() {
 	data.SetBlock(block)
 
 	// When
-	result, stop, err := block.Process(
+	result, stop, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorImageAddText(),
 		data,
@@ -170,7 +170,7 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessSuccess() {
 			data.SetBlock(block)
 
 			// When
-			result, stop, err := block.Process(
+			result, stop, _, err := block.Process(
 				suite.GetContextWithcancel(),
 				blocks.NewProcessorImageAddText(),
 				data,

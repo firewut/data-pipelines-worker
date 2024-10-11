@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/grandcat/zeroconf"
 	"github.com/sashabaranov/go-openai"
 
@@ -149,6 +150,11 @@ func NewOpenAIClient(url string) *openai.Client {
 			EmptyMessagesLimit: 0,
 		},
 	)
+}
+
+func NewTelegramClient(url string) (*tgbotapi.BotAPI, error) {
+	apiEndpoint := url + "/bot%s/%s"
+	return tgbotapi.NewBotAPIWithAPIEndpoint("TOKEN", apiEndpoint)
 }
 
 func GetPNGImageBuffer(width int, height int) bytes.Buffer {

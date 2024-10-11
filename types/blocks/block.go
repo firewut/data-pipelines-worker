@@ -149,7 +149,7 @@ func (b *BlockParent) Process(
 	ctx context.Context,
 	processor interfaces.BlockProcessor,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, error) {
+) (*bytes.Buffer, bool, bool, error) {
 	var result *bytes.Buffer = &bytes.Buffer{}
 
 	logger := config.GetLogger()
@@ -170,7 +170,7 @@ func (b *BlockParent) Process(
 			b.GetId(),
 			err,
 		)
-		return result, false, err
+		return result, false, false, err
 	}
 	if !validationResult.Valid() {
 		errStr := "Block (%s) schema is invalid for data: %s"
@@ -178,7 +178,7 @@ func (b *BlockParent) Process(
 			errStr += fmt.Sprintf("\n- %s", err)
 		}
 		logger.Errorf(errStr, b.GetId(), data.GetStringRepresentation())
-		return result, false, fmt.Errorf(errStr, b.GetId(), data.GetStringRepresentation())
+		return result, false, false, fmt.Errorf(errStr, b.GetId(), data.GetStringRepresentation())
 	}
 
 	return processor.Process(ctx, data.GetBlock(), data)

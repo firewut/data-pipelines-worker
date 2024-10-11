@@ -15,7 +15,16 @@ type BlockDetector interface {
 }
 
 type BlockProcessor interface {
-	Process(context.Context, Block, ProcessableBlockData) (*bytes.Buffer, bool, error)
+	Process(
+		context.Context,
+		Block,
+		ProcessableBlockData,
+	) (
+		*bytes.Buffer,
+		bool,
+		bool,
+		error,
+	)
 }
 
 type Block interface {
@@ -28,8 +37,6 @@ type Block interface {
 	GetSchema() *gojsonschema.Schema
 	ApplySchema(string) error
 
-	// GetBlockConfig(config.Config) interface{}
-
 	SetAvailable(bool)
 	GetAvailable() bool
 	IsAvailable() bool
@@ -37,7 +44,16 @@ type Block interface {
 	SetProcessor(BlockProcessor)
 	GetProcessor() BlockProcessor
 
-	Process(context.Context, BlockProcessor, ProcessableBlockData) (*bytes.Buffer, bool, error)
+	Process(
+		context.Context,
+		BlockProcessor,
+		ProcessableBlockData,
+	) (
+		*bytes.Buffer,
+		bool,
+		bool,
+		error,
+	)
 }
 
 type ProcessableBlockData interface {

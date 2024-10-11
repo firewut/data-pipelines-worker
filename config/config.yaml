@@ -27,8 +27,13 @@ pipeline:
   pipeline_catalogue: "./pipelines"
 
 openai:
-  openai_credentials_path: "./openai_credentials.json"
+  credentials_path: "./openai_credentials.json"
   env_var_name: "OPENAI_API_KEY"
+
+telegram:
+  credentials_path: "./telegram_credentials.json"
+  env_var_name: "TELEGRAM_BOT_TOKEN"
+  bot_name: "TDIHVideoModerationBot"
 
 blocks:
   http_request:
@@ -92,7 +97,6 @@ blocks:
     detector:
       check_interval: 1m
       conditions:
-        libraries: []
     reliability:
       policy: "none"
     config:
@@ -109,7 +113,6 @@ blocks:
     detector:
       check_interval: 60m
       conditions:
-        libraries: []
     reliability:
       policy: "none"
     config:
@@ -121,7 +124,6 @@ blocks:
     detector:
       check_interval: 60m
       conditions:
-        libraries: []
     reliability:
       policy: "none"
     config:
@@ -131,8 +133,18 @@ blocks:
     detector:
       check_interval: 1m
       conditions:
-        libraries: []
     reliability:
       policy: "none"
     config:
       stop: false
+
+  send_moderation_to_telegram:
+    detector:
+      check_interval: 1m
+      conditions:
+    reliability:
+      policy: "none"
+    config:
+      approve: "Approve"
+      reject: "Reject"
+      channel_id: "0"

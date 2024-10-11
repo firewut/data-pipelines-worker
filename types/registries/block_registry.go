@@ -73,6 +73,7 @@ func (br *BlockRegistry) DetectBlocks() {
 	imageResizeBlock := blocks.NewBlockImageResize()
 	imageBlurBlock := blocks.NewBlockImageBlur()
 	stopPipelineBlock := blocks.NewBlockStopPipeline()
+	sendModerationToTelegramBlock := blocks.NewBlockSendModerationToTelegram()
 
 	br.blocksDetector = map[interfaces.Block]interfaces.BlockDetector{
 		httpBlock: blocks.NewDetectorHTTP(
@@ -106,6 +107,10 @@ func (br *BlockRegistry) DetectBlocks() {
 		),
 		stopPipelineBlock: blocks.NewDetectorStopPipeline(
 			_config.Blocks[stopPipelineBlock.GetId()].Detector,
+		),
+		sendModerationToTelegramBlock: blocks.NewDetectorTelegramBot(
+			_config.Telegram.GetClient(),
+			_config.Blocks[sendModerationToTelegramBlock.GetId()].Detector,
 		),
 	}
 

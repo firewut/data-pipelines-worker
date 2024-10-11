@@ -57,7 +57,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestCompletionProcessIncorrectInpu
 	data.SetBlock(block)
 
 	// When
-	result, stop, err := block.Process(
+	result, stop, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorOpenAIRequestCompletion(),
 		data,
@@ -84,7 +84,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestCompletionProcessEmptyClient()
 	suite._config.OpenAI.SetClient(nil)
 
 	// When
-	result, stop, err := block.Process(
+	result, stop, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorOpenAIRequestCompletion(),
 		data,
@@ -151,7 +151,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestCompletionProcessSuccess() {
 	suite._config.OpenAI.SetClient(openaiClient)
 
 	// When
-	result, stop, err := block.Process(
+	result, stop, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorOpenAIRequestCompletion(),
 		data,

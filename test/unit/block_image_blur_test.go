@@ -55,7 +55,7 @@ func (suite *UnitTestSuite) TestBlockImageBlurProcessIncorrectInput() {
 	data.SetBlock(block)
 
 	// When
-	result, stop, err := block.Process(
+	result, stop, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorImageBlur(),
 		data,
@@ -98,7 +98,7 @@ func (suite *UnitTestSuite) TestBlockImageBlurProcessSuccess() {
 		data.SetBlock(block)
 
 		// When
-		result, stop, err := block.Process(
+		result, stop, _, err := block.Process(
 			suite.GetContextWithcancel(),
 			blocks.NewProcessorImageBlur(),
 			data,

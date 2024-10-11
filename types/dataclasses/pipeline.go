@@ -181,9 +181,10 @@ func (p *PipelineData) Process(
 
 				if err != nil {
 					logger.Errorf(
-						"Error getting input config data for block %s [%s]. Error: %s",
+						"Error getting input config data for block %s [%s:%s]. Error: %s",
 						block.GetId(),
 						blockData.GetSlug(),
+						processingId,
 						err,
 					)
 					tmpProcessing.Stop(interfaces.ProcessingStatusFailed, err)
@@ -268,35 +269,39 @@ func (p *PipelineData) Process(
 
 				if err != nil {
 					logger.Errorf(
-						"Error processing data for block %s [%s]. Error: %s",
+						"Error processing data for block %s [%s:%s]. Error: %s",
 						block.GetId(),
 						blockData.GetSlug(),
+						processing.GetId(),
 						err,
 					)
 					return
 				}
 
 				logger.Infof(
-					"Processing data for block %s [%s] with input %d completed",
+					"Processing data for block %s [%s:%s] with input %d completed",
 					block.GetId(),
 					blockData.GetSlug(),
+					processing.GetId(),
 					blockInputIndex,
 				)
 
 				if stopProcessing {
 					logger.Infof(
-						"Pipeline stopped by block %s [%s]",
+						"Pipeline stopped by block %s [%s:%s]",
 						block.GetId(),
 						blockData.GetSlug(),
+						processing.GetId(),
 					)
 					processing.Stop(interfaces.ProcessingStatusStopped, nil)
 					return
 				}
 
 				logger.Infof(
-					"Saving output for block %s [%s] with input %d",
+					"Saving output for block %s [%s:%s] with input %d",
 					block.GetId(),
 					blockData.GetSlug(),
+					processing.GetId(),
 					blockInputIndex,
 				)
 

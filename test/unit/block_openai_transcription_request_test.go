@@ -56,7 +56,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTranscriptionProcessIncorrectI
 	data.SetBlock(block)
 
 	// When
-	result, stop, err := block.Process(
+	result, stop, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorOpenAIRequestTranscription(),
 		data,
@@ -83,7 +83,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTranscriptionProcessEmptyClien
 	suite._config.OpenAI.SetClient(nil)
 
 	// When
-	result, stop, err := block.Process(
+	result, stop, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorOpenAIRequestTranscription(),
 		data,
@@ -143,7 +143,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTranscriptionProcessSuccess() 
 	suite._config.OpenAI.SetClient(openaiClient)
 
 	// When
-	result, stop, err := block.Process(
+	result, stop, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorOpenAIRequestTranscription(),
 		data,

@@ -33,6 +33,9 @@ func (suite *UnitTestSuite) TestGetConfig() {
 	suite.NotEmpty(_config.Pipeline.StoragePath)
 	suite.NotNil(_config.Pipeline.SchemaPtr)
 
+	suite.NotEmpty(_config.Telegram.CredentialsPath)
+	suite.NotEmpty(_config.Telegram.Token)
+
 	suite.NotEmpty(_config.OpenAI.CredentialsPath)
 	suite.NotEmpty(_config.OpenAI.Token)
 

@@ -55,6 +55,22 @@
                 "quality": "hd",
                 "size": "1024x1792"
             }
+        },
+        {
+            "id": "send_moderation_to_telegram",
+            "slug": "send-moderation-to-telegram",
+            "description": "Send the generated content to Telegram for moderation",
+            "input_config": {
+                "property": {
+                    "text": {
+                        "origin": "get-event-text",
+                        "jsonPath": "$"
+                    }
+                }
+            },
+            "input": {
+                "channel_id": -4573786981
+            }
         }
     ]
 }

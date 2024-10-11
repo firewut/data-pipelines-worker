@@ -26,7 +26,7 @@ func (p *ProcessorOpenAIRequestImage) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, error) {
+) (*bytes.Buffer, bool, bool, error) {
 	output := &bytes.Buffer{}
 	blockConfig := &BlockOpenAIRequestImageConfig{}
 
@@ -40,7 +40,7 @@ func (p *ProcessorOpenAIRequestImage) Process(
 
 	client := _config.OpenAI.GetClient()
 	if client == nil {
-		return output, false, errors.New("openAI client is not configured")
+		return output, false, false, errors.New("openAI client is not configured")
 	}
 	resp, err := client.CreateImage(
 		ctx,
@@ -55,7 +55,7 @@ func (p *ProcessorOpenAIRequestImage) Process(
 		},
 	)
 	if err != nil {
-		return output, false, err
+		return output, false, false, err
 	}
 
 	b64Image := resp.Data[0].B64JSON
@@ -66,7 +66,7 @@ func (p *ProcessorOpenAIRequestImage) Process(
 	}
 	output.Write(imageData)
 
-	return output, false, err
+	return output, false, false, err
 }
 
 type BlockOpenAIRequestImageConfig struct {

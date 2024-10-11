@@ -44,7 +44,7 @@ func (p *ProcessorImageBlur) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, error) {
+) (*bytes.Buffer, bool, bool, error) {
 	output := &bytes.Buffer{}
 	blockConfig := &BlockImageBlurConfig{}
 
@@ -56,25 +56,15 @@ func (p *ProcessorImageBlur) Process(
 	helpers.MapToJSONStruct(_data, userBlockConfig)
 	helpers.MergeStructs(defaultBlockConfig, userBlockConfig, blockConfig)
 
-	// var imageBytes []byte
-	// imageBytesString, err := helpers.GetValue[string](_data, "image")
-	// if err == nil {
-	// 	imageBytes = []byte(imageBytesString)
-	// } else {
-	// 	imageBytes, err = helpers.GetValue[[]byte](_data, "image")
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// }
 	imageBytes, err := helpers.GetValue[[]byte](_data, "image")
 	if err != nil {
-		return nil, false, err
+		return nil, false, false, err
 	}
 
 	imgBuf := bytes.NewBuffer(imageBytes)
 	img, format, err := image.Decode(imgBuf)
 	if err != nil {
-		return nil, false, err
+		return nil, false, false, err
 	}
 	config.GetLogger().Debugf("Image format: %s", format)
 
@@ -85,7 +75,7 @@ func (p *ProcessorImageBlur) Process(
 		config.GetLogger().Fatalf("Failed to encode PNG image: %v", err)
 	}
 
-	return output, false, nil
+	return output, false, false, nil
 }
 
 type BlockImageBlurConfig struct {

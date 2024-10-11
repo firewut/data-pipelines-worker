@@ -73,7 +73,7 @@ func NewServer(configs ...config.Config) *Server {
 	_echo.HideBanner = true
 
 	mdns := types.NewMDNS()
-	mdns.SetBlocks(blockRegistry.GetAll())
+	mdns.SetBlocks(blockRegistry.GetAvailableBlocks())
 
 	var worker = &Server{
 		host:               _config.HTTPAPIServer.Host,

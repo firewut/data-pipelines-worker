@@ -54,7 +54,7 @@ func (suite *UnitTestSuite) TestBlockStopPipelineProcessIncorrectInput() {
 	data.SetBlock(block)
 
 	// When
-	result, stop, err := block.Process(
+	result, stop, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorStopPipeline(),
 		data,
@@ -110,7 +110,7 @@ func (suite *UnitTestSuite) TestBlockStopPipelineProcessSuccess() {
 		data.SetBlock(block)
 
 		// When
-		result, stop, err := block.Process(
+		result, stop, _, err := block.Process(
 			suite.GetContextWithcancel(),
 			blocks.NewProcessorStopPipeline(),
 			data,

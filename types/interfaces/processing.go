@@ -9,6 +9,7 @@ import (
 )
 
 type ProcessingStatus int
+type ContextKeyProcessingID struct{}
 
 const (
 	ProcessingStatusUnknown ProcessingStatus = iota
@@ -38,7 +39,7 @@ type Processing interface {
 	Start() (ProcessingOutput, bool, error)
 	Shutdown(context.Context) error
 
-	// Stop unstarted processing
+	// Stop pending processing
 	Stop(ProcessingStatus, error)
 }
 

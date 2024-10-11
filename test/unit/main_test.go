@@ -80,6 +80,8 @@ func (suite *UnitTestSuite) SetupTest() {
 	_config.Storage.Local.RootPath = os.TempDir()
 
 	// Make Mock HTTP Server for each URL Block Detector
+
+	// OpenAI
 	openAIModelsList := `{
 		"data": [
 			{"id": "gpt-3.5-turbo"},
@@ -90,6 +92,21 @@ func (suite *UnitTestSuite) SetupTest() {
 	modelsListEndpoint := suite.GetMockHTTPServerURL(openAIModelsList, http.StatusOK, 0)
 	openaiClient := factories.NewOpenAIClient(modelsListEndpoint)
 	_config.OpenAI.SetClient(openaiClient)
+
+	// Telegram
+	telegramBotInfo := `{
+		"ok": true,
+		"result": {
+			"id": 123456789,
+			"is_bot": true,
+			"first_name": "Test Bot",
+			"username": "test_bot"
+		}
+	}`
+	telegramBotInfoEndpoint := suite.GetMockHTTPServerURL(telegramBotInfo, http.StatusOK, 0)
+	telegramClient, err := factories.NewTelegramClient(telegramBotInfoEndpoint)
+	suite.Nil(err)
+	_config.Telegram.SetClient(telegramClient)
 
 	for blockId, blockConfig := range _config.Blocks {
 		if blockConfig.Detector.Conditions["url"] != nil {

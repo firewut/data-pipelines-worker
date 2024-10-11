@@ -3,11 +3,13 @@ package config
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/xeipuuv/gojsonschema"
@@ -40,12 +42,13 @@ func GetConfig(forceNewInstance ...bool) Config {
 }
 
 type Config struct {
-	Log           LogConfig      `yaml:"log" json:"-"`
-	HTTPAPIServer HTTPAPIServer  `yaml:"http_api_server" json:"-"`
-	DNSSD         DNSSD          `yaml:"dns_sd" json:"-"`
-	Storage       StorageConfig  `yaml:"storage" json:"-"`
-	Pipeline      PipelineConfig `yaml:"pipeline" json:"-"`
-	OpenAI        *OpenAIConfig  `yaml:"openai" json:"-"`
+	Log           LogConfig       `yaml:"log" json:"-"`
+	HTTPAPIServer HTTPAPIServer   `yaml:"http_api_server" json:"-"`
+	DNSSD         DNSSD           `yaml:"dns_sd" json:"-"`
+	Storage       StorageConfig   `yaml:"storage" json:"-"`
+	Pipeline      PipelineConfig  `yaml:"pipeline" json:"-"`
+	OpenAI        *OpenAIConfig   `yaml:"openai" json:"-"`
+	Telegram      *TelegramConfig `yaml:"telegram" json:"-"`
 
 	Blocks map[string]BlockConfig `yaml:"blocks" json:"-"`
 }
@@ -99,26 +102,20 @@ type openAIToken struct {
 }
 
 type OpenAIConfig struct {
-	sync.Mutex
+	ClientConfig[*openai.Client]
 
-	CredentialsPath string `yaml:"openai_credentials_path" json:"-"`
+	CredentialsPath string `yaml:"credentials_path" json:"-"`
 	EnvVarName      string `yaml:"env_var_name" json:"-"`
 	Token           string `yaml:"-" json:"-"`
-	Client          *openai.Client
 }
 
-func (o *OpenAIConfig) SetClient(client *openai.Client) {
-	o.Lock()
-	defer o.Unlock()
+type TelegramConfig struct {
+	ClientConfig[*tgbotapi.BotAPI]
 
-	o.Client = client
-}
-
-func (o *OpenAIConfig) GetClient() *openai.Client {
-	o.Lock()
-	defer o.Unlock()
-
-	return o.Client
+	CredentialsPath string `yaml:"credentials_path" json:"-"`
+	EnvVarName      string `yaml:"env_var_name" json:"-"`
+	Token           string `yaml:"-" json:"-"`
+	BotName         string `yaml:"bot_name" json:"bot_name"`
 }
 
 type BlockConfig struct {
@@ -260,43 +257,50 @@ func NewConfig() Config {
 		config.Pipeline = pipelineConfig
 	}
 
-	openAIConfig := &OpenAIConfig{}
-	if config.OpenAI.EnvVarName != "" {
-		openAIConfig.EnvVarName = config.OpenAI.EnvVarName
-		token := os.Getenv(config.OpenAI.EnvVarName)
-		if len(token) > 0 {
-			openAIConfig.Token = os.Getenv(config.OpenAI.EnvVarName)
-			openAIConfig.Client = openai.NewClient(openAIConfig.Token)
-		}
+	// Initialize OpenAI client
+	openAIConfig := config.OpenAI
+
+	err = initializeClient(
+		&openAIConfig.ClientConfig,
+		config.OpenAI.EnvVarName,
+		configPath,
+		config.OpenAI.CredentialsPath,
+		func(token string) (*openai.Client, error) {
+			openAIConfig.Token = token
+			return openai.NewClient(token), nil
+		},
+	)
+	if err != nil {
+		// Handle error appropriately
+		fmt.Printf(
+			"Failed to initialize OpenAI client: %v\n",
+			err,
+		)
 	}
 
-	if openAIConfig.Client == nil && config.OpenAI.CredentialsPath != "" {
-		credentailsPath := config.OpenAI.CredentialsPath
-		file, err := os.ReadFile(credentailsPath)
+	// Initialize Telegram client
+	telegramConfig := config.Telegram
 
-		if condition := os.IsNotExist(err); condition {
-			// Fallback - check credentials file in the same directory as the config file
-			configDir := filepath.Dir(configPath)
-			credentialsFilename := filepath.Base(credentailsPath)
-			credentailsPath = filepath.Join(configDir, credentialsFilename)
-
-			file, err = os.ReadFile(credentailsPath)
-			if err != nil {
-				panic(err)
+	err = initializeClient(
+		&telegramConfig.ClientConfig,
+		config.Telegram.EnvVarName,
+		configPath,
+		config.Telegram.CredentialsPath,
+		func(token string) (*tgbotapi.BotAPI, error) {
+			if token == "" {
+				return nil, fmt.Errorf("empty token")
 			}
-		}
-
-		openAIConfig.CredentialsPath = config.OpenAI.CredentialsPath
-
-		token := openAIToken{}
-		if err = json.Unmarshal(file, &token); err != nil {
-			panic(err)
-		}
-
-		openAIConfig.Token = token.Token
-		openAIConfig.Client = openai.NewClient(token.Token)
+			telegramConfig.Token = token
+			return tgbotapi.NewBotAPI(token)
+		},
+	)
+	if err != nil {
+		// Handle error appropriately
+		fmt.Printf(
+			"Failed to initialize Telegram client: %v\n",
+			err,
+		)
 	}
-	config.OpenAI = openAIConfig
 
 	if httpAPIPort != nil {
 		config.HTTPAPIServer.Port = *httpAPIPort

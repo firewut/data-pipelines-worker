@@ -25,7 +25,7 @@ func (p *ProcessorOpenAIRequestTTS) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, error) {
+) (*bytes.Buffer, bool, bool, error) {
 	output := &bytes.Buffer{}
 	blockConfig := &BlockOpenAIRequestTTSConfig{}
 
@@ -39,7 +39,7 @@ func (p *ProcessorOpenAIRequestTTS) Process(
 
 	client := _config.OpenAI.GetClient()
 	if client == nil {
-		return output, false, errors.New("openAI client is not configured")
+		return output, false, false, errors.New("openAI client is not configured")
 	}
 	resp, err := client.CreateSpeech(
 		ctx,
@@ -52,18 +52,18 @@ func (p *ProcessorOpenAIRequestTTS) Process(
 		},
 	)
 	if err != nil {
-		return output, false, err
+		return output, false, false, err
 	}
 	defer resp.Close()
 
 	buf, err := io.ReadAll(resp)
 	if err != nil {
-		return output, false, err
+		return output, false, false, err
 	}
 
 	output = bytes.NewBuffer(buf)
 
-	return output, false, err
+	return output, false, false, err
 }
 
 type BlockOpenAIRequestTTSConfig struct {

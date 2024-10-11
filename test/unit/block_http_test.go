@@ -51,7 +51,7 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessIncorrectInput() {
 	}
 
 	// Process the block
-	result, stop, err := block.Process(
+	result, stop, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorHTTP(),
 		data,
@@ -80,7 +80,7 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessSuccess() {
 	}
 
 	// Process the block
-	result, stop, err := block.Process(
+	result, stop, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorHTTP(),
 		data,
@@ -113,7 +113,7 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessCancel() {
 	var err error
 	go func() {
 		defer wg.Done()
-		_, _, err = block.Process(
+		_, _, _, err = block.Process(
 			ctx,
 			blocks.NewProcessorHTTP(),
 			data,
@@ -147,7 +147,7 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessError() {
 	}
 
 	// Process the block
-	result, stop, err := block.Process(
+	result, stop, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorHTTP(),
 		data,

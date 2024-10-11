@@ -54,7 +54,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTTSProcessIncorrectInput() {
 	data.SetBlock(block)
 
 	// When
-	result, stop, err := block.Process(
+	result, stop, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorOpenAIRequestTTS(),
 		data,
@@ -81,7 +81,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTTSProcessEmptyClient() {
 	suite._config.OpenAI.SetClient(nil)
 
 	// When
-	result, stop, err := block.Process(
+	result, stop, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorOpenAIRequestTTS(),
 		data,
@@ -122,7 +122,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTTSProcessSuccess() {
 	suite._config.OpenAI.SetClient(openaiClient)
 
 	// When
-	result, stop, err := block.Process(
+	result, stop, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorOpenAIRequestTTS(),
 		data,

@@ -47,7 +47,7 @@ func (p *ProcessorImageAddText) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, error) {
+) (*bytes.Buffer, bool, bool, error) {
 	output := &bytes.Buffer{}
 	blockConfig := &BlockImageAddTextConfig{}
 
@@ -61,18 +61,18 @@ func (p *ProcessorImageAddText) Process(
 
 	text, err := helpers.GetValue[string](_data, "text")
 	if err != nil {
-		return nil, false, err
+		return nil, false, false, err
 	}
 
 	imageBytes, err := helpers.GetValue[[]byte](_data, "image")
 	if err != nil {
-		return nil, false, err
+		return nil, false, false, err
 	}
 
 	imgBuf := bytes.NewBuffer(imageBytes)
 	img, format, err := image.Decode(imgBuf)
 	if err != nil {
-		return nil, false, err
+		return nil, false, false, err
 	}
 	config.GetLogger().Debugf("Image format: %s", format)
 
@@ -82,11 +82,11 @@ func (p *ProcessorImageAddText) Process(
 
 	fontBytes, err := config.LoadFont(blockConfig.Font)
 	if err != nil {
-		return nil, false, err
+		return nil, false, false, err
 	}
 	fontParsed, err := truetype.Parse(fontBytes)
 	if err != nil {
-		return nil, false, err
+		return nil, false, false, err
 	}
 	fontFace := truetype.NewFace(
 		fontParsed,
@@ -205,7 +205,7 @@ func (p *ProcessorImageAddText) Process(
 		config.GetLogger().Fatalf("Failed to encode PNG image: %v", err)
 	}
 
-	return output, false, nil
+	return output, false, false, nil
 }
 
 type BlockImageAddTextConfig struct {
