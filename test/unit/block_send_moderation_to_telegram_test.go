@@ -22,7 +22,7 @@ func (suite *UnitTestSuite) TestBlockSendModerationToTelegram() {
 
 	blockConfig := block.GetBlockConfig(suite._config)
 	suite.Equal("Approve", blockConfig.Approve)
-	suite.Equal("Reject", blockConfig.Reject)
+	suite.Equal("Decline", blockConfig.Decline)
 }
 
 func (suite *UnitTestSuite) TestBlockSendModerationToTelegramValidateSchemaOk() {
@@ -71,18 +71,20 @@ func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessIncorrectInp
 func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccess() {
 	// Given
 	processingId := uuid.New()
+	processingInstanceId := uuid.New()
 	block := blocks.NewBlockSendModerationToTelegram()
 	data := &dataclasses.BlockData{
 		Id:   "send_moderation_to_telegram",
 		Slug: "send-moderation-text",
 		Input: map[string]interface{}{
-			"text":       "Hello world!",
-			"channel_id": 123456,
+			"text":     "Hello world!",
+			"group_id": 123456,
 		},
 	}
 	data.SetBlock(block)
 	ctx := suite.GetContextWithcancel()
 	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingID{}, processingId)
+	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingInstanceID{}, processingInstanceId)
 
 	// When
 	result, stop, _, err := block.Process(

@@ -58,8 +58,8 @@
         },
         {
             "id": "send_moderation_to_telegram",
-            "slug": "send-moderation-to-telegram",
-            "description": "Send the generated content to Telegram for moderation",
+            "slug": "send-event-text-moderation-to-telegram",
+            "description": "Send the generated Event Text Content to Telegram for moderation",
             "input_config": {
                 "property": {
                     "text": {
@@ -69,7 +69,16 @@
                 }
             },
             "input": {
-                "channel_id": -4573786981
+                "group_id": -4573786981
+            }
+        },
+        {
+            "id": "fetch_moderation_from_telegram",
+            "slug": "fetch-text-moderation-from-telegram",
+            "description": "Fetch the moderation decision from Telegram",
+            "input": {
+                "block_slug": "send-event-text-moderation-to-telegram",
+                "stop_pipeline_if_decline": true
             }
         }
     ]

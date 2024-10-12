@@ -632,3 +632,15 @@ func (suite *UnitTestSuite) GetBlockRegistry(forceNewInstance ...bool) interface
 func (suite *UnitTestSuite) GetProcessingRegistry(forceNewInstance ...bool) interfaces.ProcessingRegistry {
 	return registries.GetProcessingRegistry(forceNewInstance...)
 }
+
+func (suite *UnitTestSuite) GetTelegramBotInfo() string {
+	return `{
+		"ok": true,
+		"result": {
+			"id": 123456789,
+			"is_bot": true,
+			"first_name": "Test Bot",
+			"username": "test_bot"
+		}
+	}`
+}

@@ -1,5 +1,5 @@
 log:
-  level: "debug"
+  level: "info"
 
 # TODO: Mutual TSL for Inter Worker Comminucation
 
@@ -146,5 +146,15 @@ blocks:
       policy: "none"
     config:
       approve: "Approve"
-      reject: "Reject"
-      channel_id: "0"
+      decline: "Decline"
+      group_id: "0"
+  
+  fetch_moderation_from_telegram:
+    detector:
+      check_interval: 1m
+      conditions:
+    reliability:
+      policy: "none"
+    config:
+      block_slug: ""
+      stop_pipeline_if_decline: true

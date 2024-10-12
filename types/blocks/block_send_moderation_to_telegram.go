@@ -78,18 +78,22 @@ func (p *ProcessorSendModerationToTelegram) Process(
 
 	approveButton := tgbotapi.NewInlineKeyboardButtonData(
 		blockConfig.Approve,
-		fmt.Sprintf("approve:%s", processingID),
+		helpers.CreateCallbackData(ShortenedActionApprove, processingID.String(), data.GetSlug()),
 	)
-	rejectButton := tgbotapi.NewInlineKeyboardButtonData(
-		blockConfig.Reject,
-		fmt.Sprintf("reject:%s", processingID),
+	declineButton := tgbotapi.NewInlineKeyboardButtonData(
+		blockConfig.Decline,
+		helpers.CreateCallbackData(ShortenedActionDecline, processingID.String(), data.GetSlug()),
 	)
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(approveButton, rejectButton),
+		tgbotapi.NewInlineKeyboardRow(approveButton, declineButton),
 	)
 	msg := tgbotapi.NewMessage(
-		blockConfig.ChannelId,
-		fmt.Sprintf("Please review the:\n\n%s\n\nID: %s", textContent, processingID),
+		blockConfig.GroupId,
+		fmt.Sprintf(
+			"Please review the:\n\n%s\n\nID: %s.",
+			textContent,
+			processingID,
+		),
 	)
 	msg.ReplyMarkup = keyboard
 
@@ -108,10 +112,10 @@ func (p *ProcessorSendModerationToTelegram) Process(
 }
 
 type BlockSendModerationToTelegramConfig struct {
-	Text      string `yaml:"text" json:"text"`
-	ChannelId int64  `yaml:"channel_id" json:"channel_id"`
-	Approve   string `yaml:"approve" json:"-"`
-	Reject    string `yaml:"reject" json:"-"`
+	Text    string `yaml:"text" json:"text"`
+	GroupId int64  `yaml:"group_id" json:"group_id"`
+	Approve string `yaml:"approve" json:"-"`
+	Decline string `yaml:"decline" json:"-"`
 }
 
 type BlockSendModerationToTelegram struct {
@@ -149,12 +153,12 @@ func NewBlockSendModerationToTelegram() *BlockSendModerationToTelegram {
 								"type": "string",
 								"minLength": 10
 							},
-							"channel_id": {
-								"description": "Channel ID to send the message to",
+							"group_id": {
+								"description": "Group ID to send the message to",
 								"type": "integer"
 							}
 						},
-						"required": ["text", "channel_id"]
+						"required": ["text", "group_id"]
 					},
 					"output": {
 						"description": "Moderation request output",

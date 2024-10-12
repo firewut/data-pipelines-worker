@@ -42,12 +42,15 @@ func NewProcessing(
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
 ) *Processing {
+	instanceId := uuid.New()
+
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingID{}, id)
+	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingInstanceID{}, instanceId)
 
 	return &Processing{
 		Id:                          id,
-		instanceId:                  uuid.New(),
+		instanceId:                  instanceId,
 		status:                      interfaces.ProcessingStatusPending,
 		pipeline:                    pipeline,
 		block:                       block,

@@ -10,6 +10,7 @@ import (
 
 type ProcessingStatus int
 type ContextKeyProcessingID struct{}
+type ContextKeyProcessingInstanceID struct{}
 
 const (
 	ProcessingStatusUnknown ProcessingStatus = iota

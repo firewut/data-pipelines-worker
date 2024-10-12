@@ -1,8 +1,12 @@
 package unit_test
 
 import (
+	"crypto/md5"
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/helpers"
+	"fmt"
+
+	"github.com/google/uuid"
 )
 
 func (suite *UnitTestSuite) TestGetValue() {
@@ -55,4 +59,20 @@ func (suite *UnitTestSuite) TestGetListAsQuotedString() {
 	quotedList := helpers.GetListAsQuotedString(list)
 
 	suite.Equal(`"a", "b", "c"`, quotedList)
+}
+
+func (suite *UnitTestSuite) TestCreateCallbackData() {
+	// Given
+	uuid1 := uuid.New()
+	blockSlug := "send-moderation-to-telegram"
+	hash := md5.New()
+	hash.Write([]byte(blockSlug))
+	expected := fmt.Sprintf("%s:%s:%x", "a", uuid1.String(), hash.Sum(nil))[:64]
+
+	// When
+	callbackData := helpers.CreateCallbackData("a", uuid1.String(), blockSlug)
+
+	// Then
+	suite.Len(callbackData, 64)
+	suite.Equal(expected, callbackData)
 }
