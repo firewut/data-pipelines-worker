@@ -14,6 +14,30 @@
             }
         },
         {
+            "id": "send_moderation_to_telegram",
+            "slug": "send-event-text-moderation-to-telegram",
+            "description": "Send the generated Event Text Content to Telegram for moderation",
+            "input_config": {
+                "property": {
+                    "text": {
+                        "origin": "get-event-text",
+                        "jsonPath": "$"
+                    }
+                }
+            },
+            "input": {
+                "group_id": -4573786981
+            }
+        },
+        {
+            "id": "fetch_moderation_from_telegram",
+            "slug": "fetch-text-moderation-from-telegram",
+            "description": "Fetch the moderation decision from Telegram",
+            "input": {
+                "block_slug": "send-event-text-moderation-to-telegram"
+            }
+        },
+        {
             "id": "openai_tts_request",
             "slug": "get-event-tts",
             "description": "Make a request to OpenAI TTS API to convert text to speech",
@@ -54,31 +78,6 @@
             "input": {
                 "quality": "hd",
                 "size": "1024x1792"
-            }
-        },
-        {
-            "id": "send_moderation_to_telegram",
-            "slug": "send-event-text-moderation-to-telegram",
-            "description": "Send the generated Event Text Content to Telegram for moderation",
-            "input_config": {
-                "property": {
-                    "text": {
-                        "origin": "get-event-text",
-                        "jsonPath": "$"
-                    }
-                }
-            },
-            "input": {
-                "group_id": -4573786981
-            }
-        },
-        {
-            "id": "fetch_moderation_from_telegram",
-            "slug": "fetch-text-moderation-from-telegram",
-            "description": "Fetch the moderation decision from Telegram",
-            "input": {
-                "block_slug": "send-event-text-moderation-to-telegram",
-                "stop_pipeline_if_decline": true
             }
         }
     ]

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/google/uuid"
@@ -114,6 +115,7 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 			// Fetch updates from Telegram
 			updates, err := client.GetUpdates(updateConfig)
 			if err != nil {
+
 				return output, stopPipeline, true, err
 			}
 
@@ -160,14 +162,22 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 	if err != nil {
 		return output, stopPipeline, false, err
 	}
-
 	output = bytes.NewBuffer(moderationDecisionBytes)
+
+	// Retry if the decision is unknown
+	if blockConfig.RetryIfUnknown && moderationDecision.Action == ModerationActionUnknown {
+		return output, false, true, nil
+	}
+
 	return output, stopPipeline, false, err
 }
 
 type BlockFetchModerationFromTelegramConfig struct {
-	BlockSlug             string `yaml:"block_slug" json:"block_slug"`
-	StopPipelineIfDecline bool   `yaml:"stop_pipeline_if_decline" json:"stop_pipeline_if_decline"`
+	BlockSlug             string        `yaml:"block_slug" json:"block_slug"`
+	StopPipelineIfDecline bool          `yaml:"stop_pipeline_if_decline" json:"stop_pipeline_if_decline"`
+	RetryIfUnknown        bool          `yaml:"retry_if_unknown" json:"-"`
+	RetryCount            int           `yaml:"retry_count" json:"-"`
+	RetryInterval         time.Duration `yaml:"retry_interval" json:"-"`
 }
 
 type ModerationDecision struct {

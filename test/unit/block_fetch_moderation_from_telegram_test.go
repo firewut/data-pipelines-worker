@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -27,6 +28,10 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegram() {
 	blockConfig := block.GetBlockConfig(suite._config)
 	suite.Equal("", blockConfig.BlockSlug)
 	suite.True(blockConfig.StopPipelineIfDecline)
+
+	suite.True(blockConfig.RetryIfUnknown)
+	suite.Equal(2, blockConfig.RetryCount)
+	suite.Equal(time.Second*30, blockConfig.RetryInterval)
 }
 
 func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramValidateSchemaOk() {
@@ -72,7 +77,7 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessIncorrect
 	suite.NotNil(err)
 }
 
-func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccessApproved() {
+func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess() {
 	// Given
 	processingId := uuid.New()
 	processingInstanceId := uuid.New()
@@ -226,4 +231,84 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccessAp
 		suite.Nil(err)
 		suite.Contains(result.String(), fmt.Sprintf(`"%s"`, c.expected))
 	}
+}
+
+func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessRetry() {
+	// Given
+	processingId := uuid.New()
+	processingInstanceId := uuid.New()
+
+	block := blocks.NewBlockFetchModerationFromTelegram()
+
+	data := &dataclasses.BlockData{
+		Id:   "fetch_moderation_from_telegram",
+		Slug: "fetch-moderation-decision",
+		Input: map[string]interface{}{
+			"block_slug":               "send-event-text-moderation-to-telegram",
+			"stop_pipeline_if_decline": true,
+		},
+	}
+	data.SetBlock(block)
+	ctx := suite.GetContextWithcancel()
+	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingID{}, processingId)
+	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingInstanceID{}, processingInstanceId)
+
+	moderationDecisions := fmt.Sprintf(`
+		{
+			"ok": true,
+			"result": [
+				{
+					"update_id": 123456789,
+					"message": {
+						"message_id": 111,
+						"from": {
+							"id": 987654321,
+							"is_bot": false,
+							"first_name": "John",
+							"last_name": "Doe",
+							"username": "johndoe",
+							"language_code": "en"
+						},
+						"chat": {
+							"id": 987654321,
+							"first_name": "John",
+							"last_name": "Doe",
+							"username": "johndoe",
+							"type": "private"
+						},
+						"date": 1633044474,
+						"text": "This is a regular message"
+					}
+				}
+			]
+		}`,
+	)
+
+	telegramMockAPI := suite.GetMockHTTPServer(
+		"",
+		http.StatusOK,
+		0,
+		map[string]string{
+			"/botTOKEN/getMe":      suite.GetTelegramBotInfo(),
+			"/botTOKEN/getUpdates": moderationDecisions,
+		},
+	)
+	telegramClient, err := factories.NewTelegramClient(telegramMockAPI.URL)
+	suite.Nil(err)
+	suite.NotNil(telegramClient)
+	suite._config.Telegram.SetClient(telegramClient)
+
+	// When
+	result, stop, retry, err := block.Process(
+		ctx,
+		blocks.NewProcessorFetchModerationFromTelegram(),
+		data,
+	)
+
+	// Then
+	suite.True(retry)
+	suite.NotNil(result)
+	suite.False(stop)
+	suite.Nil(err)
+	suite.Contains(result.String(), fmt.Sprintf(`"%s"`, blocks.ModerationActionUnknown))
 }

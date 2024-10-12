@@ -158,3 +158,6 @@ blocks:
     config:
       block_slug: ""
       stop_pipeline_if_decline: true
+      retry_if_unknown: true
+      retry_count: 2
+      retry_interval: "30s"

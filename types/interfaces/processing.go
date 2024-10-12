@@ -20,6 +20,7 @@ const (
 	ProcessingStatusFailed
 	ProcessingStatusTransferred
 	ProcessingStatusStopped
+	ProcessingStatusRetry
 )
 
 type Processing interface {
