@@ -253,36 +253,34 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessRetry() {
 	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingID{}, processingId)
 	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingInstanceID{}, processingInstanceId)
 
-	moderationDecisions := fmt.Sprintf(`
-		{
-			"ok": true,
-			"result": [
-				{
-					"update_id": 123456789,
-					"message": {
-						"message_id": 111,
-						"from": {
-							"id": 987654321,
-							"is_bot": false,
-							"first_name": "John",
-							"last_name": "Doe",
-							"username": "johndoe",
-							"language_code": "en"
-						},
-						"chat": {
-							"id": 987654321,
-							"first_name": "John",
-							"last_name": "Doe",
-							"username": "johndoe",
-							"type": "private"
-						},
-						"date": 1633044474,
-						"text": "This is a regular message"
-					}
+	moderationDecisions := `{
+		"ok": true,
+		"result": [
+			{
+				"update_id": 123456789,
+				"message": {
+					"message_id": 111,
+					"from": {
+						"id": 987654321,
+						"is_bot": false,
+						"first_name": "John",
+						"last_name": "Doe",
+						"username": "johndoe",
+						"language_code": "en"
+					},
+					"chat": {
+						"id": 987654321,
+						"first_name": "John",
+						"last_name": "Doe",
+						"username": "johndoe",
+						"type": "private"
+					},
+					"date": 1633044474,
+					"text": "This is a regular message"
 				}
-			]
-		}`,
-	)
+			}
+		]
+	}`
 
 	telegramMockAPI := suite.GetMockHTTPServer(
 		"",

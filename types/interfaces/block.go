@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"sync"
+	"time"
 
 	"github.com/xeipuuv/gojsonschema"
 )
@@ -15,6 +16,9 @@ type BlockDetector interface {
 }
 
 type BlockProcessor interface {
+	GetRetryCount(Block) int
+	GetRetryInterval(Block) time.Duration
+
 	Process(
 		context.Context,
 		Block,

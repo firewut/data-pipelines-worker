@@ -3,6 +3,7 @@ package blocks
 import (
 	"bytes"
 	"context"
+	"time"
 
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/helpers"
@@ -33,6 +34,14 @@ type ProcessorStopPipeline struct {
 
 func NewProcessorStopPipeline() *ProcessorStopPipeline {
 	return &ProcessorStopPipeline{}
+}
+
+func (p *ProcessorStopPipeline) GetRetryCount(_ interfaces.Block) int {
+	return 0
+}
+
+func (p *ProcessorStopPipeline) GetRetryInterval(_ interfaces.Block) time.Duration {
+	return 0
 }
 
 func (p *ProcessorStopPipeline) Process(

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	openai "github.com/sashabaranov/go-openai"
 
@@ -20,6 +21,14 @@ type ProcessorOpenAIRequestTranscription struct {
 
 func NewProcessorOpenAIRequestTranscription() *ProcessorOpenAIRequestTranscription {
 	return &ProcessorOpenAIRequestTranscription{}
+}
+
+func (p *ProcessorOpenAIRequestTranscription) GetRetryCount(_ interfaces.Block) int {
+	return 0
+}
+
+func (p *ProcessorOpenAIRequestTranscription) GetRetryInterval(_ interfaces.Block) time.Duration {
+	return 0
 }
 
 func (p *ProcessorOpenAIRequestTranscription) Process(

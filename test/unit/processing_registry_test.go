@@ -8,7 +8,9 @@ import (
 
 	"github.com/google/uuid"
 
+	"data-pipelines-worker/test/factories"
 	"data-pipelines-worker/types/blocks"
+	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/dataclasses"
 	"data-pipelines-worker/types/interfaces"
 	"data-pipelines-worker/types/registries"
@@ -431,4 +433,274 @@ func (suite *UnitTestSuite) TestProcessingRegistryShutdownRunningProcessing() {
 	// Then
 	suite.NotNil(err)
 	suite.Equal(context.DeadlineExceeded, err)
+}
+
+func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingFailed() {
+	// Given
+	processingId := uuid.New()
+	retryCount := 3
+	retryInterval := time.Millisecond
+
+	notificationChannel := make(chan interfaces.Processing)
+	registry := registries.NewProcessingRegistry()
+	registry.SetNotificationChannel(notificationChannel)
+
+	_config := config.GetConfig()
+	_config.Blocks["fetch_moderation_from_telegram"].Config["retry_interval"] = retryInterval
+	_config.Blocks["fetch_moderation_from_telegram"].Config["retry_count"] = retryCount
+
+	block := blocks.NewBlockFetchModerationFromTelegram()
+	pipeline := suite.GetTestPipeline(
+		`{
+			"slug": "openai-unit-test",
+			"title": "Youtube video generation pipeline from prompt",
+			"description": "Generates videos for youtube Channel <CHANNEL>. Uses Prompt in the Block.",
+			"blocks": [
+				{
+					"id": "openai_chat_completion",
+					"slug": "get-event-text",
+					"description": "Get a text from OpenAI Chat Completion API",
+					"input": {
+						"model": "gpt-4o-2024-08-06",
+						"system_prompt": "You must look for Historical event ( use google ) which happened today years ago. Write a short story about it. Add some interesting facts and make it engaging. The story MUST BE 15 words long!!!!!!!!",
+						"user_prompt": "What happened years ago at date October 5 ?"
+					}
+				},
+				{
+					"id": "send_moderation_to_telegram",
+					"slug": "send-event-text-moderation-to-telegram",
+					"description": "Send the generated Event Text Content to Telegram for moderation",
+					"input_config": {
+						"property": {
+							"text": {
+								"origin": "get-event-text",
+								"jsonPath": "$"
+							}
+						}
+					},
+					"input": {
+						"group_id": -4573786981
+					}
+				},
+				{
+					"id": "fetch_moderation_from_telegram",
+					"slug": "fetch-text-moderation-from-telegram",
+					"description": "Fetch the moderation decision from Telegram",
+					"input": {
+						"block_slug": "send-event-text-moderation-to-telegram"
+					}
+				}
+			]
+		}`,
+	)
+
+	data := &dataclasses.BlockData{
+		Id:   "fetch_moderation_from_telegram",
+		Slug: "fetch-moderation-decision",
+		Input: map[string]interface{}{
+			"block_slug": "send-event-text-moderation-to-telegram",
+		},
+	}
+	data.SetBlock(block)
+
+	processing := dataclasses.NewProcessing(
+		processingId,
+		pipeline,
+		block,
+		data,
+	)
+	suite.Equal(interfaces.ProcessingStatusPending, processing.GetStatus())
+	suite.Empty(registry.GetAll())
+
+	moderationDecisions := `{
+		"ok": true,
+		"result": [
+			{
+				"update_id": 123456789,
+				"message": {
+					"message_id": 111,
+					"from": {
+						"id": 987654321,
+						"is_bot": false,
+						"first_name": "John",
+						"last_name": "Doe",
+						"username": "johndoe",
+						"language_code": "en"
+					},
+					"chat": {
+						"id": 987654321,
+						"first_name": "John",
+						"last_name": "Doe",
+						"username": "johndoe",
+						"type": "private"
+					},
+					"date": 1633044474,
+					"text": "This is a regular message"
+				}
+			}
+		]
+	}`
+
+	telegramMockAPI := suite.GetMockHTTPServer(
+		"",
+		http.StatusOK,
+		0,
+		map[string]string{
+			"/botTOKEN/getMe":      suite.GetTelegramBotInfo(),
+			"/botTOKEN/getUpdates": moderationDecisions,
+		},
+	)
+	telegramClient, err := factories.NewTelegramClient(telegramMockAPI.URL)
+	suite.Nil(err)
+	suite.NotNil(telegramClient)
+	suite._config.Telegram.SetClient(telegramClient)
+
+	go registry.StartProcessing(processing)
+
+	// When
+	completedProcessing := <-notificationChannel
+
+	// Then
+	suite.NotEmpty(registry.GetAll())
+	suite.NotEmpty(completedProcessing.GetId())
+	suite.Equal(interfaces.ProcessingStatusRetryFailed, completedProcessing.GetStatus())
+}
+
+func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingSucceededFirstTry() {
+	// Given
+	processingId := uuid.New()
+	retryCount := 3
+	retryInterval := time.Millisecond
+
+	notificationChannel := make(chan interfaces.Processing)
+	registry := registries.NewProcessingRegistry()
+	registry.SetNotificationChannel(notificationChannel)
+
+	_config := config.GetConfig()
+	_config.Blocks["fetch_moderation_from_telegram"].Config["retry_interval"] = retryInterval
+	_config.Blocks["fetch_moderation_from_telegram"].Config["retry_count"] = retryCount
+
+	block := blocks.NewBlockFetchModerationFromTelegram()
+	pipeline := suite.GetTestPipeline(
+		`{
+			"slug": "openai-unit-test",
+			"title": "Youtube video generation pipeline from prompt",
+			"description": "Generates videos for youtube Channel <CHANNEL>. Uses Prompt in the Block.",
+			"blocks": [
+				{
+					"id": "openai_chat_completion",
+					"slug": "get-event-text",
+					"description": "Get a text from OpenAI Chat Completion API",
+					"input": {
+						"model": "gpt-4o-2024-08-06",
+						"system_prompt": "You must look for Historical event ( use google ) which happened today years ago. Write a short story about it. Add some interesting facts and make it engaging. The story MUST BE 15 words long!!!!!!!!",
+						"user_prompt": "What happened years ago at date October 5 ?"
+					}
+				},
+				{
+					"id": "send_moderation_to_telegram",
+					"slug": "send-event-text-moderation-to-telegram",
+					"description": "Send the generated Event Text Content to Telegram for moderation",
+					"input_config": {
+						"property": {
+							"text": {
+								"origin": "get-event-text",
+								"jsonPath": "$"
+							}
+						}
+					},
+					"input": {
+						"group_id": -4573786981
+					}
+				},
+				{
+					"id": "fetch_moderation_from_telegram",
+					"slug": "fetch-text-moderation-from-telegram",
+					"description": "Fetch the moderation decision from Telegram",
+					"input": {
+						"block_slug": "send-event-text-moderation-to-telegram"
+					}
+				}
+			]
+		}`,
+	)
+
+	data := &dataclasses.BlockData{
+		Id:   "fetch_moderation_from_telegram",
+		Slug: "fetch-moderation-decision",
+		Input: map[string]interface{}{
+			"block_slug": "send-event-text-moderation-to-telegram",
+		},
+	}
+	data.SetBlock(block)
+
+	processing := dataclasses.NewProcessing(
+		processingId,
+		pipeline,
+		block,
+		data,
+	)
+	suite.Equal(interfaces.ProcessingStatusPending, processing.GetStatus())
+	suite.Empty(registry.GetAll())
+
+	moderationDecisions := fmt.Sprintf(`{
+			"ok": true,
+			"result": [
+				{
+					"callback_query": {
+						"chat_instance": "111111111111111111",
+						"data": "%s:%s:7470d33caf7ef9a794eba8cdf",
+						"from": {
+							"first_name": "John",
+							"id": 987654321,
+							"is_bot": false,
+							"language_code": "en",
+							"last_name": "Doe",
+							"username": "johndoe"
+						},
+						"id": "123456789",
+						"message": {
+							"chat": {
+								"first_name": "John",
+								"id": 987654321,
+								"last_name": "Doe",
+								"type": "private",
+								"username": "johndoe"
+							},
+							"date": 1633044475,
+							"message_id": 222,
+							"text": "Please approve or reject"
+						}
+					},
+					"update_id": 123456790
+				}
+			]
+		}`,
+		blocks.ShortenedActionApprove,
+		processingId.String(),
+	)
+
+	telegramMockAPI := suite.GetMockHTTPServer(
+		"",
+		http.StatusOK,
+		0,
+		map[string]string{
+			"/botTOKEN/getMe":      suite.GetTelegramBotInfo(),
+			"/botTOKEN/getUpdates": moderationDecisions,
+		},
+	)
+	telegramClient, err := factories.NewTelegramClient(telegramMockAPI.URL)
+	suite.Nil(err)
+	suite.NotNil(telegramClient)
+	suite._config.Telegram.SetClient(telegramClient)
+
+	go registry.StartProcessing(processing)
+
+	// When
+	completedProcessing := <-notificationChannel
+
+	// Then
+	suite.NotEmpty(registry.GetAll())
+	suite.NotEmpty(completedProcessing.GetId())
+	suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing.GetStatus())
 }

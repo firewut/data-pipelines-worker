@@ -53,6 +53,14 @@ func NewProcessorFetchModerationFromTelegram() *ProcessorFetchModerationFromTele
 	return &ProcessorFetchModerationFromTelegram{}
 }
 
+func (p *ProcessorFetchModerationFromTelegram) GetRetryCount(block interfaces.Block) int {
+	return block.(*BlockFetchModerationFromTelegram).GetBlockConfig(config.GetConfig()).RetryCount
+}
+
+func (p *ProcessorFetchModerationFromTelegram) GetRetryInterval(block interfaces.Block) time.Duration {
+	return block.(*BlockFetchModerationFromTelegram).GetBlockConfig(config.GetConfig()).RetryInterval
+}
+
 func (p *ProcessorFetchModerationFromTelegram) Process(
 	ctx context.Context,
 	block interfaces.Block,

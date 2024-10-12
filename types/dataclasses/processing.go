@@ -151,29 +151,53 @@ func (p *Processing) Start() (interfaces.ProcessingOutput, bool, error) {
 	}
 	p.SetStatus(interfaces.ProcessingStatusRunning)
 
-	// Call Process and pass the processing context
-	result, stop, retry, err := p.block.Process(p.ctx, p.processor, p.data)
-	if err != nil {
-		p.SetStatus(interfaces.ProcessingStatusFailed)
+	retryCount := p.processor.GetRetryCount(p.block)
+	retryInterval := p.processor.GetRetryInterval(p.block)
+
+	var processResult *bytes.Buffer
+	var stop, retry bool
+	var err error
+
+	for attempt := 0; attempt <= retryCount; attempt++ {
+		processResult, stop, retry, err = p.block.Process(p.ctx, p.processor, p.data)
+
+		if err == nil && !retry {
+			break
+		}
+
 		if err == context.Canceled {
-			// Handle cancellation specifically
+			p.SetStatus(interfaces.ProcessingStatusFailed)
 			p.sendResult(true)
 			return nil, false, fmt.Errorf("processing with id %s was cancelled", p.GetId().String())
 		}
 
-		p.sendResult(false)
-		return nil, false, err
+		// If retry is required and we haven't exhausted retry attempts
+		if retry && attempt < retryCount {
+			p.SetStatus(interfaces.ProcessingStatusRetry)
+			time.Sleep(retryInterval)
+			continue
+		}
+
+		// If we reach here and retry is still required, mark the process as failed
+		if attempt == retryCount && retry {
+			p.SetStatus(interfaces.ProcessingStatusRetryFailed)
+			p.sendResult(false)
+			return nil, false, fmt.Errorf("processing with id %s failed after exhausting all %d retry attempts", p.GetId().String(), retryCount)
+		}
+
+		// If unrecoverable error, mark as failed
+		if err != nil {
+			p.SetStatus(interfaces.ProcessingStatusFailed)
+			p.sendResult(false)
+			return nil, false, fmt.Errorf("processing with id %s failed after %d attempts: %w", p.GetId().String(), attempt+1, err)
+		}
 	}
 
-	// When Retry is needed
-	if retry {
-		fmt.Println(">>>> RETRY")
-		p.SetStatus(interfaces.ProcessingStatusRetry)
-	}
-
+	// Processing completed without errors or retries
 	p.Lock()
 
-	p.output = NewProcessingOutput(p.data.GetSlug(), stop, result)
+	// Create a ProcessingOutput using the result from the block process
+	p.output = NewProcessingOutput(p.data.GetSlug(), stop, processResult)
 	p.stop = stop
 	p.status = interfaces.ProcessingStatusCompleted
 	if stop {

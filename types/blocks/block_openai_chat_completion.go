@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	openai "github.com/sashabaranov/go-openai"
 
@@ -44,6 +45,14 @@ type ProcessorOpenAIRequestCompletion struct {
 
 func NewProcessorOpenAIRequestCompletion() *ProcessorOpenAIRequestCompletion {
 	return &ProcessorOpenAIRequestCompletion{}
+}
+
+func (p *ProcessorOpenAIRequestCompletion) GetRetryCount(_ interfaces.Block) int {
+	return 0
+}
+
+func (p *ProcessorOpenAIRequestCompletion) GetRetryInterval(_ interfaces.Block) time.Duration {
+	return 0
 }
 
 func (p *ProcessorOpenAIRequestCompletion) Process(

@@ -5,6 +5,7 @@ import (
 	"context"
 	"image"
 	"image/png"
+	"time"
 
 	"github.com/disintegration/imaging"
 
@@ -38,6 +39,14 @@ type ProcessorImageResize struct {
 
 func NewProcessorImageResize() *ProcessorImageResize {
 	return &ProcessorImageResize{}
+}
+
+func (p *ProcessorImageResize) GetRetryCount(_ interfaces.Block) int {
+	return 0
+}
+
+func (p *ProcessorImageResize) GetRetryInterval(_ interfaces.Block) time.Duration {
+	return 0
 }
 
 func (p *ProcessorImageResize) Process(

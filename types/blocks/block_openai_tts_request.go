@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"time"
 
 	openai "github.com/sashabaranov/go-openai"
 
@@ -19,6 +20,14 @@ type ProcessorOpenAIRequestTTS struct {
 
 func NewProcessorOpenAIRequestTTS() *ProcessorOpenAIRequestTTS {
 	return &ProcessorOpenAIRequestTTS{}
+}
+
+func (p *ProcessorOpenAIRequestTTS) GetRetryCount(_ interfaces.Block) int {
+	return 0
+}
+
+func (p *ProcessorOpenAIRequestTTS) GetRetryInterval(_ interfaces.Block) time.Duration {
+	return 0
 }
 
 func (p *ProcessorOpenAIRequestTTS) Process(

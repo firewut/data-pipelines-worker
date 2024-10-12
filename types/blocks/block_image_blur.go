@@ -5,6 +5,7 @@ import (
 	"context"
 	"image"
 	"image/png"
+	"time"
 
 	"github.com/disintegration/imaging"
 
@@ -38,6 +39,14 @@ type ProcessorImageBlur struct {
 
 func NewProcessorImageBlur() *ProcessorImageBlur {
 	return &ProcessorImageBlur{}
+}
+
+func (p *ProcessorImageBlur) GetRetryCount(_ interfaces.Block) int {
+	return 0
+}
+
+func (p *ProcessorImageBlur) GetRetryInterval(_ interfaces.Block) time.Duration {
+	return 0
 }
 
 func (p *ProcessorImageBlur) Process(

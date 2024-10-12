@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/google/uuid"
@@ -46,6 +47,14 @@ type ProcessorSendModerationToTelegram struct {
 
 func NewProcessorSendModerationToTelegram() *ProcessorSendModerationToTelegram {
 	return &ProcessorSendModerationToTelegram{}
+}
+
+func (p *ProcessorSendModerationToTelegram) GetRetryCount(_ interfaces.Block) int {
+	return 0
+}
+
+func (p *ProcessorSendModerationToTelegram) GetRetryInterval(_ interfaces.Block) time.Duration {
+	return 0
 }
 
 func (p *ProcessorSendModerationToTelegram) Process(

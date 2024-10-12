@@ -49,6 +49,14 @@ func NewProcessorHTTP() *ProcessorHTTP {
 	return &ProcessorHTTP{}
 }
 
+func (p *ProcessorHTTP) GetRetryCount(_ interfaces.Block) int {
+	return 0
+}
+
+func (p *ProcessorHTTP) GetRetryInterval(_ interfaces.Block) time.Duration {
+	return 0
+}
+
 func (p *ProcessorHTTP) Process(
 	ctx context.Context,
 	block interfaces.Block,

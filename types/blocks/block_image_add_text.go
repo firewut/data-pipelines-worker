@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"image"
 	"image/png"
+	"time"
 
 	"github.com/fogleman/gg"
 	"github.com/golang/freetype/truetype"
@@ -41,6 +42,14 @@ type ProcessorImageAddText struct {
 
 func NewProcessorImageAddText() *ProcessorImageAddText {
 	return &ProcessorImageAddText{}
+}
+
+func (p *ProcessorImageAddText) GetRetryCount(_ interfaces.Block) int {
+	return 0
+}
+
+func (p *ProcessorImageAddText) GetRetryInterval(_ interfaces.Block) time.Duration {
+	return 0
 }
 
 func (p *ProcessorImageAddText) Process(

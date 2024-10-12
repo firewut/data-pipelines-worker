@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"log"
+	"time"
 
 	openai "github.com/sashabaranov/go-openai"
 
@@ -20,6 +21,14 @@ type ProcessorOpenAIRequestImage struct {
 
 func NewProcessorOpenAIRequestImage() *ProcessorOpenAIRequestImage {
 	return &ProcessorOpenAIRequestImage{}
+}
+
+func (p *ProcessorOpenAIRequestImage) GetRetryCount(_ interfaces.Block) int {
+	return 0
+}
+
+func (p *ProcessorOpenAIRequestImage) GetRetryInterval(_ interfaces.Block) time.Duration {
+	return 0
 }
 
 func (p *ProcessorOpenAIRequestImage) Process(
