@@ -9,14 +9,14 @@
             "description": "Get a text from OpenAI Chat Completion API",
             "input": {
                 "model": "gpt-4o-2024-08-06",
-                "system_prompt": "You must look for Historical event ( use google ) which happened today years ago. Write a short story about it. Add some interesting facts and make it engaging. The story MUST BE 15 words long!!!!!!!!",
+                "system_prompt": "You must look for Historical event ( use google ) which happened today years ago. Write a short story about it. Add some interesting facts and make it engaging. The story MUST BE 30 words long!!!!!!!!",
                 "user_prompt": "What happened years ago at date October 5 ?"
             }
         },
         {
-            "id": "send_moderation_to_telegram",
+            "id": "send_moderation_telegram",
             "slug": "send-event-text-moderation-to-telegram",
-            "description": "Send the generated Event Text Content to Telegram for moderation",
+            "description": "Send the Event Text to Telegram for moderation",
             "input_config": {
                 "property": {
                     "text": {
@@ -30,9 +30,9 @@
             }
         },
         {
-            "id": "fetch_moderation_from_telegram",
-            "slug": "fetch-text-moderation-from-telegram",
-            "description": "Fetch the moderation decision from Telegram",
+            "id": "fetch_moderation_telegram",
+            "slug": "fetch-event-text-moderation-from-telegram",
+            "description": "Fetch the Event Text moderation decision from Telegram",
             "input": {
                 "block_slug": "send-event-text-moderation-to-telegram"
             }
@@ -63,21 +63,76 @@
             }
         },
         {
-            "id": "openai_image_request",
-            "slug": "get-event-image",
-            "description": "Make a request to OpenAI Image API to get an image",
+            "id": "text_add_prefix_suffix",
+            "slug": "make-system-prompt-for-image-prompt-generation",
+            "description": "Make a system prompt for image generation from the event text",
+            "input_config": {
+                "property": {
+                    "text": {
+                        "origin": "get-event-transcription",
+                        "jsonPath": "$.text"
+                    }
+                }
+            },
+            "input": {
+                "prefix": "You are going to create a prompt to generate an image according to this text and user request: "
+            }
+        },
+        {
+            "id": "openai_chat_completion",
+            "slug": "get-prompt-for-image-generation-text",
+            "description": "Get prompts for image generation from OpenAI Chat Completion",
             "input_config": {
                 "type": "array",
                 "property": {
-                    "prompt": {
+                    "system_prompt": {
+                        "origin": "make-system-prompt-for-image-prompt-generation"
+                    },
+                    "user_prompt": {
                         "origin": "get-event-transcription",
                         "jsonPath": "$.segments[*].text"
                     }
                 }
             },
             "input": {
+                "model": "gpt-4o-2024-08-06"
+            }
+        },
+        {
+            "id": "openai_image_request",
+            "slug": "get-event-images",
+            "description": "Make a request to OpenAI Image API to get an image",
+            "input_config": {
+                "type": "array",
+                "property": {
+                    "prompt": {
+                        "origin": "get-prompt-for-image-generation-text"
+                    }
+                }
+            },
+            "input": {
                 "quality": "hd",
                 "size": "1024x1792"
+            }
+        },
+        {
+            "id": "send_moderation_telegram",
+            "slug": "send-event-images-moderation-to-telegram",
+            "description": "Send generated Event Images to Telegram for moderation",
+            "input_config": {
+                "type": "array",
+                "property": {
+                    "image": {
+                        "origin": "get-event-images"
+                    },
+                    "text": {
+                        "origin": "get-event-transcription",
+                        "jsonPath": "$.segments[*].text"
+                    }
+                }
+            },
+            "input": {
+                "group_id": -4573786981
             }
         }
     ]

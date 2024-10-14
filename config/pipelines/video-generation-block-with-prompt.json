@@ -221,7 +221,7 @@
             }
         },
         {
-            "id": "fetch_moderation_from_telegram",
+            "id": "fetch_moderation_telegram",
             "slug": "fetch-video-moderation-decision",
             "description": "Fetch Video Modration Decision from Telegram",
             "input_config": {

@@ -19,7 +19,7 @@ import (
 func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegram() {
 	block := blocks.NewBlockFetchModerationFromTelegram()
 
-	suite.Equal("fetch_moderation_from_telegram", block.GetId())
+	suite.Equal("fetch_moderation_telegram", block.GetId())
 	suite.Equal("Fetch Moderation from Telegram", block.GetName())
 	suite.Equal("Fetch Moderation Action from Telegram", block.GetDescription())
 	suite.NotNil(block.GetSchema())
@@ -56,7 +56,7 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessIncorrect
 	// Given
 	block := blocks.NewBlockFetchModerationFromTelegram()
 	data := &dataclasses.BlockData{
-		Id:   "fetch_moderation_from_telegram",
+		Id:   "fetch_moderation_telegram",
 		Slug: "fetch-moderation",
 		Input: map[string]interface{}{
 			"text": nil,
@@ -86,7 +86,7 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess()
 	blockConfig := block.GetBlockConfig(suite._config)
 
 	data := &dataclasses.BlockData{
-		Id:   "fetch_moderation_from_telegram",
+		Id:   "fetch_moderation_telegram",
 		Slug: "fetch-moderation-decision",
 		Input: map[string]interface{}{
 			"block_slug":               "send-event-text-moderation-to-telegram",
@@ -241,7 +241,7 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessRetry() {
 	block := blocks.NewBlockFetchModerationFromTelegram()
 
 	data := &dataclasses.BlockData{
-		Id:   "fetch_moderation_from_telegram",
+		Id:   "fetch_moderation_telegram",
 		Slug: "fetch-moderation-decision",
 		Input: map[string]interface{}{
 			"block_slug":               "send-event-text-moderation-to-telegram",

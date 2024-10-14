@@ -91,7 +91,6 @@ blocks:
     config:
       quality: "standard"
       size: "1024x1024"
-      style: "natural"
 
   image_add_text:
     detector:
@@ -138,7 +137,7 @@ blocks:
     config:
       stop: false
 
-  send_moderation_to_telegram:
+  send_moderation_telegram:
     detector:
       check_interval: 1m
       conditions:
@@ -149,7 +148,7 @@ blocks:
       decline: "Decline"
       group_id: "0"
   
-  fetch_moderation_from_telegram:
+  fetch_moderation_telegram:
     detector:
       check_interval: 1m
       conditions:
@@ -159,5 +158,21 @@ blocks:
       block_slug: ""
       stop_pipeline_if_decline: true
       retry_if_unknown: true
-      retry_count: 2
-      retry_interval: "30s"
+      retry_count: 50
+      retry_interval: "10s"
+  
+  text_replace:
+    detector:
+      check_interval: 50m
+      conditions:
+    reliability:
+      policy: "none"
+    config:
+  
+  text_add_prefix_suffix:
+    detector:
+      check_interval: 50m
+      conditions:
+    reliability:
+      policy: "none"
+    config:

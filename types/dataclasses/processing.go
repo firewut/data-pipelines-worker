@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/interfaces"
 )
 
@@ -145,6 +146,8 @@ func (p *Processing) SetRegistryNotificationChannel(channel chan interfaces.Proc
 }
 
 func (p *Processing) Start() (interfaces.ProcessingOutput, bool, error) {
+	logger := config.GetLogger()
+
 	if p.GetStatus() != interfaces.ProcessingStatusPending {
 		p.sendResult(false)
 		return nil, false, fmt.Errorf("processing with id %s is not in pending state", p.GetId().String())
@@ -174,6 +177,14 @@ func (p *Processing) Start() (interfaces.ProcessingOutput, bool, error) {
 		// If retry is required and we haven't exhausted retry attempts
 		if retry && attempt < retryCount {
 			p.SetStatus(interfaces.ProcessingStatusRetry)
+
+			logger.Warnf(
+				"processing with id %s requires retry, attempt %d of %d",
+				p.GetId().String(),
+				attempt+1,
+				retryCount,
+			)
+
 			time.Sleep(retryInterval)
 			continue
 		}

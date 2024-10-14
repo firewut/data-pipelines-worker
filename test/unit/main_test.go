@@ -193,14 +193,14 @@ func (suite *UnitTestSuite) TearDownTest() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
+	for _, cancel := range suite.contextCancels {
+		cancel()
+	}
 	for _, server := range suite.httpTestServers {
 		server.Close()
 	}
 	for _, storage := range suite.storages {
 		storage.Shutdown()
-	}
-	for _, cancel := range suite.contextCancels {
-		cancel()
 	}
 	for _, registry := range suite.registries {
 		registry.Shutdown(ctx)

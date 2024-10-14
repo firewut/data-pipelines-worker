@@ -75,6 +75,8 @@ func (br *BlockRegistry) DetectBlocks() {
 	stopPipelineBlock := blocks.NewBlockStopPipeline()
 	sendModerationToTelegramBlock := blocks.NewBlockSendModerationToTelegram()
 	fetchModerationFromTelegramBlock := blocks.NewBlockFetchModerationFromTelegram()
+	textReplaceBlock := blocks.NewBlockTextReplace()
+	textAddPrefixOrSuffixBlock := blocks.NewBlockTextAddPrefixOrSuffix()
 
 	br.blocksDetector = map[interfaces.Block]interfaces.BlockDetector{
 		httpBlock: blocks.NewDetectorHTTP(
@@ -116,6 +118,12 @@ func (br *BlockRegistry) DetectBlocks() {
 		fetchModerationFromTelegramBlock: blocks.NewDetectorTelegramBot(
 			_config.Telegram.GetClient(),
 			_config.Blocks[fetchModerationFromTelegramBlock.GetId()].Detector,
+		),
+		textReplaceBlock: blocks.NewDetectorTextReplace(
+			_config.Blocks[textReplaceBlock.GetId()].Detector,
+		),
+		textAddPrefixOrSuffixBlock: blocks.NewDetectorTextAddPrefixOrSuffix(
+			_config.Blocks[textAddPrefixOrSuffixBlock.GetId()].Detector,
 		),
 	}
 

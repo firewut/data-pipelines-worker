@@ -123,7 +123,6 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 			// Fetch updates from Telegram
 			updates, err := client.GetUpdates(updateConfig)
 			if err != nil {
-
 				return output, stopPipeline, true, err
 			}
 
@@ -219,7 +218,7 @@ func (b *BlockFetchModerationFromTelegram) GetBlockConfig(_config config.Config)
 func NewBlockFetchModerationFromTelegram() *BlockFetchModerationFromTelegram {
 	block := &BlockFetchModerationFromTelegram{
 		BlockParent: BlockParent{
-			Id:          "fetch_moderation_from_telegram",
+			Id:          "fetch_moderation_telegram",
 			Name:        "Fetch Moderation from Telegram",
 			Description: "Fetch Moderation Action from Telegram",
 			Version:     "1",

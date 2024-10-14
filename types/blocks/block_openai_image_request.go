@@ -51,6 +51,7 @@ func (p *ProcessorOpenAIRequestImage) Process(
 	if client == nil {
 		return output, false, false, errors.New("openAI client is not configured")
 	}
+
 	resp, err := client.CreateImage(
 		ctx,
 		openai.ImageRequest{
@@ -59,7 +60,6 @@ func (p *ProcessorOpenAIRequestImage) Process(
 			N:              1,
 			Quality:        blockConfig.Quality,
 			Size:           blockConfig.Size,
-			Style:          blockConfig.Style,
 			ResponseFormat: openai.CreateImageResponseFormatB64JSON,
 		},
 	)
@@ -82,7 +82,6 @@ type BlockOpenAIRequestImageConfig struct {
 	Prompt  string `yaml:"prompt" json:"prompt"`
 	Quality string `yaml:"quality" json:"quality"`
 	Size    string `yaml:"size" json:"size"`
-	Style   string `yaml:"style" json:"style"`
 }
 
 type BlockOpenAIRequestImage struct {
@@ -131,10 +130,6 @@ func NewBlockOpenAIRequestImage() *BlockOpenAIRequestImage {
 								"type": "string",
 								"default": "1024x1024",
 								"enum": ["1024x1024", "1024x1792", "1792x1024"]
-							},
-							"style": {
-								"description": "Style of the image",
-								"type": "string"
 							}
 						},
 						"required": ["prompt"]

@@ -25,7 +25,6 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestImage() {
 	blockConfig := block.GetBlockConfig(suite._config)
 	suite.Equal("standard", blockConfig.Quality)
 	suite.Equal("1024x1024", blockConfig.Size)
-	suite.Equal("natural", blockConfig.Style)
 }
 
 func (suite *UnitTestSuite) TestBlockOpenAIRequestImageValidateSchemaOk() {

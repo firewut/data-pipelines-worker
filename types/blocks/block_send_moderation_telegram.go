@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -96,17 +97,49 @@ func (p *ProcessorSendModerationToTelegram) Process(
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(approveButton, declineButton),
 	)
-	msg := tgbotapi.NewMessage(
-		blockConfig.GroupId,
-		fmt.Sprintf(
-			"Please review the:\n\n%s\n\nID: %s.",
-			textContent,
-			processingID,
-		),
-	)
-	msg.ReplyMarkup = keyboard
+	// Initialize a variable for the sent message and error handling
+	var sentMessage tgbotapi.Message
+	var err error
 
-	sentMessage, err := client.Send(msg)
+	// Attempt to retrieve and decode the image
+	imageBytes, imgErr := helpers.GetValue[[]byte](_data, "image")
+	if imgErr == nil {
+		imgBuf := bytes.NewBuffer(imageBytes)
+		_, format, decodeErr := image.Decode(imgBuf)
+		if decodeErr == nil {
+			// Valid image, prepare the photo message
+			imgFile := tgbotapi.FileBytes{
+				Name:  fmt.Sprintf("image.%s", format),
+				Bytes: imageBytes,
+			}
+			photo := tgbotapi.NewPhoto(blockConfig.GroupId, imgFile)
+			photo.Caption = fmt.Sprintf(
+				"Please review the:\n\n%s\n\nID: %s.",
+				textContent,
+				processingID,
+			)
+			photo.ReplyMarkup = keyboard
+			sentMessage, err = client.Send(photo)
+		} else {
+			// If decoding failed, fallback to text message
+			err = decodeErr
+		}
+	}
+
+	// If there's no image or an error occurred during image handling, send text message
+	if err != nil || imgErr != nil {
+		msg := tgbotapi.NewMessage(
+			blockConfig.GroupId,
+			fmt.Sprintf(
+				"Please review the:\n\n%s\n\nID: %s.",
+				textContent,
+				processingID,
+			),
+		)
+		msg.ReplyMarkup = keyboard
+		sentMessage, err = client.Send(msg)
+	}
+
 	if err != nil {
 		return output, false, false, err
 	}
@@ -115,13 +148,13 @@ func (p *ProcessorSendModerationToTelegram) Process(
 	if err != nil {
 		return output, false, false, err
 	}
-
 	output = bytes.NewBuffer(sentMessageBytes)
-	return output, false, false, err
+
+	return output, false, false, nil
 }
 
 type BlockSendModerationToTelegramConfig struct {
-	Text    string `yaml:"text" json:"text"`
+	Text    string `yaml:"-" json:"text"`
 	GroupId int64  `yaml:"group_id" json:"group_id"`
 	Approve string `yaml:"approve" json:"-"`
 	Decline string `yaml:"decline" json:"-"`
@@ -146,7 +179,7 @@ func (b *BlockSendModerationToTelegram) GetBlockConfig(_config config.Config) *B
 func NewBlockSendModerationToTelegram() *BlockSendModerationToTelegram {
 	block := &BlockSendModerationToTelegram{
 		BlockParent: BlockParent{
-			Id:          "send_moderation_to_telegram",
+			Id:          "send_moderation_telegram",
 			Name:        "Send Moderation to Telegram",
 			Description: "Send Moderation Request to Telegram",
 			Version:     "1",
@@ -158,9 +191,14 @@ func NewBlockSendModerationToTelegram() *BlockSendModerationToTelegram {
 						"description": "Input parameters",
 						"properties": {
 							"text": {
-								"description": "Text to convert to audio",
+								"description": "Text content to be moderated",
 								"type": "string",
 								"minLength": 10
+							},
+							"image": {
+					        	"description": "Image content to be moderated",
+								"type": "string",
+								"format": "file"
 							},
 							"group_id": {
 								"description": "Group ID to send the message to",

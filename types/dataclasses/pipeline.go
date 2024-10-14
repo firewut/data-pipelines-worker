@@ -339,6 +339,12 @@ func (p *PipelineData) Process(
 				}
 			}
 		}
+
+		logger.Infof(
+			"Processing Pipeline %s [%s] completed",
+			p.GetSlug(),
+			processingId,
+		)
 	}()
 
 	return processingId, nil

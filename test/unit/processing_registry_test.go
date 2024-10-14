@@ -446,8 +446,8 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingFailed() {
 	registry.SetNotificationChannel(notificationChannel)
 
 	_config := config.GetConfig()
-	_config.Blocks["fetch_moderation_from_telegram"].Config["retry_interval"] = retryInterval
-	_config.Blocks["fetch_moderation_from_telegram"].Config["retry_count"] = retryCount
+	_config.Blocks["fetch_moderation_telegram"].Config["retry_interval"] = retryInterval
+	_config.Blocks["fetch_moderation_telegram"].Config["retry_count"] = retryCount
 
 	block := blocks.NewBlockFetchModerationFromTelegram()
 	pipeline := suite.GetTestPipeline(
@@ -467,7 +467,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingFailed() {
 					}
 				},
 				{
-					"id": "send_moderation_to_telegram",
+					"id": "send_moderation_telegram",
 					"slug": "send-event-text-moderation-to-telegram",
 					"description": "Send the generated Event Text Content to Telegram for moderation",
 					"input_config": {
@@ -483,7 +483,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingFailed() {
 					}
 				},
 				{
-					"id": "fetch_moderation_from_telegram",
+					"id": "fetch_moderation_telegram",
 					"slug": "fetch-text-moderation-from-telegram",
 					"description": "Fetch the moderation decision from Telegram",
 					"input": {
@@ -495,7 +495,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingFailed() {
 	)
 
 	data := &dataclasses.BlockData{
-		Id:   "fetch_moderation_from_telegram",
+		Id:   "fetch_moderation_telegram",
 		Slug: "fetch-moderation-decision",
 		Input: map[string]interface{}{
 			"block_slug": "send-event-text-moderation-to-telegram",
@@ -577,8 +577,8 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingSucceededFirstT
 	registry.SetNotificationChannel(notificationChannel)
 
 	_config := config.GetConfig()
-	_config.Blocks["fetch_moderation_from_telegram"].Config["retry_interval"] = retryInterval
-	_config.Blocks["fetch_moderation_from_telegram"].Config["retry_count"] = retryCount
+	_config.Blocks["fetch_moderation_telegram"].Config["retry_interval"] = retryInterval
+	_config.Blocks["fetch_moderation_telegram"].Config["retry_count"] = retryCount
 
 	block := blocks.NewBlockFetchModerationFromTelegram()
 	pipeline := suite.GetTestPipeline(
@@ -598,7 +598,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingSucceededFirstT
 					}
 				},
 				{
-					"id": "send_moderation_to_telegram",
+					"id": "send_moderation_telegram",
 					"slug": "send-event-text-moderation-to-telegram",
 					"description": "Send the generated Event Text Content to Telegram for moderation",
 					"input_config": {
@@ -614,7 +614,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingSucceededFirstT
 					}
 				},
 				{
-					"id": "fetch_moderation_from_telegram",
+					"id": "fetch_moderation_telegram",
 					"slug": "fetch-text-moderation-from-telegram",
 					"description": "Fetch the moderation decision from Telegram",
 					"input": {
@@ -626,7 +626,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingSucceededFirstT
 	)
 
 	data := &dataclasses.BlockData{
-		Id:   "fetch_moderation_from_telegram",
+		Id:   "fetch_moderation_telegram",
 		Slug: "fetch-moderation-decision",
 		Input: map[string]interface{}{
 			"block_slug": "send-event-text-moderation-to-telegram",
