@@ -3,6 +3,7 @@ package dataclasses
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"github.com/google/uuid"
 	"github.com/xeipuuv/gojsonschema"
@@ -156,6 +157,11 @@ func (p *PipelineData) Process(
 		pipelineBlockDataRegistry.LoadOutput(blockData.GetSlug())
 	}
 
+	// If inputData.Block.TargetIndex is set - Load it's result also
+	if inputData.Block.TargetIndex >= 0 {
+		pipelineBlockDataRegistry.LoadOutput(inputData.Block.Slug)
+	}
+
 	go func() {
 		// Loop through each block
 		for blockRelativeIndex, blockData := range processBlocks {
@@ -172,10 +178,15 @@ func (p *PipelineData) Process(
 			tmpProcessing := NewProcessing(processingId, p, block, blockData)
 			processingRegistry.Add(tmpProcessing)
 
-			var inputConfigValue []map[string]interface{}
+			var (
+				inputConfigValue []map[string]interface{}
+				parallel         bool
+			)
+			blockWg := &sync.WaitGroup{}
+
 			if blockData.GetInputConfig() != nil {
 				var err error
-				inputConfigValue, err = blockData.GetInputConfigData(
+				inputConfigValue, parallel, err = blockData.GetInputConfigData(
 					pipelineBlockDataRegistry.GetAll(),
 				)
 
@@ -256,88 +267,129 @@ func (p *PipelineData) Process(
 			)
 
 			for blockInputIndex, blockInput := range blockInputData {
-				logger.Infof(
-					"Processing data for block %s [%s] with input %d",
-					block.GetId(),
-					blockData.GetSlug(),
-					blockInputIndex,
-				)
-
-				blockData.SetInputData(blockInput)
-				processing := NewProcessing(processingId, p, block, blockData)
-				processingResult, stopProcessing, err := processingRegistry.StartProcessing(processing)
-
-				if err != nil {
-					logger.Errorf(
-						"Error processing data for block %s [%s:%s]. Error: %s",
-						block.GetId(),
-						blockData.GetSlug(),
-						processing.GetId(),
-						err,
-					)
-					return
-				}
-
-				logger.Infof(
-					"Processing data for block %s [%s:%s] with input %d completed",
-					block.GetId(),
-					blockData.GetSlug(),
-					processing.GetId(),
-					blockInputIndex,
-				)
-
-				if stopProcessing {
-					logger.Infof(
-						"Pipeline stopped by block %s [%s:%s]",
-						block.GetId(),
-						blockData.GetSlug(),
-						processing.GetId(),
-					)
-					processing.Stop(interfaces.ProcessingStatusStopped, nil)
-					return
-				}
-
-				logger.Infof(
-					"Saving output for block %s [%s:%s] with input %d",
-					block.GetId(),
-					blockData.GetSlug(),
-					processing.GetId(),
-					blockInputIndex,
-				)
-
-				pipelineBlockDataRegistry.AddBlockData(
-					processingResult.GetId(),
-					processingResult.GetValue(),
-				)
-
-				// Save result to Storage
-				saveOutputResults := pipelineBlockDataRegistry.SaveOutput(
-					processing.GetData().GetSlug(),
-					blockInputIndex,
-					processingResult.GetValue(),
-				)
-
-				for _, saveOutputResult := range saveOutputResults {
-					if saveOutputResult.Error != nil {
-						logger.Errorf(
-							"Error saving output for block %s [%s] processing %s to storage %s: %s",
+				registryAddBlockData := true
+				if blockRelativeIndex == 0 && inputData.Block.TargetIndex >= 0 {
+					if blockInputIndex != inputData.Block.TargetIndex {
+						logger.Infof(
+							"Skipping processing data for block %s [%s] with index %d",
 							block.GetId(),
 							blockData.GetSlug(),
-							processing.GetData().GetId(),
-							saveOutputResult.StorageLocation.GetStorageName(),
-							saveOutputResult.Error,
+							blockInputIndex,
+						)
+						continue
+					}
+
+					registryAddBlockData = false
+				}
+
+				logger.Infof(
+					"Processing data for block %s [%s] with index %d",
+					block.GetId(),
+					blockData.GetSlug(),
+					blockInputIndex,
+				)
+
+				blockWg.Add(1)
+
+				// Clone block data
+				blockDataClone := blockData.Clone()
+				blockDataClone.SetInputData(blockInput)
+				processing := NewProcessing(processingId, p, block, blockDataClone)
+
+				processBlockInput := func(_blockData interfaces.ProcessableBlockData, _processing interfaces.Processing) error {
+					defer blockWg.Done()
+
+					processingResult, stopProcessing, err := processingRegistry.StartProcessing(_processing)
+					if err != nil {
+						logger.Errorf(
+							"Error processing data for block %s [%s:%s]. Error: %s",
+							block.GetId(),
+							_blockData.GetSlug(),
+							_processing.GetId(),
+							err,
+						)
+						return err
+					}
+
+					logger.Infof(
+						"Processing data for block %s [%s:%s] with index %d completed",
+						block.GetId(),
+						_blockData.GetSlug(),
+						_processing.GetId(),
+						blockInputIndex,
+					)
+
+					if stopProcessing {
+						logger.Infof(
+							"Pipeline stopped by block %s [%s:%s]",
+							block.GetId(),
+							_blockData.GetSlug(),
+							_processing.GetId(),
+						)
+						_processing.Stop(interfaces.ProcessingStatusStopped, nil)
+						return nil
+					}
+
+					logger.Infof(
+						"Saving output for block %s [%s:%s] with index %d",
+						block.GetId(),
+						_blockData.GetSlug(),
+						_processing.GetId(),
+						blockInputIndex,
+					)
+
+					if registryAddBlockData {
+						pipelineBlockDataRegistry.AddBlockData(
+							_blockData.GetSlug(),
+							processingResult.GetValue(),
 						)
 					} else {
-						logger.Infof(
-							"Saved output for block %s [%s] processing %s to storage %s",
-							block.GetId(),
-							blockData.GetSlug(),
-							processing.GetData().GetId(),
-							saveOutputResult.StorageLocation.GetStorageName(),
+						pipelineBlockDataRegistry.UpdateBlockData(
+							_blockData.GetSlug(),
+							blockInputIndex,
+							processingResult.GetValue(),
 						)
 					}
+
+					// Save result to Storage
+					saveOutputResults := pipelineBlockDataRegistry.SaveOutput(
+						_blockData.GetSlug(),
+						blockInputIndex,
+						processingResult.GetValue(),
+					)
+
+					for _, saveOutputResult := range saveOutputResults {
+						if saveOutputResult.Error != nil {
+							logger.Errorf(
+								"Error saving output for block %s [%s] processing %s to storage %s: %s",
+								block.GetId(),
+								_blockData.GetSlug(),
+								_processing.GetData().GetId(),
+								saveOutputResult.StorageLocation.GetStorageName(),
+								saveOutputResult.Error,
+							)
+						} else {
+							logger.Infof(
+								"Saved output for block %s [%s] processing %s to storage %s",
+								block.GetId(),
+								_blockData.GetSlug(),
+								_processing.GetData().GetId(),
+								saveOutputResult.StorageLocation.GetStorageName(),
+							)
+						}
+					}
+
+					return nil
+				}
+
+				if parallel {
+					go processBlockInput(blockDataClone, processing)
+				} else {
+					processBlockInput(blockDataClone, processing)
 				}
 			}
+
+			blockWg.Wait()
 		}
 
 		logger.Infof(

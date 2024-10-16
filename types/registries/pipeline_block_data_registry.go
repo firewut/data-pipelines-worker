@@ -50,6 +50,20 @@ func NewPipelineBlockDataRegistry(
 func (r *PipelineBlockDataRegistry) Add(input []*bytes.Buffer) {
 }
 
+func (r *PipelineBlockDataRegistry) UpdateBlockData(blockSlug string, index int, data *bytes.Buffer) {
+	r.Lock()
+	defer r.Unlock()
+
+	if _, ok := r.pipelineBlockData[blockSlug]; !ok {
+		r.pipelineBlockData[blockSlug] = make([]*bytes.Buffer, 0)
+	}
+
+	// Ensure that the index is within the bounds of the slice
+	if index >= 0 && index < len(r.pipelineBlockData[blockSlug]) {
+		r.pipelineBlockData[blockSlug][index] = data
+	}
+}
+
 func (r *PipelineBlockDataRegistry) AddBlockData(blockSlug string, data *bytes.Buffer) {
 	r.Lock()
 	defer r.Unlock()

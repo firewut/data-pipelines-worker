@@ -252,7 +252,8 @@ func (suite *UnitTestSuite) GetTestInputForProcessing(
 			Slug: pipelineSlug,
 		},
 		Block: schemas.BlockInputSchema{
-			Slug: blockSlug,
+			Slug:        blockSlug,
+			TargetIndex: -1,
 		},
 	}
 	if blockInput != nil {

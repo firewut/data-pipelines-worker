@@ -30,8 +30,8 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegram() {
 	suite.True(blockConfig.StopPipelineIfDecline)
 
 	suite.True(blockConfig.RetryIfUnknown)
-	suite.Equal(2, blockConfig.RetryCount)
-	suite.Equal(time.Second*30, blockConfig.RetryInterval)
+	suite.Equal(50, blockConfig.RetryCount)
+	suite.Equal(time.Second*10, blockConfig.RetryInterval)
 }
 
 func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramValidateSchemaOk() {

@@ -71,30 +71,25 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessIncorrectInput() {
 
 func (suite *UnitTestSuite) TestBlockImageAddTextProcessSuccess() {
 	// Given
-	width := 1024
-	height := 1792
+	width := 100
+	height := 200
 
 	texts := []string{
 		"On October 5, 1962, the world was forever changed as the Beatles released their debut single in the UK.",
 	}
 	fonts := []string{"Roboto-Regular.ttf"}
-	fontSizes := []int{50}
+	fontSizes := []int{5}
 	fontColors := []string{"#AA44AA"}
 	textPositions := []string{
-		"top-left",
-		"top-center",
-		"top-right",
-		"center-left",
-		"center-center",
-		"center-right",
-		"bottom-left",
-		"bottom-center",
-		"bottom-right",
+		"top-left", "top-center", "top-right",
+		"center-left", "center-center", "center-right",
+		"bottom-left", "bottom-center", "bottom-right",
 	}
 	textBgColors := []string{"#000000"}
 	textBgAlphas := []float64{0.8}
-	textBgMargins := []float64{20}
+	textBgMargins := []float64{2}
 	textBgAllWidths := []bool{true}
+
 	type testCase struct {
 		text           string
 		font           string
@@ -106,6 +101,8 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessSuccess() {
 		textBgMargin   float64
 		textBgAllWidth bool
 	}
+
+	// Prepare all combinations of test cases
 	testCases := []testCase{}
 	for _, text := range texts {
 		for _, fontSize := range fontSizes {
@@ -137,16 +134,15 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessSuccess() {
 		}
 	}
 
-	images := make([]image.Image, 0)
-	var (
-		wg sync.WaitGroup
-		mu sync.Mutex
-	)
+	// Pre-allocate slice for images
+	images := make([]image.Image, len(testCases))
+	var wg sync.WaitGroup
 
-	for _, tc := range testCases {
+	// Run each test case in parallel
+	for idx, tc := range testCases {
 		wg.Add(1)
 
-		go func(tc testCase) {
+		go func(tc testCase, idx int) {
 			defer wg.Done()
 			imageBuffer := factories.GetPNGImageBuffer(width, height)
 
@@ -169,38 +165,31 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessSuccess() {
 			}
 			data.SetBlock(block)
 
-			// When
+			// Process the block
 			result, stop, _, err := block.Process(
 				suite.GetContextWithcancel(),
 				blocks.NewProcessorImageAddText(),
 				data,
 			)
 
-			// Then
+			// Validate the result
 			suite.NotNil(result)
 			suite.False(stop)
 			suite.Nil(err)
 
+			// Decode the resulting image
 			image, err := png.Decode(bytes.NewReader(result.Bytes()))
 			suite.Nil(err)
 			suite.NotNil(image)
 			suite.Equal(width, image.Bounds().Dx())
 			suite.Equal(height, image.Bounds().Dy())
 
-			// // Save image to local png
-			// os.MkdirAll("images", os.ModePerm)
-			// out, _ := os.Create(fmt.Sprintf("images/%s.png", tc.textPosition))
-			// defer out.Close()
-
-			// png.Encode(out, image)
-
-			mu.Lock()
-			images = append(images, image)
-			mu.Unlock()
-		}(tc)
-
+			// Save the result in the pre-allocated slice
+			images[idx] = image
+		}(tc, idx)
 	}
 
+	// Wait for all goroutines to complete
 	wg.Wait()
 
 	// Check that all images are different

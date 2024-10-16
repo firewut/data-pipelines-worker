@@ -45,7 +45,7 @@ func (suite *UnitTestSuite) TestPipelineProcessMissingBlock() {
 
 	// When
 	processingId, err := pipeline.Process(
-		suite.GetWorkerRegistry(),
+		suite.GetWorkerRegistry(true),
 		suite.GetBlockRegistry(),
 		suite.GetProcessingRegistry(),
 		processingData,
@@ -85,14 +85,14 @@ func (suite *UnitTestSuite) TestPipelineProcess() {
 		},
 	)
 	notificationChannel := make(chan interfaces.Processing)
-	processingRegistry := suite.GetProcessingRegistry()
+	processingRegistry := suite.GetProcessingRegistry(true)
 	processingRegistry.SetNotificationChannel(notificationChannel)
 
 	// When
 	processingId, err := pipeline.Process(
-		suite.GetWorkerRegistry(),
+		suite.GetWorkerRegistry(true),
 		suite.GetBlockRegistry(),
-		suite.GetProcessingRegistry(),
+		processingRegistry,
 		processingData,
 		pipelineRegistry.GetPipelineResultStorages(),
 	)
@@ -167,14 +167,14 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineTrue() {
 		},
 	)
 	notificationChannel := make(chan interfaces.Processing)
-	processingRegistry := suite.GetProcessingRegistry()
+	processingRegistry := suite.GetProcessingRegistry(true)
 	processingRegistry.SetNotificationChannel(notificationChannel)
 
 	// When
 	processingId, err := pipeline.Process(
-		suite.GetWorkerRegistry(),
+		suite.GetWorkerRegistry(true),
 		suite.GetBlockRegistry(),
-		suite.GetProcessingRegistry(),
+		processingRegistry,
 		processingData,
 		pipelineRegistry.GetPipelineResultStorages(),
 	)
@@ -258,14 +258,14 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalse() {
 		},
 	)
 	notificationChannel := make(chan interfaces.Processing)
-	processingRegistry := suite.GetProcessingRegistry()
+	processingRegistry := suite.GetProcessingRegistry(true)
 	processingRegistry.SetNotificationChannel(notificationChannel)
 
 	// When
 	processingId, err := pipeline.Process(
-		suite.GetWorkerRegistry(),
+		suite.GetWorkerRegistry(true),
 		suite.GetBlockRegistry(),
-		suite.GetProcessingRegistry(),
+		processingRegistry,
 		processingData,
 		pipelineRegistry.GetPipelineResultStorages(),
 	)
@@ -363,14 +363,14 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineTrueThreeBlocks() {
 		},
 	)
 	notificationChannel := make(chan interfaces.Processing)
-	processingRegistry := suite.GetProcessingRegistry()
+	processingRegistry := suite.GetProcessingRegistry(true)
 	processingRegistry.SetNotificationChannel(notificationChannel)
 
 	// When
 	processingId, err := pipeline.Process(
-		suite.GetWorkerRegistry(),
+		suite.GetWorkerRegistry(true),
 		suite.GetBlockRegistry(),
-		suite.GetProcessingRegistry(),
+		processingRegistry,
 		processingData,
 		pipelineRegistry.GetPipelineResultStorages(),
 	)
@@ -467,14 +467,14 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalseThreeBlocks() {
 		},
 	)
 	notificationChannel := make(chan interfaces.Processing)
-	processingRegistry := suite.GetProcessingRegistry()
+	processingRegistry := suite.GetProcessingRegistry(true)
 	processingRegistry.SetNotificationChannel(notificationChannel)
 
 	// When
 	processingId, err := pipeline.Process(
-		suite.GetWorkerRegistry(),
+		suite.GetWorkerRegistry(true),
 		suite.GetBlockRegistry(),
-		suite.GetProcessingRegistry(),
+		processingRegistry,
 		processingData,
 		pipelineRegistry.GetPipelineResultStorages(),
 	)
@@ -521,8 +521,8 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
 	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, 0)
 	firstBlockInput := suite.GetMockHTTPServerURL(secondBlockInput, http.StatusOK, 0)
 
-	notificationChannel := make(chan interfaces.Processing)
-	processingRegistry := suite.GetProcessingRegistry()
+	notificationChannel := make(chan interfaces.Processing, 2)
+	processingRegistry := suite.GetProcessingRegistry(true)
 	processingRegistry.SetNotificationChannel(notificationChannel)
 
 	pipeline, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
@@ -543,7 +543,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
 
 	// When
 	processingId, err := pipeline.Process(
-		suite.GetWorkerRegistry(),
+		suite.GetWorkerRegistry(true),
 		suite.GetBlockRegistry(),
 		processingRegistry,
 		processingData,
@@ -560,14 +560,14 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
 	suite.Equal(processingId, firstBlockProcessing.GetId())
 	suite.Equal(interfaces.ProcessingStatusCompleted, firstBlockProcessing.GetStatus())
 
-	firstBlockProcessingOutput := firstBlockProcessing.GetOutput()
-	suite.NotNil(firstBlockProcessingOutput)
-	suite.Equal(secondBlockInput, firstBlockProcessingOutput.GetValue().String())
-
 	secondBlockProcessing := <-notificationChannel
 	suite.NotNil(secondBlockProcessing)
 	suite.Equal(processingId, secondBlockProcessing.GetId())
 	suite.Equal(interfaces.ProcessingStatusCompleted, secondBlockProcessing.GetStatus())
+
+	firstBlockProcessingOutput := firstBlockProcessing.GetOutput()
+	suite.NotNil(firstBlockProcessingOutput)
+	suite.Equal(secondBlockInput, firstBlockProcessingOutput.GetValue().String())
 
 	secondBlockProcessingOutput := secondBlockProcessing.GetOutput()
 	suite.NotNil(secondBlockProcessingOutput)
@@ -580,11 +580,11 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcessNStorages() {
 		"Hello, world! Mocked value is %s",
 		uuid.NewString(),
 	)
-	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, 0)
-	firstBlockInput := suite.GetMockHTTPServerURL(secondBlockInput, http.StatusOK, 0)
+	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, 3)
+	firstBlockInput := suite.GetMockHTTPServerURL(secondBlockInput, http.StatusOK, 2)
 
-	notificationChannel := make(chan interfaces.Processing)
-	processingRegistry := suite.GetProcessingRegistry()
+	notificationChannel := make(chan interfaces.Processing, 2)
+	processingRegistry := suite.GetProcessingRegistry(true)
 	processingRegistry.SetNotificationChannel(notificationChannel)
 
 	pipeline, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
@@ -606,7 +606,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcessNStorages() {
 
 	// When
 	processingId, err := pipeline.Process(
-		suite.GetWorkerRegistry(),
+		suite.GetWorkerRegistry(true),
 		suite.GetBlockRegistry(),
 		processingRegistry,
 		processingData,
@@ -623,14 +623,14 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcessNStorages() {
 	suite.Equal(processingId, firstBlockProcessing.GetId())
 	suite.Equal(interfaces.ProcessingStatusCompleted, firstBlockProcessing.GetStatus())
 
-	firstBlockProcessingOutput := firstBlockProcessing.GetOutput()
-	suite.NotNil(firstBlockProcessingOutput)
-	suite.Equal(secondBlockInput, firstBlockProcessingOutput.GetValue().String())
-
 	secondBlockProcessing := <-notificationChannel
 	suite.NotNil(secondBlockProcessing)
 	suite.Equal(processingId, secondBlockProcessing.GetId())
 	suite.Equal(interfaces.ProcessingStatusCompleted, secondBlockProcessing.GetStatus())
+
+	firstBlockProcessingOutput := firstBlockProcessing.GetOutput()
+	suite.NotNil(firstBlockProcessingOutput)
+	suite.Equal(secondBlockInput, firstBlockProcessingOutput.GetValue().String())
 
 	secondBlockProcessingOutput := secondBlockProcessing.GetOutput()
 	suite.NotNil(secondBlockProcessingOutput)
@@ -663,8 +663,8 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 	)
 	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, 0)
 
-	notificationChannel := make(chan interfaces.Processing)
-	processingRegistry := suite.GetProcessingRegistry()
+	notificationChannel := make(chan interfaces.Processing, 2)
+	processingRegistry := suite.GetProcessingRegistry(true)
 	processingRegistry.SetNotificationChannel(notificationChannel)
 
 	pipeline, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
@@ -701,7 +701,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 
 	// When
 	processingId, err := pipeline.Process(
-		suite.GetWorkerRegistry(),
+		suite.GetWorkerRegistry(true),
 		suite.GetBlockRegistry(),
 		processingRegistry,
 		processingData,
@@ -736,8 +736,8 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 	)
 	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, 0)
 
-	notificationChannel := make(chan interfaces.Processing)
-	processingRegistry := suite.GetProcessingRegistry()
+	notificationChannel := make(chan interfaces.Processing, 2)
+	processingRegistry := suite.GetProcessingRegistry(true)
 	processingRegistry.SetNotificationChannel(notificationChannel)
 
 	pipeline, processingData, registry := suite.RegisterTestPipelineAndInputForProcessing(
@@ -770,7 +770,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 
 	// When
 	processingId, err := pipeline.Process(
-		suite.GetWorkerRegistry(),
+		suite.GetWorkerRegistry(true),
 		suite.GetBlockRegistry(),
 		processingRegistry,
 		processingData,

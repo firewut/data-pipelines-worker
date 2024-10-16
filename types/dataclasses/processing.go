@@ -23,12 +23,13 @@ type Processing struct {
 	pipeline  interfaces.Pipeline
 	block     interfaces.Block
 	processor interfaces.BlockProcessor
-	data      interfaces.ProcessableBlockData
+	blockData interfaces.ProcessableBlockData
 
 	output                      *ProcessingOutput
 	stop                        bool
 	err                         error
 	registryNotificationChannel chan interfaces.Processing
+	channelClosed               bool
 	startTimestamp              int64
 	endTimestamp                int64
 
@@ -41,7 +42,7 @@ func NewProcessing(
 	id uuid.UUID,
 	pipeline interfaces.Pipeline,
 	block interfaces.Block,
-	data interfaces.ProcessableBlockData,
+	blockData interfaces.ProcessableBlockData,
 ) *Processing {
 	instanceId := uuid.New()
 
@@ -56,7 +57,8 @@ func NewProcessing(
 		pipeline:                    pipeline,
 		block:                       block,
 		processor:                   block.GetProcessor(),
-		data:                        data,
+		blockData:                   blockData,
+		channelClosed:               true,
 		registryNotificationChannel: nil,
 		ctx:                         ctx,
 		ctxCancel:                   ctxCancel,
@@ -94,6 +96,7 @@ func (p *Processing) GetBlock() interfaces.Block {
 }
 
 func (p *Processing) Shutdown(ctx context.Context) error {
+	p.setChannelClosed()
 	if p.GetStatus() != interfaces.ProcessingStatusCompleted {
 		p.SetStatus(interfaces.ProcessingStatusFailed)
 	}
@@ -128,7 +131,7 @@ func (p *Processing) GetData() interfaces.ProcessableBlockData {
 	p.Lock()
 	defer p.Unlock()
 
-	return p.data
+	return p.blockData
 }
 
 func (p *Processing) GetOutput() interfaces.ProcessingOutput {
@@ -142,6 +145,7 @@ func (p *Processing) SetRegistryNotificationChannel(channel chan interfaces.Proc
 	p.Lock()
 	defer p.Unlock()
 
+	p.channelClosed = false
 	p.registryNotificationChannel = channel
 }
 
@@ -162,7 +166,7 @@ func (p *Processing) Start() (interfaces.ProcessingOutput, bool, error) {
 	var err error
 
 	for attempt := 0; attempt <= retryCount; attempt++ {
-		processResult, stop, retry, err = p.block.Process(p.ctx, p.processor, p.data)
+		processResult, stop, retry, err = p.block.Process(p.ctx, p.processor, p.blockData)
 
 		if err == nil && !retry {
 			break
@@ -202,21 +206,24 @@ func (p *Processing) Start() (interfaces.ProcessingOutput, bool, error) {
 			p.sendResult(false)
 			return nil, false, fmt.Errorf("processing with id %s failed after %d attempts: %w", p.GetId().String(), attempt+1, err)
 		}
+
 	}
 
 	// Processing completed without errors or retries
 	p.Lock()
 
 	// Create a ProcessingOutput using the result from the block process
-	p.output = NewProcessingOutput(p.data.GetSlug(), stop, processResult)
+	p.output = NewProcessingOutput(p.blockData.GetSlug(), stop, processResult)
+
 	p.stop = stop
 	p.status = interfaces.ProcessingStatusCompleted
 	if stop {
 		p.status = interfaces.ProcessingStatusStopped
 	}
 
-	p.sendResult(false)
 	p.Unlock()
+
+	p.sendResult(false)
 
 	return p.output, stop, nil
 }
@@ -241,18 +248,34 @@ func (p *Processing) GetError() error {
 	return p.err
 }
 
+func (p *Processing) setChannelClosed() {
+	p.Lock()
+	defer p.Unlock()
+
+	p.channelClosed = true
+}
+
+func (p *Processing) isChannelClosed() bool {
+	p.Lock()
+	defer p.Unlock()
+	return p.channelClosed
+}
+
 func (p *Processing) sendResult(shutdown bool) {
+	logger := config.GetLogger()
+
 	p.closeOnce.Do(func() {
-		if shutdown {
+		if shutdown || p.isChannelClosed() {
 			return
 		}
 
-		// Send to registryNotificationChannel only if it's open
 		if p.registryNotificationChannel != nil {
+			// Attempt to send without blocking
 			select {
 			case p.registryNotificationChannel <- p:
+				// Sent successfully
 			default:
-				// Channel might be closed or not ready to receive, handle accordingly
+				logger.Warn("Notification channel is full, dropping processing notification")
 			}
 		}
 	})

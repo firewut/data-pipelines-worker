@@ -94,8 +94,12 @@ func (p *ProcessorSendModerationToTelegram) Process(
 		blockConfig.Decline,
 		helpers.CreateCallbackData(ShortenedActionDecline, processingID.String(), data.GetSlug()),
 	)
+	regenerateButton := tgbotapi.NewInlineKeyboardButtonData(
+		blockConfig.Regenerate,
+		helpers.CreateCallbackData(ShortenedActionRegenerate, processingID.String(), data.GetSlug()),
+	)
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(approveButton, declineButton),
+		tgbotapi.NewInlineKeyboardRow(approveButton, regenerateButton, declineButton),
 	)
 	// Initialize a variable for the sent message and error handling
 	var sentMessage tgbotapi.Message
@@ -103,6 +107,7 @@ func (p *ProcessorSendModerationToTelegram) Process(
 
 	// Attempt to retrieve and decode the image
 	imageBytes, imgErr := helpers.GetValue[[]byte](_data, "image")
+
 	if imgErr == nil {
 		imgBuf := bytes.NewBuffer(imageBytes)
 		_, format, decodeErr := image.Decode(imgBuf)
@@ -154,10 +159,11 @@ func (p *ProcessorSendModerationToTelegram) Process(
 }
 
 type BlockSendModerationToTelegramConfig struct {
-	Text    string `yaml:"-" json:"text"`
-	GroupId int64  `yaml:"group_id" json:"group_id"`
-	Approve string `yaml:"approve" json:"-"`
-	Decline string `yaml:"decline" json:"-"`
+	Text       string `yaml:"-" json:"text"`
+	GroupId    int64  `yaml:"group_id" json:"group_id"`
+	Approve    string `yaml:"approve" json:"-"`
+	Decline    string `yaml:"decline" json:"-"`
+	Regenerate string `yaml:"regenerate" json:"-"`
 }
 
 type BlockSendModerationToTelegram struct {

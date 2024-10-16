@@ -33,6 +33,19 @@ type BlockInputData struct {
 	Value     interface{}
 }
 
+func (b *BlockData) Clone() interfaces.ProcessableBlockData {
+	return &BlockData{
+		Id:           b.Id,
+		Slug:         b.Slug,
+		Description:  b.Description,
+		InputConfig:  b.InputConfig,
+		Input:        b.Input,
+		OutputConfig: b.OutputConfig,
+		pipeline:     b.pipeline,
+		block:        b.block,
+	}
+}
+
 func (b *BlockData) SetPipeline(pipeline interfaces.Pipeline) {
 	b.Lock()
 	defer b.Unlock()
@@ -164,7 +177,7 @@ func (b *BlockData) CastValueToValidType(
 
 func (b *BlockData) GetInputConfigData(
 	pipelineResults map[string][]*bytes.Buffer,
-) ([]map[string]interface{}, error) {
+) ([]map[string]interface{}, bool, error) {
 	//  input_config.type = "array"
 	//      the function returns an array of maps
 	//          []map[string]interface{}{
@@ -187,16 +200,17 @@ func (b *BlockData) GetInputConfigData(
 	//          }
 
 	inputData := make([]map[string]interface{}, 0)
+	inputTypeArrayParallel := false
 
 	var schema map[string]interface{}
 	err := json.Unmarshal([]byte(b.GetBlock().GetSchemaString()), &schema)
 	if err != nil {
 		fmt.Println("Error unmarshaling schema:", err)
-		return nil, err
+		return nil, false, err
 	}
 
 	if b.GetInputConfig() == nil {
-		return inputData, nil
+		return inputData, false, nil
 	}
 
 	b.Lock()
@@ -204,7 +218,7 @@ func (b *BlockData) GetInputConfigData(
 
 	// Check if `property` in `input_config` is not empty
 	if _, ok := b.InputConfig["property"]; !ok {
-		return inputData, nil
+		return inputData, false, nil
 	}
 
 	// Check if `type` in `input_config` is not empty
@@ -213,6 +227,9 @@ func (b *BlockData) GetInputConfigData(
 		switch inputType {
 		case "array":
 			inputTypeArray = true
+			if inputTypeParallel, ok := b.InputConfig["parallel"]; ok {
+				inputTypeArrayParallel = inputTypeParallel.(bool)
+			}
 		default:
 		}
 	}
@@ -255,12 +272,12 @@ func (b *BlockData) GetInputConfigData(
 								if jsonPath, ok := property_config.(map[string]interface{})["jsonPath"].(string); ok {
 									data, err := HandleResultValue(resultValue.Bytes())
 									if err != nil {
-										return nil, err
+										return nil, false, err
 									}
 
 									jsonPathData, err := jsonpath.JsonPathLookup(data, jsonPath)
 									if err != nil {
-										return nil, err
+										return nil, false, err
 									}
 									if inputTypeArray && reflect.TypeOf(jsonPathData).Kind() == reflect.Slice {
 										if _, ok := jsonPathData.([]interface{}); ok {
@@ -286,7 +303,7 @@ func (b *BlockData) GetInputConfigData(
 								)
 							}
 						} else {
-							return inputData, fmt.Errorf(
+							return inputData, false, fmt.Errorf(
 								"origin %s not found in pipelineResults",
 								origin,
 							)
@@ -312,10 +329,10 @@ func (b *BlockData) GetInputConfigData(
 			}
 		}
 
-		return []map[string]interface{}{inputDataNotArray}, nil
+		return []map[string]interface{}{inputDataNotArray}, false, nil
 	}
 
-	return inputData, nil
+	return inputData, inputTypeArrayParallel, nil
 }
 
 // MergeMaps function definition remains unchanged

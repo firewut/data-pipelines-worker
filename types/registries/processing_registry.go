@@ -6,8 +6,12 @@ import (
 
 	"github.com/google/uuid"
 
-	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/interfaces"
+)
+
+const (
+	numReaders                 int = 10
+	processingCompletedBufSize int = 100
 )
 
 var (
@@ -45,24 +49,20 @@ var _ interfaces.ProcessingRegistry = (*ProcessingRegistry)(nil)
 func NewProcessingRegistry() *ProcessingRegistry {
 	registry := &ProcessingRegistry{
 		Processing:                 make(map[uuid.UUID]interfaces.Processing),
-		processingCompletedChannel: make(chan interfaces.Processing),
+		processingCompletedChannel: make(chan interfaces.Processing, processingCompletedBufSize),
 		notificationChannel:        nil,
 	}
 
-	go registry.processCompleted()
+	for i := 0; i < numReaders; i++ {
+		go registry.processCompleted()
+	}
 
 	return registry
 }
 
 func (pr *ProcessingRegistry) processCompleted() {
-	logger := config.GetLogger()
-	for processing := range pr.processingCompletedChannel {
-		logger.Debugf(
-			"Processing completed: %s %s",
-			processing.GetId(),
-			processing.GetInstanceId(),
-		)
 
+	for processing := range pr.processingCompletedChannel {
 		// Copy the reference outside the lock
 		var notificationChannel chan interfaces.Processing
 		pr.Lock()
@@ -86,9 +86,8 @@ func (pr *ProcessingRegistry) Add(p interfaces.Processing) {
 	pr.Lock()
 	defer pr.Unlock()
 
-	p.SetRegistryNotificationChannel(pr.processingCompletedChannel)
-
 	pr.Processing[p.GetId()] = p
+	p.SetRegistryNotificationChannel(pr.processingCompletedChannel)
 }
 
 func (pr *ProcessingRegistry) Get(id string) interfaces.Processing {

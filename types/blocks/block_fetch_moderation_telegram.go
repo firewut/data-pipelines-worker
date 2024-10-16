@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -20,23 +21,27 @@ import (
 type ModerationAction string
 
 const (
-	ModerationActionApprove ModerationAction = "approve"
-	ModerationActionDecline ModerationAction = "decline"
-	ModerationActionUnknown ModerationAction = "unknown"
+	ModerationActionApprove    ModerationAction = "approve"
+	ModerationActionDecline    ModerationAction = "decline"
+	ModerationActionUnknown    ModerationAction = "unknown"
+	ModerationActionRegenerate ModerationAction = "regenerate"
 
-	ShortenedActionApprove = "a" // Shortened version for approve
-	ShortenedActionDecline = "d" // Shortened version for decline
+	ShortenedActionApprove    = "a" // Shortened version for approve
+	ShortenedActionDecline    = "d" // Shortened version for decline
+	ShortenedActionRegenerate = "r" // Shortened version for regenerate
 )
 
 // Map for full action strings to moderation actions
 var moderationActionMap = map[string]ModerationAction{
-	string(ModerationActionApprove): ModerationActionApprove,
-	string(ModerationActionDecline): ModerationActionDecline,
-	string(ModerationActionUnknown): ModerationActionUnknown,
+	string(ModerationActionApprove):    ModerationActionApprove,
+	string(ModerationActionDecline):    ModerationActionDecline,
+	string(ModerationActionUnknown):    ModerationActionUnknown,
+	string(ModerationActionRegenerate): ModerationActionRegenerate,
 
 	// Add shortened actions if you want to map them directly
-	ShortenedActionApprove: ModerationActionApprove,
-	ShortenedActionDecline: ModerationActionDecline,
+	ShortenedActionApprove:    ModerationActionApprove,
+	ShortenedActionDecline:    ModerationActionDecline,
+	ShortenedActionRegenerate: ModerationActionRegenerate,
 }
 
 func GetModerationAction(action string) ModerationAction {
@@ -132,7 +137,7 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 					parts := strings.Split(callbackData, ":")
 
 					if len(parts) == 3 {
-						action := parts[0] // "a", "d"
+						action := parts[0] // "a", "d", "r"
 
 						// Check if received processing ID matches the current one
 						if strings.Contains(callbackData, moderationMatchCallbackData) {
@@ -162,6 +167,9 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 		if moderationDecision.Action == ModerationActionApprove ||
 			moderationDecision.Action == ShortenedActionApprove {
 			stopPipeline = false
+		}
+		if moderationDecision.Action == ModerationActionRegenerate {
+			fmt.Println(">>>>>>> Regenerate")
 		}
 	}
 

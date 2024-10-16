@@ -110,6 +110,7 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocks
 	server2.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
 
 	notificationChannel := make(chan interfaces.Processing)
+
 	processingRegistry1 := server1.GetProcessingRegistry()
 	processingRegistry1.SetNotificationChannel(notificationChannel)
 

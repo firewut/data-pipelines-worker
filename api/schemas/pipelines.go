@@ -1,6 +1,9 @@
 package schemas
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"github.com/google/uuid"
 )
 
@@ -12,8 +15,38 @@ type PipelineInputSchema struct {
 
 // Block represents the structure of the block object in the JSON.
 type BlockInputSchema struct {
-	Slug  string                 `json:"slug"`
-	Input map[string]interface{} `json:"input"`
+	Slug        string                 `json:"slug"`
+	Input       map[string]interface{} `json:"input"`
+	TargetIndex int                    `json:"target_index,omitempty,string"` // Use omitempty and string
+}
+
+// UnmarshalJSON for BlockInputSchema to handle empty string for TargetIndex
+func (b *BlockInputSchema) UnmarshalJSON(data []byte) error {
+	type Alias BlockInputSchema
+	aux := &struct {
+		TargetIndex *string `json:"target_index"` // Pointer to string for handling empty value
+		*Alias
+	}{
+		Alias: (*Alias)(b),
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	// Check if TargetIndex is nil (not present) or an empty string
+	if aux.TargetIndex == nil || *aux.TargetIndex == "" {
+		b.TargetIndex = -1 // Set to -1 if nil or empty
+	} else {
+		// Convert the string to an int
+		var value int
+		if _, err := fmt.Sscanf(*aux.TargetIndex, "%d", &value); err != nil {
+			return fmt.Errorf("invalid target_index: %v", err)
+		}
+		b.TargetIndex = value
+	}
+
+	return nil
 }
 
 // PipelineStartInputSchema represents the structure of the entire JSON.

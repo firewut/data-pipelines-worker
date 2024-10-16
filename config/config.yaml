@@ -46,6 +46,7 @@ blocks:
       max_retries: 5
       retry_delay: 1
       retry_codes: [500, 502, 503, 504]
+    parallel_available: true
 
   openai_chat_completion:
     detector:
@@ -56,6 +57,7 @@ blocks:
       max_retries: 5
       retry_delay: 1
       retry_codes: [500, 502, 503, 504]
+    parallel_available: true
     config:
       model: "gpt-4o-2024-08-06"
       system_prompt: "You are a helpful assistant."
@@ -66,6 +68,7 @@ blocks:
       check_interval: 1m
       conditions:
     reliability:
+    parallel_available: true
     config:
       model: "tts-1"
       text: "Hello ChatGPT, how are you?"
@@ -78,6 +81,7 @@ blocks:
       check_interval: 1m
       conditions:
     reliability:
+    parallel_available: true
     config:
       model: "whisper-1"
       language: "en"
@@ -88,6 +92,7 @@ blocks:
       check_interval: 1m
       conditions:
     reliability:
+    parallel_available: false
     config:
       quality: "standard"
       size: "1024x1024"
@@ -98,6 +103,7 @@ blocks:
       conditions:
     reliability:
       policy: "none"
+    parallel_available: true
     config:
       font: "Roboto-Regular.ttf"
       font_size: 50
@@ -114,6 +120,7 @@ blocks:
       conditions:
     reliability:
       policy: "none"
+    parallel_available: true
     config:
       width: 100
       height: 100
@@ -125,6 +132,7 @@ blocks:
       conditions:
     reliability:
       policy: "none"
+    parallel_available: true
     config:
       sigma: 1.5
   
@@ -134,6 +142,7 @@ blocks:
       conditions:
     reliability:
       policy: "none"
+    parallel_available: true
     config:
       stop: false
 
@@ -143,9 +152,11 @@ blocks:
       conditions:
     reliability:
       policy: "none"
+    parallel_available: true
     config:
       approve: "Approve"
       decline: "Decline"
+      regenerate: "Regenerate"
       group_id: "0"
   
   fetch_moderation_telegram:
@@ -154,6 +165,7 @@ blocks:
       conditions:
     reliability:
       policy: "none"
+    parallel_available: false
     config:
       block_slug: ""
       stop_pipeline_if_decline: true
@@ -167,6 +179,7 @@ blocks:
       conditions:
     reliability:
       policy: "none"
+    parallel_available: true
     config:
   
   text_add_prefix_suffix:
@@ -175,4 +188,5 @@ blocks:
       conditions:
     reliability:
       policy: "none"
+    parallel_available: true
     config:

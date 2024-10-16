@@ -297,7 +297,7 @@ func (suite *UnitTestSuite) TestGetInputConfigDataNoInputConfig() {
 	suite.NotEmpty(blocks)
 
 	// When
-	firstInputData, err := blocks[0].GetInputConfigData(make(map[string][]*bytes.Buffer, 0))
+	firstInputData, _, err := blocks[0].GetInputConfigData(make(map[string][]*bytes.Buffer, 0))
 	suite.Nil(err)
 
 	// Then
@@ -353,9 +353,9 @@ func (suite *UnitTestSuite) TestGetInputConfigDataOneDependencyMissing() {
 	suite.NotNil(secondBlock)
 
 	// When
-	firstInputData, err := firstBlock.GetInputConfigData(pipelineResults)
+	firstInputData, _, err := firstBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	secondInputData, err := secondBlock.GetInputConfigData(pipelineResults)
+	secondInputData, _, err := secondBlock.GetInputConfigData(pipelineResults)
 	suite.NotNil(err)
 	suite.Contains(err.Error(), "origin test-block-missing-slug not found in pipelineResults")
 
@@ -416,9 +416,9 @@ func (suite *UnitTestSuite) TestGetInputConfigDataOneDependency() {
 	suite.NotNil(secondBlock)
 
 	// When
-	firstInputData, err := firstBlock.GetInputConfigData(pipelineResults)
+	firstInputData, _, err := firstBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	secondInputData, err := secondBlock.GetInputConfigData(pipelineResults)
+	secondInputData, _, err := secondBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
 
 	// Then
@@ -503,11 +503,11 @@ func (suite *UnitTestSuite) TestGetInputConfigDataTwoDependencies() {
 	suite.NotNil(thirdBlock)
 
 	// When
-	firstInputData, err := firstBlock.GetInputConfigData(pipelineResults)
+	firstInputData, _, err := firstBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	secondInputData, err := secondBlock.GetInputConfigData(pipelineResults)
+	secondInputData, _, err := secondBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	thirdInputData, err := thirdBlock.GetInputConfigData(pipelineResults)
+	thirdInputData, _, err := thirdBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
 
 	// Then
@@ -586,9 +586,9 @@ func (suite *UnitTestSuite) TestGetInputConfigDataJSONPathPlainProperty() {
 	suite.NotNil(secondBlock)
 
 	// When
-	firstInputData, err := firstBlock.GetInputConfigData(pipelineResults)
+	firstInputData, _, err := firstBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	secondInputData, err := secondBlock.GetInputConfigData(pipelineResults)
+	secondInputData, _, err := secondBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
 
 	// Then
@@ -654,9 +654,9 @@ func (suite *UnitTestSuite) TestGetInputConfigDataJSONPathArrayNthObjectProperty
 	suite.NotNil(secondBlock)
 
 	// When
-	firstInputData, err := firstBlock.GetInputConfigData(pipelineResults)
+	firstInputData, _, err := firstBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	secondInputData, err := secondBlock.GetInputConfigData(pipelineResults)
+	secondInputData, _, err := secondBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
 
 	// Then
@@ -722,9 +722,9 @@ func (suite *UnitTestSuite) TestGetInputConfigDataJSONPathValueAsArray() {
 	suite.NotNil(secondBlock)
 
 	// When
-	firstInputData, err := firstBlock.GetInputConfigData(pipelineResults)
+	firstInputData, _, err := firstBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	secondInputData, err := secondBlock.GetInputConfigData(pipelineResults)
+	secondInputData, _, err := secondBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
 
 	// Then
@@ -800,9 +800,9 @@ func (suite *UnitTestSuite) TestGetInputConfigDataJSONPathValueAsArrayMultipleDe
 	suite.NotNil(secondBlock)
 
 	// When
-	firstInputData, err := firstBlock.GetInputConfigData(pipelineResults)
+	firstInputData, _, err := firstBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	secondInputData, err := secondBlock.GetInputConfigData(pipelineResults)
+	secondInputData, _, err := secondBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
 
 	// Then
@@ -902,11 +902,11 @@ func (suite *UnitTestSuite) TestGetInputConfigDataTypeNotArrayInputArray() {
 	suite.NotNil(thirdBlock)
 
 	// When
-	firstInputData, err := firstBlock.GetInputConfigData(pipelineResults)
+	firstInputData, _, err := firstBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	secondInputData, err := secondBlock.GetInputConfigData(pipelineResults)
+	secondInputData, _, err := secondBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	thirdInputData, err := thirdBlock.GetInputConfigData(pipelineResults)
+	thirdInputData, _, err := thirdBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
 
 	// Then
@@ -1037,13 +1037,13 @@ func (suite *UnitTestSuite) TestGetInputConfigDataTypeArrayInputArray() {
 	suite.NotNil(fourthBlock)
 
 	// When
-	firstInputData, err := firstBlock.GetInputConfigData(pipelineResults)
+	firstInputData, _, err := firstBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	secondInputData, err := secondBlock.GetInputConfigData(pipelineResults)
+	secondInputData, _, err := secondBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	thirdInputData, err := thirdBlock.GetInputConfigData(pipelineResults)
+	thirdInputData, _, err := thirdBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	fourthInputData, err := fourthBlock.GetInputConfigData(pipelineResults)
+	fourthInputData, _, err := fourthBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
 
 	// Then
@@ -1188,13 +1188,13 @@ func (suite *UnitTestSuite) TestGetInputConfigDataTypeDefaultInputArray() {
 	suite.NotNil(fourthBlock)
 
 	// When
-	firstInputData, err := firstBlock.GetInputConfigData(pipelineResults)
+	firstInputData, _, err := firstBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	secondInputData, err := secondBlock.GetInputConfigData(pipelineResults)
+	secondInputData, _, err := secondBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	thirdInputData, err := thirdBlock.GetInputConfigData(pipelineResults)
+	thirdInputData, _, err := thirdBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	fourthInputData, err := fourthBlock.GetInputConfigData(pipelineResults)
+	fourthInputData, _, err := fourthBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
 
 	// Then
@@ -1313,7 +1313,7 @@ func (suite *UnitTestSuite) TestOpenAIPipeline() {
 	suite.NotNil(imageRequestblock)
 
 	// When
-	transcriptions, err := imageRequestblock.GetInputConfigData(pipelineResults)
+	transcriptions, _, err := imageRequestblock.GetInputConfigData(pipelineResults)
 
 	// Then
 	suite.Nil(err)

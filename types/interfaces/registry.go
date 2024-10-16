@@ -67,4 +67,5 @@ type PipelineBlockDataRegistry interface {
 	generics.Registry[[]*bytes.Buffer]
 
 	AddBlockData(string, *bytes.Buffer)
+	UpdateBlockData(string, int, *bytes.Buffer)
 }

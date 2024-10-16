@@ -121,6 +121,7 @@
             "description": "Send generated Event Images to Telegram for moderation",
             "input_config": {
                 "type": "array",
+                "parallel": true,
                 "property": {
                     "image": {
                         "origin": "get-event-images"
@@ -133,6 +134,14 @@
             },
             "input": {
                 "group_id": -4573786981
+            }
+        },
+        {
+            "id": "fetch_moderation_telegram",
+            "slug": "fetch-image-moderation-from-telegram",
+            "description": "Fetch the moderation Image decision from Telegram",
+            "input": {
+                "block_slug": "send-event-images-moderation-to-telegram"
             }
         }
     ]

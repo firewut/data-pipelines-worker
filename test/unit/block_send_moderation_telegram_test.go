@@ -69,7 +69,7 @@ func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessIncorrectInp
 	suite.NotNil(err)
 }
 
-func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccessTextOnly() {
+func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccessText() {
 	// Given
 	processingId := uuid.New()
 	processingInstanceId := uuid.New()
@@ -102,7 +102,7 @@ func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccessTextO
 	suite.Contains(result.String(), `"message_id"`)
 }
 
-func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccessTextWithImageOnly() {
+func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccessTextWithImage() {
 	// Given
 	width := 100
 	height := 100
