@@ -20,10 +20,11 @@ type Processing struct {
 	instanceId uuid.UUID
 	status     interfaces.ProcessingStatus
 
-	pipeline  interfaces.Pipeline
-	block     interfaces.Block
-	processor interfaces.BlockProcessor
-	blockData interfaces.ProcessableBlockData
+	pipeline   interfaces.Pipeline
+	block      interfaces.Block
+	processor  interfaces.BlockProcessor
+	blockData  interfaces.ProcessableBlockData
+	inputIndex int
 
 	output                      *ProcessingOutput
 	stop                        bool
@@ -58,6 +59,7 @@ func NewProcessing(
 		block:                       block,
 		processor:                   block.GetProcessor(),
 		blockData:                   blockData,
+		inputIndex:                  blockData.GetInputIndex(),
 		channelClosed:               true,
 		registryNotificationChannel: nil,
 		ctx:                         ctx,

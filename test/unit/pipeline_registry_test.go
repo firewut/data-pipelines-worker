@@ -170,7 +170,7 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineMissingPipelineTest
 	processingId, err := registry.StartPipeline(processingData)
 
 	// Then
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 	suite.Empty(processingId)
 	suite.Equal(
 		err,
@@ -196,7 +196,7 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineMissingBlockTest() 
 	processingId, err := registry.StartPipeline(processingData)
 
 	// Then
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 	suite.Empty(processingId)
 	suite.Equal(
 		err,

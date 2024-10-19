@@ -22,7 +22,7 @@ import (
 
 func (suite *FunctionalTestSuite) TestPipelineStartHandler() {
 	// Given
-	server, _, err := suite.NewWorkerServerWithHandlers(true)
+	server, _, err := suite.NewWorkerServerWithHandlers(true, suite._config)
 	suite.Nil(err)
 
 	api_path := "/pipelines"
@@ -45,7 +45,7 @@ func (suite *FunctionalTestSuite) TestPipelineStartHandler() {
 
 func (suite *FunctionalTestSuite) TestPipelineStartHandlerTwoBlocks() {
 	// Given
-	server, _, err := suite.NewWorkerServerWithHandlers(true)
+	server, _, err := suite.NewWorkerServerWithHandlers(true, suite._config)
 	suite.Nil(err)
 	suite.NotEmpty(server)
 
@@ -991,7 +991,10 @@ func (suite *FunctionalTestSuite) TestPipelineResumeArrayTargetIndex() {
 							}
 						},
 						"input": {
-							"group_id": -4573786981
+							"group_id": -4573786981,
+							"extra_decisions": {
+								"Regenerate": "Regenerate It!"
+							}
 						}
 					}
 				]
@@ -1107,17 +1110,14 @@ func (suite *FunctionalTestSuite) TestPipelineResumeArrayTargetIndex() {
 		suite.Equal(finalImageBuffers[i].Bytes(), blockData["image"].([]byte))
 	}
 
-	// Attempt a second read from the notification channel
-	// Use a timer to ensure we wait for 500 ms without receiving a value
 	select {
 	case <-time.After(500 * time.Millisecond):
-		// The notificationChannel should not have received any messages yet
-		// You can perform any additional assertions here if necessary
-
 	case sideProcessing := <-notificationChannel:
 		suite.Fail(
-			"Expected notification channel to be empty for at least 500ms, but got a value: %+v",
-			sideProcessing,
+			fmt.Sprintf(
+				"Expected notification channel to be empty, but got a value: %s",
+				sideProcessing.GetOutput().GetValue().String(),
+			),
 		)
 	}
 }
@@ -1351,17 +1351,14 @@ func (suite *FunctionalTestSuite) TestPipelineArrayFromJSONPathStartParallel() {
 	}
 	suite.Equal(4, imagesRequested)
 
-	// Attempt a second read from the notification channel
-	// Use a timer to ensure we wait for 500 ms without receiving a value
 	select {
 	case <-time.After(500 * time.Millisecond):
-		// The notificationChannel should not have received any messages yet
-		// You can perform any additional assertions here if necessary
-
 	case sideProcessing := <-notificationChannel:
 		suite.Fail(
-			"Expected notification channel to be empty for at least 500ms, but got a value: %+v",
-			sideProcessing,
+			fmt.Sprintf(
+				"Expected notification channel to be empty, but got a value: %s",
+				sideProcessing.GetOutput().GetValue().String(),
+			),
 		)
 	}
 }

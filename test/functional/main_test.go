@@ -160,7 +160,7 @@ func (suite *FunctionalTestSuite) GetMockHTTPServerURL(
 
 func (suite *FunctionalTestSuite) NewWorkerServerWithHandlers(
 	available bool,
-	configs ...config.Config,
+	_config config.Config,
 ) (*api.Server, interfaces.Worker, error) {
 	suite.Lock()
 	defer suite.Unlock()
@@ -169,7 +169,7 @@ func (suite *FunctionalTestSuite) NewWorkerServerWithHandlers(
 	server, worker, err := factories.NewWorkerServerWithHandlers(
 		context.Background(),
 		available,
-		configs...,
+		_config,
 	)
 	suite.Nil(err)
 	suite.NotEmpty(server)

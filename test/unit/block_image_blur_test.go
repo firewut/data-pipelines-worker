@@ -39,7 +39,7 @@ func (suite *UnitTestSuite) TestBlockImageBlurValidateSchemaFail() {
 	block.SchemaString = "{invalid schema"
 
 	_, _, err := block.ValidateSchema(validators.JSONSchemaValidator{})
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockImageBlurProcessIncorrectInput() {
@@ -64,7 +64,7 @@ func (suite *UnitTestSuite) TestBlockImageBlurProcessIncorrectInput() {
 	// Then
 	suite.Empty(result)
 	suite.False(stop)
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockImageBlurProcessSuccess() {

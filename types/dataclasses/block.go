@@ -24,6 +24,7 @@ type BlockData struct {
 	Input        map[string]interface{} `json:"input"`
 	OutputConfig map[string]interface{} `json:"output_config"`
 
+	index    int
 	pipeline interfaces.Pipeline
 	block    interfaces.Block
 }
@@ -41,6 +42,7 @@ func (b *BlockData) Clone() interfaces.ProcessableBlockData {
 		InputConfig:  b.InputConfig,
 		Input:        b.Input,
 		OutputConfig: b.OutputConfig,
+		index:        b.index,
 		pipeline:     b.pipeline,
 		block:        b.block,
 	}
@@ -121,6 +123,19 @@ func (b *BlockData) GetSlug() string {
 	defer b.Unlock()
 
 	return b.Slug
+}
+
+func (b *BlockData) GetInputIndex() int {
+	b.Lock()
+	defer b.Unlock()
+
+	return b.index
+}
+func (b *BlockData) SetInputIndex(index int) {
+	b.Lock()
+	defer b.Unlock()
+
+	b.index = index
 }
 
 func (b *BlockData) GetInput() map[string]interface{} {
@@ -384,13 +399,11 @@ func MergeMaps(maps []map[string]interface{}) []map[string]interface{} {
 		for i, resMap := range result {
 			conflictingKeys := false
 
-			// Check for key conflicts
 			for key, val := range currentMap {
 				if existingVal, exists := resMap[key]; exists {
 					switch existingVal := existingVal.(type) {
 					case []byte:
 						if currentVal, ok := val.([]byte); ok {
-							// Compare byte slices
 							if !bytes.Equal(existingVal, currentVal) {
 								conflictingKeys = true
 								break
@@ -400,7 +413,8 @@ func MergeMaps(maps []map[string]interface{}) []map[string]interface{} {
 							break
 						}
 					default:
-						if existingVal != val {
+						// Use reflect.DeepEqual to compare complex types safely
+						if !reflect.DeepEqual(existingVal, val) {
 							conflictingKeys = true
 							break
 						}

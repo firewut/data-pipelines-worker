@@ -133,13 +133,19 @@
                 }
             },
             "input": {
-                "group_id": -4573786981
+                "group_id": -4573786981,
+                "extra_decisions": {
+                    "Regenerate": "Refresh"
+                }
             }
         },
         {
             "id": "fetch_moderation_telegram",
-            "slug": "fetch-image-moderation-from-telegram",
+            "slug": "fetch-event-images-moderation-from-telegram",
             "description": "Fetch the moderation Image decision from Telegram",
+            "input_config": {
+                "type": "array"
+            },
             "input": {
                 "block_slug": "send-event-images-moderation-to-telegram"
             }

@@ -85,22 +85,52 @@ func (p *ProcessorSendModerationToTelegram) Process(
 	}
 
 	textContent := blockConfig.Text
-
+	buttons := []tgbotapi.InlineKeyboardButton{}
 	approveButton := tgbotapi.NewInlineKeyboardButtonData(
 		blockConfig.Approve,
-		helpers.CreateCallbackData(ShortenedActionApprove, processingID.String(), data.GetSlug()),
+		helpers.CreateCallbackData(
+			ShortenedActionApprove,
+			data.GetInputIndex(),
+			processingID.String(),
+			data.GetSlug(),
+		),
 	)
 	declineButton := tgbotapi.NewInlineKeyboardButtonData(
 		blockConfig.Decline,
-		helpers.CreateCallbackData(ShortenedActionDecline, processingID.String(), data.GetSlug()),
+		helpers.CreateCallbackData(
+			ShortenedActionDecline,
+			data.GetInputIndex(),
+			processingID.String(),
+			data.GetSlug(),
+		),
 	)
-	regenerateButton := tgbotapi.NewInlineKeyboardButtonData(
-		blockConfig.Regenerate,
-		helpers.CreateCallbackData(ShortenedActionRegenerate, processingID.String(), data.GetSlug()),
-	)
+	buttons = append(buttons, approveButton, declineButton)
+
+	// Add extra decisions
+	for action, label := range blockConfig.ExtraDecisions {
+		switch action {
+		case blockConfig.Regenerate:
+			if label == "" {
+				label = blockConfig.Regenerate
+			}
+
+			regenerateButton := tgbotapi.NewInlineKeyboardButtonData(
+				label,
+				helpers.CreateCallbackData(
+					ShortenedActionRegenerate,
+					data.GetInputIndex(),
+					processingID.String(),
+					data.GetSlug(),
+				),
+			)
+			buttons = append(buttons, regenerateButton)
+		}
+	}
+
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(approveButton, regenerateButton, declineButton),
+		tgbotapi.NewInlineKeyboardRow(buttons...),
 	)
+
 	// Initialize a variable for the sent message and error handling
 	var sentMessage tgbotapi.Message
 	var err error
@@ -149,7 +179,10 @@ func (p *ProcessorSendModerationToTelegram) Process(
 		return output, false, false, err
 	}
 
-	sentMessageBytes, err := json.Marshal(sentMessage)
+	sentMessageBytes, err := json.Marshal(map[string]interface{}{
+		"sentMessage": sentMessage,
+		"sentButtons": buttons,
+	})
 	if err != nil {
 		return output, false, false, err
 	}
@@ -159,11 +192,12 @@ func (p *ProcessorSendModerationToTelegram) Process(
 }
 
 type BlockSendModerationToTelegramConfig struct {
-	Text       string `yaml:"-" json:"text"`
-	GroupId    int64  `yaml:"group_id" json:"group_id"`
-	Approve    string `yaml:"approve" json:"-"`
-	Decline    string `yaml:"decline" json:"-"`
-	Regenerate string `yaml:"regenerate" json:"-"`
+	Text           string            `yaml:"-" json:"text"`
+	GroupId        int64             `yaml:"group_id" json:"group_id"`
+	Approve        string            `yaml:"approve" json:"-"`         // Mapping of the buttons to the actions
+	Decline        string            `yaml:"decline" json:"-"`         // Mapping of the buttons to the actions
+	Regenerate     string            `yaml:"regenerate" json:"-"`      // Mapping of the buttons to the actions
+	ExtraDecisions map[string]string `yaml:"-" json:"extra_decisions"` // Includes Regenerate
 }
 
 type BlockSendModerationToTelegram struct {
@@ -205,6 +239,17 @@ func NewBlockSendModerationToTelegram() *BlockSendModerationToTelegram {
 					        	"description": "Image content to be moderated",
 								"type": "string",
 								"format": "file"
+							},
+							"extra_decisions": {
+								"description": "Extra decisions to be made",
+								"type": "object",
+								"properties": {
+									"regenerate": {
+										"description": "Regenerate the Content",
+										"type": "string",
+										"default": "Regenerate"
+									}
+								}
 							},
 							"group_id": {
 								"description": "Group ID to send the message to",

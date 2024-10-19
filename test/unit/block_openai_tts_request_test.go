@@ -38,7 +38,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTTSValidateSchemaFail() {
 	block.SchemaString = "{invalid schema"
 
 	_, _, err := block.ValidateSchema(validators.JSONSchemaValidator{})
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockOpenAIRequestTTSProcessIncorrectInput() {
@@ -63,7 +63,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTTSProcessIncorrectInput() {
 	// Then
 	suite.Empty(result)
 	suite.False(stop)
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockOpenAIRequestTTSProcessEmptyClient() {
@@ -90,7 +90,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTTSProcessEmptyClient() {
 	// Then
 	suite.Empty(result)
 	suite.False(stop)
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockOpenAIRequestTTSProcessSuccess() {

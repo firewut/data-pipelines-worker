@@ -431,7 +431,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryShutdownRunningProcessing() {
 	err := registry.Shutdown(ctx)
 
 	// Then
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 	suite.Equal(context.DeadlineExceeded, err)
 }
 
@@ -633,6 +633,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingSucceededFirstT
 		},
 	}
 	data.SetBlock(block)
+	data.SetInputIndex(11)
 
 	processing := dataclasses.NewProcessing(
 		processingId,
@@ -649,7 +650,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingSucceededFirstT
 				{
 					"callback_query": {
 						"chat_instance": "111111111111111111",
-						"data": "%s:%s:7470d33caf7ef9a794eba8cdf",
+						"data": "%s:%d:%s:7470d33caf7ef9a794eba8cdf",
 						"from": {
 							"first_name": "John",
 							"id": 987654321,
@@ -677,6 +678,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingSucceededFirstT
 			]
 		}`,
 		blocks.ShortenedActionApprove,
+		data.GetInputIndex(),
 		processingId.String(),
 	)
 

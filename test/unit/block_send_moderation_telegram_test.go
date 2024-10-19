@@ -41,7 +41,7 @@ func (suite *UnitTestSuite) TestBlockSendModerationToTelegramValidateSchemaFail(
 	block.SchemaString = "{invalid schema"
 
 	_, _, err := block.ValidateSchema(validators.JSONSchemaValidator{})
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessIncorrectInput() {
@@ -66,10 +66,10 @@ func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessIncorrectInp
 	// Then
 	suite.Empty(result)
 	suite.False(stop)
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
-func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccessText() {
+func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccessTextDefaultDecisions() {
 	// Given
 	processingId := uuid.New()
 	processingInstanceId := uuid.New()
@@ -100,6 +100,47 @@ func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccessText(
 	suite.Nil(err)
 
 	suite.Contains(result.String(), `"message_id"`)
+	suite.Contains(result.String(), `"Approve"`)
+	suite.Contains(result.String(), `"Decline"`)
+}
+
+func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccessTextExtraDecisions() {
+	// Given
+	processingId := uuid.New()
+	processingInstanceId := uuid.New()
+	block := blocks.NewBlockSendModerationToTelegram()
+	data := &dataclasses.BlockData{
+		Id:   "send_moderation_telegram",
+		Slug: "send-moderation-text",
+		Input: map[string]interface{}{
+			"text":     "Hello world!",
+			"group_id": 123456,
+			"extra_decisions": map[string]string{
+				"Regenerate": "RRRegenerate",
+			},
+		},
+	}
+	data.SetBlock(block)
+	ctx := suite.GetContextWithcancel()
+	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingID{}, processingId)
+	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingInstanceID{}, processingInstanceId)
+
+	// When
+	result, stop, _, err := block.Process(
+		ctx,
+		blocks.NewProcessorSendModerationToTelegram(),
+		data,
+	)
+
+	// Then
+	suite.NotNil(result)
+	suite.False(stop)
+	suite.Nil(err)
+
+	suite.Contains(result.String(), `"message_id"`)
+	suite.Contains(result.String(), `"Approve"`)
+	suite.Contains(result.String(), `"Decline"`)
+	suite.Contains(result.String(), `"RRRegenerate"`)
 }
 
 func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccessTextWithImage() {

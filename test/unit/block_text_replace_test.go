@@ -31,7 +31,7 @@ func (suite *UnitTestSuite) TestBlockTextReplaceValidateSchemaFail() {
 	block.SchemaString = "{invalid schema"
 
 	_, _, err := block.ValidateSchema(validators.JSONSchemaValidator{})
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockTextReplaceProcessIncorrectInput() {
@@ -58,7 +58,7 @@ func (suite *UnitTestSuite) TestBlockTextReplaceProcessIncorrectInput() {
 	// Then
 	suite.Empty(result)
 	suite.False(stop)
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockTextReplaceProcessSuccess() {

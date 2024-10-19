@@ -49,7 +49,7 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramValidateSchemaFa
 	block.SchemaString = "{invalid schema"
 
 	_, _, err := block.ValidateSchema(validators.JSONSchemaValidator{})
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessIncorrectInput() {
@@ -74,7 +74,7 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessIncorrect
 	// Then
 	suite.Empty(result)
 	suite.False(stop)
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess() {
@@ -157,7 +157,7 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess()
 					{
 						"callback_query": {
 							"chat_instance": "111111111111111111",
-							"data": "%s:%s:7470d33caf7ef9a794eba8cdf",
+							"data": "%s:0:%s:7470d33caf7ef9a794eba8cdf",
 							"from": {
 								"first_name": "John",
 								"id": 987654321,

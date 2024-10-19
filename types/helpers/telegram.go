@@ -5,13 +5,13 @@ import (
 	"fmt"
 )
 
-func CreateCallbackData(action string, firstUUID string, secondString string) string {
+func CreateCallbackData(action string, index int, firstUUID string, secondString string) string {
 	// Construct the initial callback data
 	// Make MD5 from secondString
 	hash := md5.New()
 	hash.Write([]byte(secondString))
 
-	callbackData := fmt.Sprintf("%s:%s:%x", action, firstUUID, hash.Sum(nil))
+	callbackData := fmt.Sprintf("%s:%d:%s:%x", action, index, firstUUID, hash.Sum(nil))
 
 	// Ensure the callback data is exactly 64 bytes
 	if len(callbackData) < 64 {

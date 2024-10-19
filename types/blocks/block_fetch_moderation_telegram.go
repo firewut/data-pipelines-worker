@@ -104,12 +104,13 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 
 	moderationMatchCallbackData := helpers.CreateCallbackData(
 		ShortenedActionApprove,
+		data.GetInputIndex(),
 		processingID.String(),
 		blockConfig.BlockSlug,
 	)
 	matchCallbackData := strings.Split(moderationMatchCallbackData, ":")
-	// Pick the last two parts of the callback data
-	moderationMatchCallbackData = strings.Join(matchCallbackData[len(matchCallbackData)-2:], ":")
+	// Pick the last three parts of the callback data
+	moderationMatchCallbackData = strings.Join(matchCallbackData[len(matchCallbackData)-3:], ":")
 
 	shouldExit := false
 
@@ -136,7 +137,7 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 					callbackData := update.CallbackQuery.Data
 					parts := strings.Split(callbackData, ":")
 
-					if len(parts) == 3 {
+					if len(parts) == 4 {
 						action := parts[0] // "a", "d", "r"
 
 						// Check if received processing ID matches the current one

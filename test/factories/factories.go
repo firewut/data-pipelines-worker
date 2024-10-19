@@ -25,22 +25,22 @@ import (
 	"data-pipelines-worker/types/interfaces"
 )
 
-func NewServer() *api.Server {
-	server := api.NewServer()
+func NewServer(_config config.Config) *api.Server {
+	server := api.NewServer(_config)
 	server.SetPort(0)
 	return server
 }
 
-func NewServerWithHandlers(configs ...config.Config) *api.Server {
-	server := api.NewServer(configs...)
+func NewServerWithHandlers(_config config.Config) *api.Server {
+	server := api.NewServer(_config)
 	server.SetPort(0)
 	server.SetAPIMiddlewares()
 	server.SetAPIHandlers()
 	return server
 }
 
-func NewWorkerServerWithHandlers(ctx context.Context, available bool, configs ...config.Config) (*api.Server, interfaces.Worker, error) {
-	server := NewServerWithHandlers(configs...)
+func NewWorkerServerWithHandlers(ctx context.Context, available bool, _config config.Config) (*api.Server, interfaces.Worker, error) {
+	server := NewServerWithHandlers(_config)
 	go server.Start(ctx)
 
 	<-server.Ready

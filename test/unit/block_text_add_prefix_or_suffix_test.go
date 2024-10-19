@@ -31,7 +31,7 @@ func (suite *UnitTestSuite) TestBlockTextAddPrefixOrSuffixValidateSchemaFail() {
 	block.SchemaString = "{invalid schema"
 
 	_, _, err := block.ValidateSchema(validators.JSONSchemaValidator{})
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockTextAddPrefixOrSuffixProcessIncorrectInput() {
@@ -57,7 +57,7 @@ func (suite *UnitTestSuite) TestBlockTextAddPrefixOrSuffixProcessIncorrectInput(
 	// Then
 	suite.Empty(result)
 	suite.False(stop)
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockTextAddPrefixOrSuffixProcessSuccess() {
