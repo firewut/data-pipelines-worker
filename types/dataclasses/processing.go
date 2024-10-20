@@ -47,7 +47,6 @@ func NewProcessing(
 
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingID{}, id)
-	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingInstanceID{}, instanceId)
 
 	return &Processing{
 		Id:                          id,

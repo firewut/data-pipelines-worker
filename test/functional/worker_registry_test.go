@@ -10,6 +10,7 @@ import (
 
 	"data-pipelines-worker/api/schemas"
 	"data-pipelines-worker/test/factories"
+	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/interfaces"
 )
 
@@ -614,10 +615,11 @@ func (suite *FunctionalTestSuite) TestTwoWorkersResumeProcessing2Times() {
 		),
 	)
 
-	server1, worker1, err := suite.NewWorkerServerWithHandlers(true, suite._config)
+	server1, worker1, err := suite.NewWorkerServerWithHandlers(true, config.GetConfig())
 	suite.Nil(err)
 	server1.GetPipelineRegistry().Add(pipeline)
-	server2, worker2, err := suite.NewWorkerServerWithHandlers(true, suite._config)
+
+	server2, worker2, err := suite.NewWorkerServerWithHandlers(true, config.GetConfig())
 	suite.Nil(err)
 	server2.GetPipelineRegistry().Add(pipeline)
 

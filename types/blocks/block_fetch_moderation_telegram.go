@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -102,20 +103,11 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 		Timeout: 5,   // Long polling timeout
 	}
 
-	moderationMatchCallbackData := helpers.CreateCallbackData(
-		ShortenedActionApprove,
-		data.GetInputIndex(),
-		processingID.String(),
-		blockConfig.BlockSlug,
-	)
-	matchCallbackData := strings.Split(moderationMatchCallbackData, ":")
-	// Pick the last three parts of the callback data
-	moderationMatchCallbackData = strings.Join(matchCallbackData[len(matchCallbackData)-3:], ":")
-
 	shouldExit := false
 
-	decisions := make([]ModerationAction, 0)
+	var moderationMessage TelegramReviewMessage
 
+	decisions := make([]ModerationAction, 0)
 	for !shouldExit {
 		select {
 		case <-ctx.Done():
@@ -137,16 +129,41 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 					callbackData := update.CallbackQuery.Data
 					parts := strings.Split(callbackData, ":")
 
-					if len(parts) == 4 {
-						action := parts[0] // "a", "d", "r"
+					if len(parts) == 2 {
+						buttonDecision := GetModerationAction(parts[0]) // "a", "d", "r"
+						buttonIndex := parts[1]                         // "0", "1", "2", ...
+
+						buttonIndexInt, err := strconv.Atoi(buttonIndex)
+						if err != nil {
+							fmt.Println("telegram index error converting button index to int:", err)
+							continue
+						}
 
 						// Check if received processing ID matches the current one
-						if strings.Contains(callbackData, moderationMatchCallbackData) {
+						if buttonIndexInt == data.GetInputIndex() && buttonDecision != ModerationActionUnknown {
+							// Get the message caption from the CallbackQuery
+							messageText := update.CallbackQuery.Message.Text // Regular text message
+							if messageText == "" {
+								messageText = update.CallbackQuery.Message.Caption // Fallback to caption if text is empty
+							}
+
+							moderationMessage, err = ParseTelegramMessage(messageText)
+							if err != nil {
+								fmt.Println("Error parsing Telegram message:", err)
+								continue
+							}
+
+							if moderationMessage.ProcessingID != processingID.String() ||
+								moderationMessage.BlockSlug != blockConfig.BlockSlug ||
+								moderationMessage.Index != data.GetInputIndex() {
+								continue
+							}
+
 							// Acknowledge callback (removes the loading indicator)
 							callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
 							client.Request(callback)
 
-							decisions = append(decisions, GetModerationAction(action))
+							decisions = append(decisions, buttonDecision)
 						}
 					}
 				}
@@ -170,7 +187,14 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 			stopPipeline = false
 		}
 		if moderationDecision.Action == ModerationActionRegenerate {
-			fmt.Println(">>>>>>> Regenerate")
+			if moderationMessage.ProcessingID == processingID.String() {
+				fmt.Printf(
+					">>> Regenerate block %s index %d in processing %s\n",
+					moderationMessage.RegenerateBlockSlug,
+					data.GetInputIndex(),
+					processingID,
+				)
+			}
 		}
 	}
 

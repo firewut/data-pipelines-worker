@@ -7,6 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -17,6 +20,83 @@ import (
 	"data-pipelines-worker/types/helpers"
 	"data-pipelines-worker/types/interfaces"
 )
+
+type TelegramReviewMessage struct {
+	Text                string
+	ProcessingID        string
+	BlockSlug           string
+	RegenerateBlockSlug string // Optional
+	Buttons             []tgbotapi.InlineKeyboardButton
+	Index               int
+}
+
+func GenerateTelegramMessage(review TelegramReviewMessage) string {
+	template := `Please review: %s
+ProcessingId: %s
+BlockSlug: %s
+Index: %d`
+	if review.RegenerateBlockSlug != "" {
+
+		template += `
+RegenerateBlockSlug: %s`
+		return fmt.Sprintf(template, review.Text, review.ProcessingID, review.BlockSlug, review.Index, review.RegenerateBlockSlug)
+	}
+	return fmt.Sprintf(template, review.Text, review.ProcessingID, review.BlockSlug, review.Index)
+}
+
+func CreateTelegramReviewButton(label, action string, index int) tgbotapi.InlineKeyboardButton {
+	return tgbotapi.NewInlineKeyboardButtonData(label, fmt.Sprintf("%s:%d", action, index))
+}
+
+// For tests only
+func FormatTelegramMessage(message string) string {
+	return strings.ReplaceAll(message, "\n", "\\n") // Escape newline characters
+}
+
+func ParseTelegramMessage(message string) (TelegramReviewMessage, error) {
+	reText := regexp.MustCompile(`Please review: (.+?)\nProcessingId:`)
+	reProcessingID := regexp.MustCompile(`ProcessingId: ([^\n]+)`)
+	reBlockSlug := regexp.MustCompile(`BlockSlug: ([^\n]+)`)
+	reIndex := regexp.MustCompile(`Index: (\d+)`) // New regex for Index
+
+	reRegenerateBlockSlug := regexp.MustCompile(`RegenerateBlockSlug: (.+)`)
+
+	parsedMessage := TelegramReviewMessage{}
+
+	if textMatch := reText.FindStringSubmatch(message); len(textMatch) > 1 {
+		parsedMessage.Text = textMatch[1]
+	} else {
+		return parsedMessage, fmt.Errorf("missing or malformed text")
+	}
+
+	if processingIDMatch := reProcessingID.FindStringSubmatch(message); len(processingIDMatch) > 1 {
+		parsedMessage.ProcessingID = processingIDMatch[1]
+	} else {
+		return parsedMessage, fmt.Errorf("missing or malformed processing ID")
+	}
+
+	if blockSlugMatch := reBlockSlug.FindStringSubmatch(message); len(blockSlugMatch) > 1 {
+		parsedMessage.BlockSlug = blockSlugMatch[1]
+	} else {
+		return parsedMessage, fmt.Errorf("missing or malformed block slug")
+	}
+
+	if indexMatch := reIndex.FindStringSubmatch(message); len(indexMatch) > 1 {
+		var err error
+		parsedMessage.Index, err = strconv.Atoi(indexMatch[1])
+		if err != nil {
+			return parsedMessage, fmt.Errorf("invalid index value: %s", indexMatch[1])
+		}
+	} else {
+		return parsedMessage, fmt.Errorf("missing or malformed index")
+	}
+
+	if regenerateBlockSlugMatch := reRegenerateBlockSlug.FindStringSubmatch(message); len(regenerateBlockSlugMatch) > 1 {
+		parsedMessage.RegenerateBlockSlug = regenerateBlockSlugMatch[1]
+	}
+
+	return parsedMessage, nil
+}
 
 type DetectorTelegramBot struct {
 	BlockDetectorParent
@@ -84,27 +164,25 @@ func (p *ProcessorSendModerationToTelegram) Process(
 		return output, false, false, errors.New("telegram client is not configured")
 	}
 
-	textContent := blockConfig.Text
-	buttons := []tgbotapi.InlineKeyboardButton{}
-	approveButton := tgbotapi.NewInlineKeyboardButtonData(
-		blockConfig.Approve,
-		helpers.CreateCallbackData(
+	review := TelegramReviewMessage{
+		Text:                blockConfig.Text,
+		ProcessingID:        processingID.String(),
+		BlockSlug:           data.GetSlug(),
+		RegenerateBlockSlug: blockConfig.RegenerateBlockSlug,
+		Index:               data.GetInputIndex(),
+	}
+	buttons := []tgbotapi.InlineKeyboardButton{
+		CreateTelegramReviewButton(
+			blockConfig.Approve,
 			ShortenedActionApprove,
 			data.GetInputIndex(),
-			processingID.String(),
-			data.GetSlug(),
 		),
-	)
-	declineButton := tgbotapi.NewInlineKeyboardButtonData(
-		blockConfig.Decline,
-		helpers.CreateCallbackData(
+		CreateTelegramReviewButton(
+			blockConfig.Decline,
 			ShortenedActionDecline,
 			data.GetInputIndex(),
-			processingID.String(),
-			data.GetSlug(),
 		),
-	)
-	buttons = append(buttons, approveButton, declineButton)
+	}
 
 	// Add extra decisions
 	for action, label := range blockConfig.ExtraDecisions {
@@ -114,22 +192,19 @@ func (p *ProcessorSendModerationToTelegram) Process(
 				label = blockConfig.Regenerate
 			}
 
-			regenerateButton := tgbotapi.NewInlineKeyboardButtonData(
-				label,
-				helpers.CreateCallbackData(
+			buttons = append(
+				buttons,
+				CreateTelegramReviewButton(
+					label,
 					ShortenedActionRegenerate,
 					data.GetInputIndex(),
-					processingID.String(),
-					data.GetSlug(),
 				),
 			)
-			buttons = append(buttons, regenerateButton)
 		}
 	}
+	review.Buttons = buttons
 
-	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(buttons...),
-	)
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(review.Buttons)
 
 	// Initialize a variable for the sent message and error handling
 	var sentMessage tgbotapi.Message
@@ -148,11 +223,7 @@ func (p *ProcessorSendModerationToTelegram) Process(
 				Bytes: imageBytes,
 			}
 			photo := tgbotapi.NewPhoto(blockConfig.GroupId, imgFile)
-			photo.Caption = fmt.Sprintf(
-				"Please review the:\n\n%s\n\nID: %s.",
-				textContent,
-				processingID,
-			)
+			photo.Caption = GenerateTelegramMessage(review)
 			photo.ReplyMarkup = keyboard
 			sentMessage, err = client.Send(photo)
 		} else {
@@ -165,11 +236,7 @@ func (p *ProcessorSendModerationToTelegram) Process(
 	if err != nil || imgErr != nil {
 		msg := tgbotapi.NewMessage(
 			blockConfig.GroupId,
-			fmt.Sprintf(
-				"Please review the:\n\n%s\n\nID: %s.",
-				textContent,
-				processingID,
-			),
+			GenerateTelegramMessage(review),
 		)
 		msg.ReplyMarkup = keyboard
 		sentMessage, err = client.Send(msg)
@@ -192,12 +259,13 @@ func (p *ProcessorSendModerationToTelegram) Process(
 }
 
 type BlockSendModerationToTelegramConfig struct {
-	Text           string            `yaml:"-" json:"text"`
-	GroupId        int64             `yaml:"group_id" json:"group_id"`
-	Approve        string            `yaml:"approve" json:"-"`         // Mapping of the buttons to the actions
-	Decline        string            `yaml:"decline" json:"-"`         // Mapping of the buttons to the actions
-	Regenerate     string            `yaml:"regenerate" json:"-"`      // Mapping of the buttons to the actions
-	ExtraDecisions map[string]string `yaml:"-" json:"extra_decisions"` // Includes Regenerate
+	Text                string            `yaml:"-" json:"text"`
+	GroupId             int64             `yaml:"group_id" json:"group_id"`
+	RegenerateBlockSlug string            `yaml:"-" json:"regenerate_block_slug"`
+	Approve             string            `yaml:"approve" json:"-"`         // Mapping of the buttons to the actions
+	Decline             string            `yaml:"decline" json:"-"`         // Mapping of the buttons to the actions
+	Regenerate          string            `yaml:"regenerate" json:"-"`      // Mapping of the buttons to the actions
+	ExtraDecisions      map[string]string `yaml:"-" json:"extra_decisions"` // Includes Regenerate
 }
 
 type BlockSendModerationToTelegram struct {
@@ -250,6 +318,10 @@ func NewBlockSendModerationToTelegram() *BlockSendModerationToTelegram {
 										"default": "Regenerate"
 									}
 								}
+							},
+							"regenerate_block_slug": {
+								"description": "Slug of the block to use in regenerate request",
+								"type": "string"
 							},
 							"group_id": {
 								"description": "Group ID to send the message to",

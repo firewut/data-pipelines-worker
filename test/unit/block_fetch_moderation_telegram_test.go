@@ -80,7 +80,6 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessIncorrect
 func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess() {
 	// Given
 	processingId := uuid.New()
-	processingInstanceId := uuid.New()
 
 	block := blocks.NewBlockFetchModerationFromTelegram()
 	blockConfig := block.GetBlockConfig(suite._config)
@@ -89,14 +88,12 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess()
 		Id:   "fetch_moderation_telegram",
 		Slug: "fetch-moderation-decision",
 		Input: map[string]interface{}{
-			"block_slug":               "send-event-text-moderation-to-telegram",
-			"stop_pipeline_if_decline": true,
+			"block_slug": "send-event-text-moderation-to-telegram",
 		},
 	}
 	data.SetBlock(block)
 	ctx := suite.GetContextWithcancel()
 	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingID{}, processingId)
-	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingInstanceID{}, processingInstanceId)
 
 	cases := []struct {
 		decisions []blocks.ModerationAction
@@ -151,13 +148,21 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess()
 	for indexCase, c := range cases {
 		messages := make([]string, 0)
 		for indexDecision, decision := range c.decisions {
+			moderationMatchCallbackData := fmt.Sprintf("%s:%d", decision, 0)
+			reviewMessage := blocks.TelegramReviewMessage{
+				Text:         "Text",
+				ProcessingID: processingId.String(),
+				BlockSlug:    "send-event-text-moderation-to-telegram",
+				Index:        0,
+			}
+
 			messages = append(
 				messages,
 				fmt.Sprintf(`
 					{
 						"callback_query": {
 							"chat_instance": "111111111111111111",
-							"data": "%s:0:%s:7470d33caf7ef9a794eba8cdf",
+							"data": "%s",
 							"from": {
 								"first_name": "John",
 								"id": 987654321,
@@ -177,14 +182,16 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess()
 								},
 								"date": 1633044475,
 								"message_id": 222,
-								"text": "Please approve or reject"
+								"text": "%s"
 							}
 						},
 						"update_id": 123456790
 					}`,
-					decision,
-					processingId.String(),
+					moderationMatchCallbackData,
 					indexCase+indexDecision+1,
+					blocks.FormatTelegramMessage(
+						blocks.GenerateTelegramMessage(reviewMessage),
+					),
 				),
 			)
 		}
@@ -236,7 +243,6 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess()
 func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessRetry() {
 	// Given
 	processingId := uuid.New()
-	processingInstanceId := uuid.New()
 
 	block := blocks.NewBlockFetchModerationFromTelegram()
 
@@ -244,14 +250,12 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessRetry() {
 		Id:   "fetch_moderation_telegram",
 		Slug: "fetch-moderation-decision",
 		Input: map[string]interface{}{
-			"block_slug":               "send-event-text-moderation-to-telegram",
-			"stop_pipeline_if_decline": true,
+			"block_slug": "send-event-text-moderation-to-telegram",
 		},
 	}
 	data.SetBlock(block)
 	ctx := suite.GetContextWithcancel()
 	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingID{}, processingId)
-	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingInstanceID{}, processingInstanceId)
 
 	moderationDecisions := `{
 		"ok": true,

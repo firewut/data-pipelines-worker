@@ -136,7 +136,8 @@
                 "group_id": -4573786981,
                 "extra_decisions": {
                     "Regenerate": "Refresh"
-                }
+                },
+                "regenerate_block_slug": "get-event-images"
             }
         },
         {

@@ -644,13 +644,20 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingSucceededFirstT
 	suite.Equal(interfaces.ProcessingStatusPending, processing.GetStatus())
 	suite.Empty(registry.GetAll())
 
+	reviewMessage := blocks.TelegramReviewMessage{
+		Text:         "Content for Review",
+		ProcessingID: processingId.String(),
+		BlockSlug:    "send-event-text-moderation-to-telegram",
+		Index:        data.GetInputIndex(),
+	}
+
 	moderationDecisions := fmt.Sprintf(`{
 			"ok": true,
 			"result": [
 				{
 					"callback_query": {
 						"chat_instance": "111111111111111111",
-						"data": "%s:%d:%s:7470d33caf7ef9a794eba8cdf",
+						"data": "%s:%d",
 						"from": {
 							"first_name": "John",
 							"id": 987654321,
@@ -670,7 +677,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingSucceededFirstT
 							},
 							"date": 1633044475,
 							"message_id": 222,
-							"text": "Please approve or reject"
+							"text": "%s"
 						}
 					},
 					"update_id": 123456790
@@ -679,7 +686,9 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingSucceededFirstT
 		}`,
 		blocks.ShortenedActionApprove,
 		data.GetInputIndex(),
-		processingId.String(),
+		blocks.FormatTelegramMessage(
+			blocks.GenerateTelegramMessage(reviewMessage),
+		),
 	)
 
 	telegramMockAPI := suite.GetMockHTTPServer(
