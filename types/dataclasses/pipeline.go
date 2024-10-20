@@ -327,7 +327,6 @@ func (p *PipelineData) Process(
 					defer blockInputWg.Done()
 
 					processingResult, stopProcessing, err := processingRegistry.StartProcessing(_processing)
-
 					_blockInputProcessingResults <- blockInputProcessingResult{
 						index:   blockInputIndex,
 						err:     err,
@@ -336,13 +335,16 @@ func (p *PipelineData) Process(
 					}
 
 					if err != nil {
-						return fmt.Errorf(
-							"error processing data for block %s [%s:%s]. Error: %s",
+						_err := fmt.Errorf(
+							"error processing data for block %s [%s:%s] with index %d. Error: %s",
 							block.GetId(),
 							_blockData.GetSlug(),
 							_processing.GetId(),
+							blockInputIndex,
 							err,
 						)
+						logger.Error(_err)
+						return _err
 					}
 
 					logger.Infof(

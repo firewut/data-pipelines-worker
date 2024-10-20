@@ -175,6 +175,7 @@ func (p *Processing) Start() (interfaces.ProcessingOutput, bool, error) {
 		}
 
 		if err == context.Canceled {
+			p.SetError(err)
 			p.SetStatus(interfaces.ProcessingStatusFailed)
 			p.sendResult(true)
 			return nil, false, fmt.Errorf("processing with id %s was cancelled", p.GetId().String())
@@ -204,9 +205,16 @@ func (p *Processing) Start() (interfaces.ProcessingOutput, bool, error) {
 
 		// If unrecoverable error, mark as failed
 		if err != nil {
+			retryMsg := ""
+			if attempt > 0 {
+				retryMsg = fmt.Sprintf(" after %d attempt(s)", attempt+1)
+			}
+			_err := fmt.Errorf("processing with id %s failed%s: %w", p.GetId().String(), retryMsg, err)
+
+			p.SetError(_err)
 			p.SetStatus(interfaces.ProcessingStatusFailed)
 			p.sendResult(false)
-			return nil, false, fmt.Errorf("processing with id %s failed after %d attempts: %w", p.GetId().String(), attempt+1, err)
+			return nil, false, _err
 		}
 
 	}

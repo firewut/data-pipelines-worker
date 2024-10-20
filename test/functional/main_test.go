@@ -165,9 +165,9 @@ func (suite *FunctionalTestSuite) NewWorkerServerWithHandlers(
 	suite.Lock()
 	defer suite.Unlock()
 
-	_, shutdown := context.WithCancel(context.Background())
+	ctx, shutdown := context.WithCancel(context.Background())
 	server, worker, err := factories.NewWorkerServerWithHandlers(
-		context.Background(),
+		ctx,
 		available,
 		_config,
 	)
