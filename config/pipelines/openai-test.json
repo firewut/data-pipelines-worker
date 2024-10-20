@@ -144,7 +144,12 @@
             "slug": "fetch-event-images-moderation-from-telegram",
             "description": "Fetch the moderation Image decision from Telegram",
             "input_config": {
-                "type": "array"
+                "type": "array",
+                "property": {
+                    "hack_for_array_trigger": {
+                        "origin": "send-event-images-moderation-to-telegram"
+                    }
+                }
             },
             "input": {
                 "block_slug": "send-event-images-moderation-to-telegram"

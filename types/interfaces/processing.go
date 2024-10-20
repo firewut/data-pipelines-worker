@@ -39,7 +39,7 @@ type Processing interface {
 
 	SetRegistryNotificationChannel(chan Processing)
 
-	Start() (ProcessingOutput, bool, error)
+	Start() ProcessingOutput
 	Shutdown(context.Context) error
 
 	// Stop pending processing
@@ -48,6 +48,16 @@ type Processing interface {
 
 type ProcessingOutput interface {
 	GetId() string
-	GetStop() bool
 	GetValue() *bytes.Buffer
+	GetError() error
+	GetStop() bool
+	GetRetry() bool
+	GetRetryAttempt() int
+
+	SetId(string)
+	SetValue(*bytes.Buffer)
+	SetError(error)
+	SetStop(bool)
+	SetRetry(bool)
+	SetRetryAttempt(int)
 }

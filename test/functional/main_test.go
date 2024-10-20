@@ -350,3 +350,15 @@ func (suite *FunctionalTestSuite) GetPNGImageBuffer(width int, height int) bytes
 
 	return *buf
 }
+
+func (suite *FunctionalTestSuite) GetTelegramBotInfo() string {
+	return `{
+		"ok": true,
+		"result": {
+			"id": 123456789,
+			"is_bot": true,
+			"first_name": "Test Bot",
+			"username": "test_bot"
+		}
+	}`
+}

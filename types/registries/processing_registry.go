@@ -159,11 +159,7 @@ func (pr *ProcessingRegistry) Shutdown(ctx context.Context) error {
 	}
 }
 
-func (pr *ProcessingRegistry) StartProcessing(processing interfaces.Processing) (
-	interfaces.ProcessingOutput,
-	bool,
-	error,
-) {
+func (pr *ProcessingRegistry) StartProcessing(processing interfaces.Processing) interfaces.ProcessingOutput {
 	pr.Add(processing)
 	return processing.Start()
 }

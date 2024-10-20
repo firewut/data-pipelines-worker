@@ -326,22 +326,22 @@ func (p *PipelineData) Process(
 				) error {
 					defer blockInputWg.Done()
 
-					processingResult, stopProcessing, err := processingRegistry.StartProcessing(_processing)
+					processingOutput := processingRegistry.StartProcessing(_processing)
 					_blockInputProcessingResults <- blockInputProcessingResult{
 						index:   blockInputIndex,
-						err:     err,
+						err:     processingOutput.GetError(),
 						skipped: false,
-						stop:    stopProcessing,
+						stop:    processingOutput.GetStop(),
 					}
 
-					if err != nil {
+					if processingOutput.GetError() != nil {
 						_err := fmt.Errorf(
 							"error processing data for block %s [%s:%s] with index %d. Error: %s",
 							block.GetId(),
 							_blockData.GetSlug(),
 							_processing.GetId(),
 							blockInputIndex,
-							err,
+							processingOutput.GetError(),
 						)
 						logger.Error(_err)
 						return _err
@@ -355,7 +355,7 @@ func (p *PipelineData) Process(
 						blockInputIndex,
 					)
 
-					if stopProcessing {
+					if processingOutput.GetStop() {
 						logger.Infof(
 							"Pipeline stopped by block %s [%s:%s]",
 							block.GetId(),
@@ -377,13 +377,13 @@ func (p *PipelineData) Process(
 					if registryAddBlockData {
 						pipelineBlockDataRegistry.AddBlockData(
 							_blockData.GetSlug(),
-							processingResult.GetValue(),
+							processingOutput.GetValue(),
 						)
 					} else {
 						pipelineBlockDataRegistry.UpdateBlockData(
 							_blockData.GetSlug(),
 							blockInputIndex,
-							processingResult.GetValue(),
+							processingOutput.GetValue(),
 						)
 					}
 
@@ -391,7 +391,7 @@ func (p *PipelineData) Process(
 					saveOutputResults := pipelineBlockDataRegistry.SaveOutput(
 						_blockData.GetSlug(),
 						blockInputIndex,
-						processingResult.GetValue(),
+						processingOutput.GetValue(),
 					)
 
 					for _, saveOutputResult := range saveOutputResults {

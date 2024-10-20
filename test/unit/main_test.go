@@ -94,16 +94,7 @@ func (suite *UnitTestSuite) SetupTest() {
 	_config.OpenAI.SetClient(openaiClient)
 
 	// Telegram
-	telegramBotInfo := `{
-		"ok": true,
-		"result": {
-			"id": 123456789,
-			"is_bot": true,
-			"first_name": "Test Bot",
-			"username": "test_bot"
-		}
-	}`
-	telegramBotInfoEndpoint := suite.GetMockHTTPServerURL(telegramBotInfo, http.StatusOK, 0)
+	telegramBotInfoEndpoint := suite.GetMockHTTPServerURL(suite.GetTelegramBotInfo(), http.StatusOK, 0)
 	telegramClient, err := factories.NewTelegramClient(telegramBotInfoEndpoint)
 	suite.Nil(err)
 	_config.Telegram.SetClient(telegramClient)
