@@ -1800,10 +1800,10 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationApproveAll() {
 		"",
 		http.StatusOK,
 		0,
-		map[string]string{
-			"/botTOKEN/getMe":      suite.GetTelegramBotInfo(),
-			"/botTOKEN/getUpdates": moderationDecisions,
-			"/botTOKEN/sendMessage": `{
+		map[string][]string{
+			"/botTOKEN/getMe":      {suite.GetTelegramBotInfo()},
+			"/botTOKEN/getUpdates": {moderationDecisions},
+			"/botTOKEN/sendMessage": {`{
 				"ok": true,
 				"result": {
 					"update_id": 123456789,
@@ -1828,8 +1828,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationApproveAll() {
 						"text": "This is a regular message"
 					}
 				}
-			
-			}`,
+			}`},
 		},
 	)
 	telegramClient, err := factories.NewTelegramClient(telegramMockAPI.URL)
@@ -2204,10 +2203,10 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationDeclineThird() {
 		"",
 		http.StatusOK,
 		0,
-		map[string]string{
-			"/botTOKEN/getMe":      suite.GetTelegramBotInfo(),
-			"/botTOKEN/getUpdates": moderationDecisions,
-			"/botTOKEN/sendMessage": `{
+		map[string][]string{
+			"/botTOKEN/getMe":      {suite.GetTelegramBotInfo()},
+			"/botTOKEN/getUpdates": {moderationDecisions},
+			"/botTOKEN/sendMessage": {`{
 				"ok": true,
 				"result": {
 					"update_id": 123456789,
@@ -2233,7 +2232,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationDeclineThird() {
 					}
 				}
 			
-			}`,
+			}`},
 		},
 	)
 	telegramClient, err := factories.NewTelegramClient(telegramMockAPI.URL)
@@ -2413,7 +2412,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationDeclineThird() {
 		suite.Nil(sendModerationProcessing.GetError())
 	}
 
-	for i := 0; i < 4; i++ {
+	for i := 0; i < 3; i++ {
 		fetchModerationProcessing := <-notificationChannel
 		suite.Equal("fetch_moderation_telegram", fetchModerationProcessing.GetBlock().GetId())
 		suite.Equal(processingResponse.ProcessingID, fetchModerationProcessing.GetId())
@@ -2537,16 +2536,57 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 	openaiClient := factories.NewOpenAIClient(openAIMockServer.URL)
 	suite._config.OpenAI.SetClient(openaiClient)
 
-	// Telegram
-	decisions := []string{
+	// Moderation Decisions
+	decisionsRegenerate := []string{
 		blocks.ShortenedActionApprove,
 		blocks.ShortenedActionApprove,
 		blocks.ShortenedActionRegenerate,
 		blocks.ShortenedActionApprove,
 	}
-	moderationMessages := make([]string, 0)
+	decisionsApprove := []string{
+		blocks.ShortenedActionApprove,
+		blocks.ShortenedActionApprove,
+		blocks.ShortenedActionApprove,
+		blocks.ShortenedActionApprove,
+	}
+	telegramResponseTemplate := `{
+		"ok": true,
+		"result": [
+			%s
+		]
+	}`
+	messageTemplate := `{
+		"callback_query": {
+			"chat_instance": "111111111111111111",
+			"data": "%s",
+			"from": {
+				"first_name": "John",
+				"id": 987654321,
+				"is_bot": false,
+				"language_code": "en",
+				"last_name": "Doe",
+				"username": "johndoe"
+			},
+			"id": "%d",
+			"message": {
+				"chat": {
+					"first_name": "John",
+					"id": 987654321,
+					"last_name": "Doe",
+					"type": "private",
+					"username": "johndoe"
+				},
+				"date": 1633044475,
+				"message_id": %d,
+				"text": "%s"
+			}
+		},
+		"update_id": 123456790
+	}`
+	// Telegram
+	moderationRegenerateMessages := make([]string, 0)
+	moderationApproveMessages := make([]string, 0)
 	for i := 0; i < 4; i++ {
-		moderationMatchCallbackData := fmt.Sprintf("%s:%d", decisions[i], i)
 		reviewMessage := blocks.TelegramReviewMessage{
 			Text: fmt.Sprintf(
 				"Content for Review %d",
@@ -2558,65 +2598,46 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 			Index:               i,
 		}
 
-		moderationMessages = append(
-			moderationMessages,
-			fmt.Sprintf(`
-				{
-					"callback_query": {
-						"chat_instance": "111111111111111111",
-						"data": "%s",
-						"from": {
-							"first_name": "John",
-							"id": 987654321,
-							"is_bot": false,
-							"language_code": "en",
-							"last_name": "Doe",
-							"username": "johndoe"
-						},
-						"id": "%d",
-						"message": {
-							"chat": {
-								"first_name": "John",
-								"id": 987654321,
-								"last_name": "Doe",
-								"type": "private",
-								"username": "johndoe"
-							},
-							"date": 1633044475,
-							"message_id": %d,
-							"text": "%s"
-						}
-					},
-					"update_id": 123456790
-				}`,
-				moderationMatchCallbackData,
-				i,
-				i,
-				blocks.FormatTelegramMessage(
-					blocks.GenerateTelegramMessage(reviewMessage),
-				),
+		messageWithRegenerate := fmt.Sprintf(messageTemplate,
+			fmt.Sprintf("%s:%d", decisionsRegenerate[i], i),
+			i,
+			i,
+			blocks.FormatTelegramMessage(
+				blocks.GenerateTelegramMessage(reviewMessage),
 			),
 		)
-	}
 
-	moderationDecisions := fmt.Sprintf(`
-		{
-			"ok": true,
-			"result": [
-				%s
-			]
-		}`,
-		strings.Join(moderationMessages, ","),
-	)
+		messageWithApprove := fmt.Sprintf(messageTemplate,
+			fmt.Sprintf("%s:%d", decisionsApprove[i], i),
+			i+i,
+			i+i,
+			blocks.FormatTelegramMessage(
+				blocks.GenerateTelegramMessage(reviewMessage),
+			),
+		)
+
+		moderationApproveMessages = append(moderationApproveMessages, messageWithApprove)
+		moderationRegenerateMessages = append(moderationRegenerateMessages, messageWithRegenerate)
+	}
 
 	telegramMockAPI := suite.GetMockHTTPServer(
 		"",
 		http.StatusOK,
 		0,
-		map[string]string{
-			"/botTOKEN/getMe":      suite.GetTelegramBotInfo(),
-			"/botTOKEN/getUpdates": moderationDecisions,
-			"/botTOKEN/sendMessage": `{
+		map[string][]string{
+			"/botTOKEN/getMe": {
+				suite.GetTelegramBotInfo(),
+			},
+			"/botTOKEN/getUpdates": {
+				fmt.Sprintf(telegramResponseTemplate, moderationRegenerateMessages[0]),
+				fmt.Sprintf(telegramResponseTemplate, moderationRegenerateMessages[1]),
+				fmt.Sprintf(telegramResponseTemplate, moderationRegenerateMessages[2]),
+				fmt.Sprintf(telegramResponseTemplate, moderationApproveMessages[0]),
+				fmt.Sprintf(telegramResponseTemplate, moderationApproveMessages[1]),
+				fmt.Sprintf(telegramResponseTemplate, moderationApproveMessages[2]),
+				fmt.Sprintf(telegramResponseTemplate, moderationApproveMessages[3]),
+			},
+			"/botTOKEN/sendMessage": {`{
 				"ok": true,
 				"result": {
 					"update_id": 123456789,
@@ -2642,7 +2663,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 					}
 				}
 			
-			}`,
+			}`},
 		},
 	)
 	telegramClient, err := factories.NewTelegramClient(telegramMockAPI.URL)
@@ -2698,7 +2719,6 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 						"description": "Make a request to OpenAI Image API to get an image",
 						"input_config": {
 							"type": "array",
-							"parallel": true,
 							"property": {
 								"prompt": {
 									"origin": "get-event-transcription",
@@ -2717,7 +2737,6 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 						"description": "Send generated Event Images to Telegram for moderation",
 						"input_config": {
 							"type": "array",
-							"parallel": true,
 							"property": {
 								"image": {
 									"origin": "get-event-images"
@@ -2813,6 +2832,36 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 		suite.Equal(interfaces.ProcessingStatusCompleted, imageProcessing.GetStatus())
 		suite.Nil(imageProcessing.GetError())
 	}
+	suite.Equal(4, imagesRequested)
+
+	for i := 0; i < 4; i++ {
+		sendModerationProcessing := <-notificationChannel
+		suite.Equal("send_moderation_telegram", sendModerationProcessing.GetBlock().GetId())
+		suite.Equal(processingResponse.ProcessingID, sendModerationProcessing.GetId())
+
+		suite.Equal(interfaces.ProcessingStatusCompleted, sendModerationProcessing.GetStatus())
+		suite.Nil(sendModerationProcessing.GetError())
+	}
+
+	for i := 0; i < 3; i++ {
+		fetchModerationProcessing := <-notificationChannel
+		suite.Equal("fetch_moderation_telegram", fetchModerationProcessing.GetBlock().GetId())
+		suite.Equal(processingResponse.ProcessingID, fetchModerationProcessing.GetId())
+
+		if i == 2 {
+			suite.Equal(interfaces.ProcessingStatusStoppedForRegeneration, fetchModerationProcessing.GetStatus(), i)
+		} else {
+			suite.Equal(interfaces.ProcessingStatusCompleted, fetchModerationProcessing.GetStatus(), i)
+		}
+		suite.Nil(fetchModerationProcessing.GetError())
+	}
+
+	imageProcessing := <-notificationChannel
+	suite.Equal("openai_image_request", imageProcessing.GetBlock().GetId())
+	suite.Equal(processingResponse.ProcessingID, imageProcessing.GetId())
+	suite.Equal(interfaces.ProcessingStatusCompleted, imageProcessing.GetStatus())
+	suite.Nil(imageProcessing.GetError())
+	suite.Equal(5, imagesRequested)
 
 	for i := 0; i < 4; i++ {
 		sendModerationProcessing := <-notificationChannel
@@ -2828,11 +2877,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 		suite.Equal("fetch_moderation_telegram", fetchModerationProcessing.GetBlock().GetId())
 		suite.Equal(processingResponse.ProcessingID, fetchModerationProcessing.GetId())
 
-		if i == 2 {
-			suite.Equal(interfaces.ProcessingStatusStopped, fetchModerationProcessing.GetStatus(), i)
-		} else {
-			suite.Equal(interfaces.ProcessingStatusCompleted, fetchModerationProcessing.GetStatus(), i)
-		}
+		suite.Equal(interfaces.ProcessingStatusCompleted, fetchModerationProcessing.GetStatus(), i)
 		suite.Nil(fetchModerationProcessing.GetError())
 	}
 

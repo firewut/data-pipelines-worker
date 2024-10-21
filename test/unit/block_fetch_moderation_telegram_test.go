@@ -65,7 +65,7 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessIncorrect
 	data.SetBlock(block)
 
 	// When
-	result, stop, _, err := block.Process(
+	result, stop, _, _, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorFetchModerationFromTelegram(),
 		data,
@@ -221,7 +221,7 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess()
 		suite._config.Telegram.SetClient(telegramClient)
 
 		// When
-		result, stop, _, err := block.Process(
+		result, stop, _, _, _, err := block.Process(
 			ctx,
 			blocks.NewProcessorFetchModerationFromTelegram(),
 			data,
@@ -301,13 +301,15 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessRetry() {
 	suite._config.Telegram.SetClient(telegramClient)
 
 	// When
-	result, stop, retry, err := block.Process(
+	result, stop, retry, targetBlockSlug, targetBlockInputIndex, err := block.Process(
 		ctx,
 		blocks.NewProcessorFetchModerationFromTelegram(),
 		data,
 	)
 
 	// Then
+	suite.Equal("", targetBlockSlug)
+	suite.Equal(-1, targetBlockInputIndex)
 	suite.True(retry)
 	suite.NotNil(result)
 	suite.False(stop)

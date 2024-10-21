@@ -61,7 +61,7 @@ func (p *ProcessorHTTP) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, error) {
+) (*bytes.Buffer, bool, bool, string, int, error) {
 	var output *bytes.Buffer = &bytes.Buffer{}
 
 	logger := config.GetLogger()
@@ -71,7 +71,7 @@ func (p *ProcessorHTTP) Process(
 	// Fetch the URL from the input data
 	url, err := helpers.GetValue[string](_data, "url")
 	if err != nil {
-		return nil, false, false, err
+		return nil, false, false, "", -1, err
 	}
 
 	method := http.MethodGet
@@ -84,7 +84,7 @@ func (p *ProcessorHTTP) Process(
 
 	req, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
-		return nil, false, false, err
+		return nil, false, false, "", -1, err
 	}
 
 	client := &http.Client{
@@ -97,25 +97,25 @@ func (p *ProcessorHTTP) Process(
 		// Check if the error is due to context cancellation
 		if ctx.Err() == context.Canceled {
 			logger.Errorf("Request was cancelled for block %s", data.GetSlug())
-			return nil, false, false, ctx.Err()
+			return nil, false, false, "", -1, ctx.Err()
 		}
-		return nil, false, false, err
+		return nil, false, false, "", -1, err
 	}
 	defer response.Body.Close()
 
 	_, err = io.Copy(output, response.Body)
 	if err != nil {
-		return output, false, false, err
+		return output, false, false, "", -1, err
 	}
 
 	// Check response status code
 	if response.StatusCode != http.StatusOK {
 		err := fmt.Errorf("HTTP request failed with status code: %d", response.StatusCode)
 		logger.Error(err)
-		return output, false, false, err
+		return output, false, false, "", -1, err
 	}
 
-	return output, false, false, nil
+	return output, false, false, "", -1, nil
 }
 
 type BlockHTTPConfig struct {

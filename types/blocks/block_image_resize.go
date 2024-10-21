@@ -53,7 +53,7 @@ func (p *ProcessorImageResize) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, error) {
+) (*bytes.Buffer, bool, bool, string, int, error) {
 	output := &bytes.Buffer{}
 	blockConfig := &BlockImageResizeConfig{}
 
@@ -67,13 +67,13 @@ func (p *ProcessorImageResize) Process(
 
 	imageBytes, err := helpers.GetValue[[]byte](_data, "image")
 	if err != nil {
-		return nil, false, false, err
+		return nil, false, false, "", -1, err
 	}
 
 	imgBuf := bytes.NewBuffer(imageBytes)
 	img, format, err := image.Decode(imgBuf)
 	if err != nil {
-		return nil, false, false, err
+		return nil, false, false, "", -1, err
 	}
 	config.GetLogger().Debugf("Image format: %s", format)
 
@@ -84,7 +84,7 @@ func (p *ProcessorImageResize) Process(
 		config.GetLogger().Fatalf("Failed to encode PNG image: %v", err)
 	}
 
-	return output, false, false, nil
+	return output, false, false, "", -1, nil
 }
 
 type BlockImageResizeConfig struct {

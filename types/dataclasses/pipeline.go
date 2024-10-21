@@ -323,7 +323,7 @@ func (p *PipelineData) Process(
 					_blockData interfaces.ProcessableBlockData,
 					_processing interfaces.Processing,
 					_blockInputProcessingResults chan blockInputProcessingResult,
-				) error {
+				) (interfaces.ProcessingOutput, error) {
 					defer blockInputWg.Done()
 
 					processingOutput := processingRegistry.StartProcessing(_processing)
@@ -344,7 +344,7 @@ func (p *PipelineData) Process(
 							processingOutput.GetError(),
 						)
 						logger.Error(_err)
-						return _err
+						return processingOutput, _err
 					}
 
 					logger.Infof(
@@ -356,14 +356,67 @@ func (p *PipelineData) Process(
 					)
 
 					if processingOutput.GetStop() {
-						logger.Infof(
-							"Pipeline stopped by block %s [%s:%s]",
-							block.GetId(),
-							_blockData.GetSlug(),
-							_processing.GetId(),
-						)
-						_processing.Stop(interfaces.ProcessingStatusStopped, nil)
-						return nil
+						targetBlockSlug := processingOutput.GetTargetBlockSlug()
+						targetBlockInputIndex := processingOutput.GetTargetBlockInputIndex()
+						if targetBlockSlug != "" &&
+							targetBlockInputIndex >= 0 {
+							logger.Warnf(
+								"Pipeline stopped by block %s [%s:%s] with index %d. Regenerating block %s with index %d",
+								block.GetId(),
+								_blockData.GetSlug(),
+								_processing.GetId(),
+								blockInputIndex,
+								targetBlockSlug,
+								targetBlockInputIndex,
+							)
+							_processing.Stop(interfaces.ProcessingStatusStoppedForRegeneration, nil)
+							go func(
+								p *PipelineData,
+								_workerRegistry interfaces.WorkerRegistry,
+								_blockRegistry interfaces.BlockRegistry,
+								_processingRegistry interfaces.ProcessingRegistry,
+								_resultStorages []interfaces.Storage,
+								_blockSlug string,
+								_targetBlockInputIndex int,
+							) {
+								regenerateData := schemas.PipelineStartInputSchema{
+									Pipeline: schemas.PipelineInputSchema{
+										Slug:         p.GetSlug(),
+										ProcessingID: processingId,
+									},
+									Block: schemas.BlockInputSchema{
+										Slug:        _blockSlug,
+										Input:       map[string]interface{}{},
+										TargetIndex: _targetBlockInputIndex,
+									},
+								}
+
+								p.Process(
+									_workerRegistry,
+									_blockRegistry,
+									_processingRegistry,
+									regenerateData,
+									_resultStorages,
+								)
+							}(
+								p,
+								workerRegistry,
+								blockRegistry,
+								processingRegistry,
+								resultStorages,
+								targetBlockSlug,
+								targetBlockInputIndex,
+							)
+						} else {
+							logger.Infof(
+								"Pipeline stopped by block %s [%s:%s]",
+								block.GetId(),
+								_blockData.GetSlug(),
+								_processing.GetId(),
+							)
+							_processing.Stop(interfaces.ProcessingStatusStopped, nil)
+						}
+						return processingOutput, nil
 					}
 
 					logger.Infof(
@@ -415,13 +468,18 @@ func (p *PipelineData) Process(
 						}
 					}
 
-					return nil
+					return processingOutput, nil
 				}
 
 				if parallel {
 					go processBlockInput(blockDataClone, processing, blockInputProcessingResults)
 				} else {
-					processBlockInput(blockDataClone, processing, blockInputProcessingResults)
+					processingOutput, err := processBlockInput(blockDataClone, processing, blockInputProcessingResults)
+					if err != nil ||
+						processingOutput.GetStop() ||
+						processingOutput.GetError() != nil {
+						return
+					}
 				}
 			}
 

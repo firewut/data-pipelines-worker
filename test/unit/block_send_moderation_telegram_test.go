@@ -59,7 +59,7 @@ func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessIncorrectInp
 	data.SetBlock(block)
 
 	// When
-	result, stop, _, err := block.Process(
+	result, stop, _, _, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorSendModerationToTelegram(),
 		data,
@@ -88,7 +88,7 @@ func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccessTextD
 	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingID{}, processingId)
 
 	// When
-	result, stop, _, err := block.Process(
+	result, stop, _, _, _, err := block.Process(
 		ctx,
 		blocks.NewProcessorSendModerationToTelegram(),
 		data,
@@ -124,7 +124,7 @@ func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccessTextE
 	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingID{}, processingId)
 
 	// When
-	result, stop, _, err := block.Process(
+	result, stop, _, _, _, err := block.Process(
 		ctx,
 		blocks.NewProcessorSendModerationToTelegram(),
 		data,
@@ -163,7 +163,7 @@ func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccessTextW
 	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingID{}, processingId)
 
 	// When
-	result, stop, _, err := block.Process(
+	result, stop, _, _, _, err := block.Process(
 		ctx,
 		blocks.NewProcessorSendModerationToTelegram(),
 		data,

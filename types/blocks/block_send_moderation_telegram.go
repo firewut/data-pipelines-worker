@@ -142,7 +142,7 @@ func (p *ProcessorSendModerationToTelegram) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, error) {
+) (*bytes.Buffer, bool, bool, string, int, error) {
 	output := &bytes.Buffer{}
 	blockConfig := &BlockSendModerationToTelegramConfig{}
 
@@ -161,7 +161,7 @@ func (p *ProcessorSendModerationToTelegram) Process(
 
 	client := _config.Telegram.GetClient()
 	if client == nil {
-		return output, false, false, errors.New("telegram client is not configured")
+		return output, false, false, "", -1, errors.New("telegram client is not configured")
 	}
 
 	review := TelegramReviewMessage{
@@ -243,7 +243,7 @@ func (p *ProcessorSendModerationToTelegram) Process(
 	}
 
 	if err != nil {
-		return output, false, false, err
+		return output, false, false, "", -1, err
 	}
 
 	sentMessageBytes, err := json.Marshal(map[string]interface{}{
@@ -251,11 +251,11 @@ func (p *ProcessorSendModerationToTelegram) Process(
 		"sentButtons": buttons,
 	})
 	if err != nil {
-		return output, false, false, err
+		return output, false, false, "", -1, err
 	}
 	output = bytes.NewBuffer(sentMessageBytes)
 
-	return output, false, false, nil
+	return output, false, false, "", -1, nil
 }
 
 type BlockSendModerationToTelegramConfig struct {

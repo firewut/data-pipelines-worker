@@ -48,7 +48,7 @@ func (suite *UnitTestSuite) TestBlockTextAddPrefixOrSuffixProcessIncorrectInput(
 	data.SetBlock(block)
 
 	// When
-	result, stop, _, err := block.Process(
+	result, stop, _, _, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorTextAddPrefixOrSuffix(),
 		data,
@@ -103,7 +103,7 @@ func (suite *UnitTestSuite) TestBlockTextAddPrefixOrSuffixProcessSuccess() {
 		data.SetBlock(block)
 
 		// When
-		result, stop, _, err := block.Process(
+		result, stop, _, _, _, err := block.Process(
 			suite.GetContextWithcancel(),
 			blocks.NewProcessorTextAddPrefixOrSuffix(),
 			data,

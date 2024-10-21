@@ -27,6 +27,8 @@ type BlockProcessor interface {
 		*bytes.Buffer,
 		bool,
 		bool,
+		string,
+		int,
 		error,
 	)
 }
@@ -56,6 +58,8 @@ type Block interface {
 		*bytes.Buffer,
 		bool,
 		bool,
+		string,
+		int,
 		error,
 	)
 }

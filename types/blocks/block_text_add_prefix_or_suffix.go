@@ -50,7 +50,7 @@ func (p *ProcessorTextAddPrefixOrSuffix) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, error) {
+) (*bytes.Buffer, bool, bool, string, int, error) {
 	output := &bytes.Buffer{}
 	blockConfig := &BlockTextAddPrefixOrSuffixConfig{}
 
@@ -70,7 +70,7 @@ func (p *ProcessorTextAddPrefixOrSuffix) Process(
 
 	output = bytes.NewBufferString(_prefix + text + _suffix)
 
-	return output, false, false, nil
+	return output, false, false, "", -1, nil
 }
 
 type BlockTextAddPrefixOrSuffixConfig struct {

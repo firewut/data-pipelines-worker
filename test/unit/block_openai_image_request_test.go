@@ -58,7 +58,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestImageProcessIncorrectInput() {
 	data.SetBlock(block)
 
 	// When
-	result, stop, _, err := block.Process(
+	result, stop, _, _, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorOpenAIRequestImage(),
 		data,
@@ -85,7 +85,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestImageProcessEmptyClient() {
 	suite._config.OpenAI.SetClient(nil)
 
 	// When
-	result, stop, _, err := block.Process(
+	result, stop, _, _, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorOpenAIRequestImage(),
 		data,
@@ -140,7 +140,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestImageProcessSuccess() {
 	suite._config.OpenAI.SetClient(openaiClient)
 
 	// When
-	result, stop, _, err := block.Process(
+	result, stop, _, _, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorOpenAIRequestImage(),
 		data,

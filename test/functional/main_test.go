@@ -112,17 +112,19 @@ func (suite *FunctionalTestSuite) GetMockHTTPServer(
 	body string,
 	statusCode int,
 	responseDelay time.Duration,
-	bodyMapping map[string]string,
+	bodyMapping map[string][]string,
 ) *httptest.Server {
 	suite.Lock()
 	defer suite.Unlock()
 
 	// Merge all body mappings into a single map
-	var bodyMap map[string]string
+	var bodyMap map[string][]string
+	bodyMapSliceIndex := make(map[string]int)
+
 	if len(bodyMapping) > 0 {
 		bodyMap = bodyMapping
 	} else {
-		bodyMap = make(map[string]string)
+		bodyMap = make(map[string][]string)
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -133,8 +135,17 @@ func (suite *FunctionalTestSuite) GetMockHTTPServer(
 		}
 
 		// Check if the requested path is in the bodyMap
-		if responseBody, exists := bodyMap[r.URL.Path]; exists {
-			w.Write([]byte(responseBody))
+		if responseBodySlice, exists := bodyMap[r.URL.Path]; exists {
+			if _, exists := bodyMapSliceIndex[r.URL.Path]; !exists {
+				bodyMapSliceIndex[r.URL.Path] = 0
+			}
+
+			w.Write([]byte(responseBodySlice[bodyMapSliceIndex[r.URL.Path]]))
+
+			bodyMapSliceIndex[r.URL.Path] += 1
+			if bodyMapSliceIndex[r.URL.Path] >= len(responseBodySlice) {
+				bodyMapSliceIndex[r.URL.Path] = 0
+			}
 		} else if body != "" {
 			// Default body if no specific path is matched
 			w.Write([]byte(body))
@@ -154,7 +165,7 @@ func (suite *FunctionalTestSuite) GetMockHTTPServerURL(
 		body,
 		statusCode,
 		responseDelay,
-		make(map[string]string),
+		make(map[string][]string),
 	).URL
 }
 

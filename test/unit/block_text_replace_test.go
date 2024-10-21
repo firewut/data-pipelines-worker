@@ -49,7 +49,7 @@ func (suite *UnitTestSuite) TestBlockTextReplaceProcessIncorrectInput() {
 	data.SetBlock(block)
 
 	// When
-	result, stop, _, err := block.Process(
+	result, stop, _, _, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorTextReplace(),
 		data,
@@ -87,7 +87,7 @@ func (suite *UnitTestSuite) TestBlockTextReplaceProcessSuccess() {
 	data.SetBlock(block)
 
 	// When
-	result, stop, _, err := block.Process(
+	result, stop, _, _, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorTextReplace(),
 		data,

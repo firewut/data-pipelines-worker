@@ -35,7 +35,7 @@ func (p *ProcessorOpenAIRequestTranscription) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, error) {
+) (*bytes.Buffer, bool, bool, string, int, error) {
 	output := &bytes.Buffer{}
 	blockConfig := &BlockOpenAIRequestTranscriptionConfig{}
 
@@ -49,12 +49,12 @@ func (p *ProcessorOpenAIRequestTranscription) Process(
 
 	client := _config.OpenAI.GetClient()
 	if client == nil {
-		return output, false, false, errors.New("openAI client is not configured")
+		return output, false, false, "", -1, errors.New("openAI client is not configured")
 	}
 
 	audioBytes, err := helpers.GetValue[[]byte](_data, "audio_file")
 	if err != nil {
-		return nil, false, false, err
+		return nil, false, false, "", -1, err
 	}
 
 	resp, err := client.CreateTranscription(
@@ -68,18 +68,18 @@ func (p *ProcessorOpenAIRequestTranscription) Process(
 		},
 	)
 	if err != nil {
-		return output, false, false, err
+		return output, false, false, "", -1, err
 	}
 
 	// Encode response to JSON
 	jsonData, err := json.Marshal(resp)
 	if err != nil {
-		return output, false, false, err
+		return output, false, false, "", -1, err
 	}
 
 	output = bytes.NewBuffer(jsonData)
 
-	return output, false, false, err
+	return output, false, false, "", -1, err
 }
 
 type BlockOpenAIRequestTranscriptionConfig struct {

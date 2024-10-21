@@ -65,6 +65,8 @@ func NewProcessing(
 			blockData.GetSlug(),
 			false,
 			bytes.NewBuffer([]byte{}),
+			-1,
+			"",
 			nil,
 		),
 	}
@@ -174,17 +176,27 @@ func (p *Processing) Start() interfaces.ProcessingOutput {
 	retryCount := p.processor.GetRetryCount(p.block)
 	retryInterval := p.processor.GetRetryInterval(p.block)
 
-	var output *bytes.Buffer
-	var stop, retry bool
-	var err error
+	var (
+		output                *bytes.Buffer
+		stop, retry           bool
+		err                   error
+		targetBlock           string
+		targetBlockInputIndex int
+	)
 
 	// Retry loop
 	for attempt := 0; attempt <= retryCount; attempt++ {
-		output, stop, retry, err = p.block.Process(p.ctx, p.processor, p.blockData)
+		output, stop, retry, targetBlock, targetBlockInputIndex, err = p.block.Process(p.ctx, p.processor, p.blockData)
 		processingOutput.SetValue(output)
 		processingOutput.SetError(err)
 		processingOutput.SetRetry(retry)
 		processingOutput.SetRetryAttempt(attempt)
+		if targetBlock != "" {
+			processingOutput.SetTargetBlockSlug(targetBlock)
+			if targetBlockInputIndex >= 0 {
+				processingOutput.SetTargetBlockInputIndex(targetBlockInputIndex)
+			}
+		}
 
 		if err == nil && !retry {
 			break
@@ -339,20 +351,31 @@ func (p *Processing) GetProcessingTime() time.Duration {
 type ProcessingOutput struct {
 	sync.Mutex
 
-	blockSlug    string
-	stop         bool
-	retry        bool
-	retryAttempt int
-	data         *bytes.Buffer
-	err          error
+	blockSlug             string
+	stop                  bool
+	retry                 bool
+	retryAttempt          int
+	data                  *bytes.Buffer
+	err                   error
+	targetBlockInputIndex int
+	targetBlockSlug       string
 }
 
-func NewProcessingOutput(blockSlug string, stop bool, data *bytes.Buffer, err error) *ProcessingOutput {
+func NewProcessingOutput(
+	blockSlug string,
+	stop bool,
+	data *bytes.Buffer,
+	targetBlockInputIndex int,
+	targetBlockSlug string,
+	err error,
+) *ProcessingOutput {
 	return &ProcessingOutput{
-		blockSlug: blockSlug,
-		stop:      stop,
-		data:      data,
-		err:       err,
+		blockSlug:             blockSlug,
+		stop:                  stop,
+		data:                  data,
+		err:                   err,
+		targetBlockInputIndex: targetBlockInputIndex,
+		targetBlockSlug:       targetBlockSlug,
 	}
 }
 
@@ -438,4 +461,29 @@ func (po *ProcessingOutput) SetRetryAttempt(retryAttempt int) {
 	defer po.Unlock()
 
 	po.retryAttempt = retryAttempt
+}
+
+func (po *ProcessingOutput) GetTargetBlockSlug() string {
+	po.Lock()
+	defer po.Unlock()
+
+	return po.targetBlockSlug
+}
+func (po *ProcessingOutput) GetTargetBlockInputIndex() int {
+	po.Lock()
+	defer po.Unlock()
+
+	return po.targetBlockInputIndex
+}
+func (po *ProcessingOutput) SetTargetBlockSlug(targetBlockSlug string) {
+	po.Lock()
+	defer po.Unlock()
+
+	po.targetBlockSlug = targetBlockSlug
+}
+func (po *ProcessingOutput) SetTargetBlockInputIndex(targetBlockInputIndex int) {
+	po.Lock()
+	defer po.Unlock()
+
+	po.targetBlockInputIndex = targetBlockInputIndex
 }

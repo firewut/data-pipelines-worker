@@ -50,7 +50,7 @@ func (p *ProcessorTextReplace) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, error) {
+) (*bytes.Buffer, bool, bool, string, int, error) {
 	output := &bytes.Buffer{}
 	blockConfig := &BlockTextReplaceConfig{}
 
@@ -75,7 +75,7 @@ func (p *ProcessorTextReplace) Process(
 		strings.ReplaceAll(text, _old, wrapped),
 	)
 
-	return output, false, false, nil
+	return output, false, false, "", -1, nil
 }
 
 type BlockTextReplaceConfig struct {

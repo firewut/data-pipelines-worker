@@ -71,7 +71,7 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, error) {
+) (*bytes.Buffer, bool, bool, string, int, error) {
 	output := &bytes.Buffer{}
 	blockConfig := &BlockFetchModerationFromTelegramConfig{}
 
@@ -94,7 +94,7 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 
 	client := _config.Telegram.GetClient()
 	if client == nil {
-		return output, stopPipeline, false, errors.New("telegram client is not configured")
+		return output, stopPipeline, false, "", -1, errors.New("telegram client is not configured")
 	}
 
 	updateConfig := tgbotapi.UpdateConfig{
@@ -112,7 +112,7 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 		select {
 		case <-ctx.Done():
 			// Exit if context is canceled
-			return output, stopPipeline, false, ctx.Err()
+			return output, stopPipeline, false, "", -1, ctx.Err()
 		default:
 			if shouldExit {
 				break
@@ -121,7 +121,7 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 			// Fetch updates from Telegram
 			updates, err := client.GetUpdates(updateConfig)
 			if err != nil {
-				return output, stopPipeline, true, err
+				return output, stopPipeline, true, "", -1, err
 			}
 
 			for _, update := range updates {
@@ -188,28 +188,23 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 		}
 		if moderationDecision.Action == ModerationActionRegenerate {
 			if moderationMessage.ProcessingID == processingID.String() {
-				fmt.Printf(
-					">>> Regenerate block %s index %d in processing %s\n",
-					moderationMessage.RegenerateBlockSlug,
-					data.GetInputIndex(),
-					processingID,
-				)
+				return output, true, false, moderationMessage.RegenerateBlockSlug, data.GetInputIndex(), nil
 			}
 		}
 	}
 
 	moderationDecisionBytes, err := json.Marshal(moderationDecision)
 	if err != nil {
-		return output, stopPipeline, false, err
+		return output, stopPipeline, false, "", -1, err
 	}
 	output = bytes.NewBuffer(moderationDecisionBytes)
 
 	// Retry if the decision is unknown
 	if blockConfig.RetryIfUnknown && moderationDecision.Action == ModerationActionUnknown {
-		return output, false, true, nil
+		return output, false, true, "", -1, nil
 	}
 
-	return output, stopPipeline, false, err
+	return output, stopPipeline, false, "", -1, err
 }
 
 type BlockFetchModerationFromTelegramConfig struct {

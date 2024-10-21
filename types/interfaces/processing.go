@@ -19,6 +19,7 @@ const (
 	ProcessingStatusFailed
 	ProcessingStatusTransferred
 	ProcessingStatusStopped
+	ProcessingStatusStoppedForRegeneration
 	ProcessingStatusRetry
 	ProcessingStatusRetryFailed
 )
@@ -52,6 +53,8 @@ type ProcessingOutput interface {
 	GetStop() bool
 	GetRetry() bool
 	GetRetryAttempt() int
+	GetTargetBlockSlug() string
+	GetTargetBlockInputIndex() int
 
 	SetId(string)
 	SetValue(*bytes.Buffer)
@@ -59,4 +62,6 @@ type ProcessingOutput interface {
 	SetStop(bool)
 	SetRetry(bool)
 	SetRetryAttempt(int)
+	SetTargetBlockSlug(string)
+	SetTargetBlockInputIndex(int)
 }
