@@ -2794,8 +2794,10 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 			ProcessingID: processingId,
 		},
 		Block: schemas.BlockInputSchema{
-			Slug:  "get-event-text",
-			Input: map[string]interface{}{},
+			Slug: "get-event-text",
+			Input: map[string]interface{}{
+				"user_prompt": "get-event-text-input",
+			},
 		},
 	}
 
@@ -2871,7 +2873,6 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 		sendModerationProcessing := <-notificationChannel
 		suite.Equal("send_moderation_telegram", sendModerationProcessing.GetBlock().GetId())
 		suite.Equal(processingResponse.ProcessingID, sendModerationProcessing.GetId())
-
 		suite.Equal(interfaces.ProcessingStatusCompleted, sendModerationProcessing.GetStatus())
 		suite.Nil(sendModerationProcessing.GetError())
 	}

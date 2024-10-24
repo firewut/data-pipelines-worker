@@ -1,6 +1,7 @@
 package dataclasses
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -137,6 +138,17 @@ func (p *PipelineData) Process(
 		}
 	}
 
+	// Calculate block Index for inputData.Block.DestinationSlug
+	destinationBlockIndex := -1
+	if len(inputData.Block.DestinationSlug) > 0 {
+		for i, block := range pipelineBlocks {
+			if block.GetSlug() == inputData.Block.DestinationSlug {
+				destinationBlockIndex = i
+				break
+			}
+		}
+	}
+
 	if len(processBlocks) == 0 {
 		return uuid.UUID{}, fmt.Errorf(
 			"block with slug %s not found in pipeline %s",
@@ -163,6 +175,8 @@ func (p *PipelineData) Process(
 	}
 
 	go func() {
+		blockInputsData := make(map[string][]map[string]interface{}, 0)
+
 		// Loop through each block
 		for blockRelativeIndex, blockData := range processBlocks {
 			blockIndex := blockRelativeIndex + len(processedBlocks)
@@ -176,14 +190,24 @@ func (p *PipelineData) Process(
 				return
 			}
 
-			tmpProcessing := NewProcessing(processingId, p, block, blockData)
-			processingRegistry.Add(tmpProcessing)
-
 			var (
 				inputConfigValue []map[string]interface{}
 				parallel         bool
 			)
+
 			blockInputWg := &sync.WaitGroup{}
+			blockCtx, blockCtxCancel := context.WithCancel(context.Background())
+			defer blockCtxCancel()
+
+			tmpProcessing := NewProcessing(
+				blockCtx,
+				blockCtxCancel,
+				processingId,
+				p,
+				block,
+				blockData,
+			)
+			processingRegistry.Add(tmpProcessing)
 
 			if blockData.GetInputConfig() != nil {
 				var err error
@@ -192,7 +216,6 @@ func (p *PipelineData) Process(
 				)
 
 				if err != nil {
-
 					tmpProcessing.Stop(
 						interfaces.ProcessingStatusFailed,
 						fmt.Errorf(
@@ -231,8 +254,11 @@ func (p *PipelineData) Process(
 				},
 			)
 
-			// Check
+			// Merge inputs
 			blockInputData = MergeMaps(append(blockInputData, inputConfigValue...))
+
+			// Append to local mapping for blockInputsData
+			blockInputsData[blockData.GetSlug()] = blockInputData
 
 			// Check registry if Block is Available
 			if !blockRegistry.IsAvailable(block) {
@@ -282,25 +308,27 @@ func (p *PipelineData) Process(
 
 			for blockInputIndex, blockInput := range blockInputData {
 				registryAddBlockData := true
-				if blockRelativeIndex == 0 && inputData.Block.TargetIndex >= 0 {
-					if blockInputIndex != inputData.Block.TargetIndex {
-						blockInputProcessingResults <- blockInputProcessingResult{
-							index:   blockInputIndex,
-							err:     nil,
-							skipped: true,
-							stop:    false,
+				if inputData.Block.TargetIndex >= 0 {
+					if blockRelativeIndex == 0 || (destinationBlockIndex >= 0 && blockIndex < destinationBlockIndex) {
+						if blockInputIndex != inputData.Block.TargetIndex {
+							blockInputProcessingResults <- blockInputProcessingResult{
+								index:   blockInputIndex,
+								err:     nil,
+								skipped: true,
+								stop:    false,
+							}
+
+							logger.Infof(
+								"Skipping processing data for block %s [%s] with index %d",
+								block.GetId(),
+								blockData.GetSlug(),
+								blockInputIndex,
+							)
+							continue
 						}
 
-						logger.Infof(
-							"Skipping processing data for block %s [%s] with index %d",
-							block.GetId(),
-							blockData.GetSlug(),
-							blockInputIndex,
-						)
-						continue
+						registryAddBlockData = false
 					}
-
-					registryAddBlockData = false
 				}
 
 				logger.Infof(
@@ -317,7 +345,14 @@ func (p *PipelineData) Process(
 				blockDataClone.SetInputData(blockInput)
 				blockDataClone.SetInputIndex(blockInputIndex)
 
-				processing := NewProcessing(processingId, p, block, blockDataClone)
+				processing := NewProcessing(
+					blockCtx,
+					blockCtxCancel,
+					processingId,
+					p,
+					block,
+					blockDataClone,
+				)
 
 				processBlockInput := func(
 					_blockData interfaces.ProcessableBlockData,
@@ -343,7 +378,9 @@ func (p *PipelineData) Process(
 							blockInputIndex,
 							processingOutput.GetError(),
 						)
-						logger.Error(_err)
+						if processingOutput.GetError() != context.Canceled {
+							logger.Error(_err)
+						}
 						return processingOutput, _err
 					}
 
@@ -356,8 +393,13 @@ func (p *PipelineData) Process(
 					)
 
 					if processingOutput.GetStop() {
+						destinationBlockSlug := blockDataClone.GetSlug()
 						targetBlockSlug := processingOutput.GetTargetBlockSlug()
 						targetBlockInputIndex := processingOutput.GetTargetBlockInputIndex()
+
+						// Call cancel to stop the current block processing
+						blockCtxCancel()
+
 						if targetBlockSlug != "" &&
 							targetBlockInputIndex >= 0 {
 							logger.Warnf(
@@ -376,18 +418,28 @@ func (p *PipelineData) Process(
 								_blockRegistry interfaces.BlockRegistry,
 								_processingRegistry interfaces.ProcessingRegistry,
 								_resultStorages []interfaces.Storage,
-								_blockSlug string,
+								_targetBlockSlug string,
 								_targetBlockInputIndex int,
+								_destinationBlockSlug string,
 							) {
+								input := map[string]interface{}{}
+								if inputAtIndex, exists := blockInputsData[_targetBlockSlug]; exists {
+									if _targetBlockInputIndex < len(inputAtIndex) {
+										input = inputAtIndex[_targetBlockInputIndex]
+									}
+								}
+
 								regenerateData := schemas.PipelineStartInputSchema{
 									Pipeline: schemas.PipelineInputSchema{
 										Slug:         p.GetSlug(),
 										ProcessingID: processingId,
 									},
 									Block: schemas.BlockInputSchema{
-										Slug:        _blockSlug,
-										Input:       map[string]interface{}{},
+										Slug:        _targetBlockSlug,
+										Input:       input,
 										TargetIndex: _targetBlockInputIndex,
+										// Will process only TargetIndex until it reaches DestinationSlug
+										// DestinationSlug: _destinationBlockSlug,
 									},
 								}
 
@@ -406,6 +458,7 @@ func (p *PipelineData) Process(
 								resultStorages,
 								targetBlockSlug,
 								targetBlockInputIndex,
+								destinationBlockSlug,
 							)
 						} else {
 							logger.Infof(
@@ -414,7 +467,6 @@ func (p *PipelineData) Process(
 								_blockData.GetSlug(),
 								_processing.GetId(),
 							)
-							_processing.Stop(interfaces.ProcessingStatusStopped, nil)
 						}
 						return processingOutput, nil
 					}
@@ -472,9 +524,17 @@ func (p *PipelineData) Process(
 				}
 
 				if parallel {
-					go processBlockInput(blockDataClone, processing, blockInputProcessingResults)
+					go processBlockInput(
+						blockDataClone,
+						processing,
+						blockInputProcessingResults,
+					)
 				} else {
-					processingOutput, err := processBlockInput(blockDataClone, processing, blockInputProcessingResults)
+					processingOutput, err := processBlockInput(
+						blockDataClone,
+						processing,
+						blockInputProcessingResults,
+					)
 					if err != nil ||
 						processingOutput.GetStop() ||
 						processingOutput.GetError() != nil {

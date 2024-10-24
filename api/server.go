@@ -57,8 +57,8 @@ func NewServer(_config config.Config) *Server {
 	// Set the pipeline result storages
 	pipelineRegistry.SetPipelineResultStorages(
 		[]interfaces.Storage{
-			types.NewLocalStorage(os.TempDir()),
 			types.NewMINIOStorage(),
+			types.NewLocalStorage(os.TempDir()),
 		},
 	)
 

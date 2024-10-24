@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -18,6 +19,32 @@ import (
 	"data-pipelines-worker/types/helpers"
 	"data-pipelines-worker/types/interfaces"
 )
+
+type acknowledgedCallbackData struct {
+	sync.Mutex
+	items map[string]bool
+}
+
+func newAcknowledgedCallbackData() *acknowledgedCallbackData {
+	return &acknowledgedCallbackData{
+		items: make(map[string]bool),
+	}
+}
+
+func (a *acknowledgedCallbackData) get(key string) (bool, bool) {
+	a.Lock()
+	defer a.Unlock()
+
+	val, exists := a.items[key]
+	return val, exists
+}
+
+func (a *acknowledgedCallbackData) set(key string, value bool) {
+	a.Lock()
+	defer a.Unlock()
+
+	a.items[key] = value
+}
 
 type ModerationAction string
 
@@ -45,7 +72,7 @@ var moderationActionMap = map[string]ModerationAction{
 	ShortenedActionRegenerate: ModerationActionRegenerate,
 }
 
-var acknowledgedCallbackDatas = map[string]bool{}
+var acknowledgedCallbacks = newAcknowledgedCallbackData()
 
 func GetModerationAction(action string) ModerationAction {
 	if val, exists := moderationActionMap[action]; exists {
@@ -133,7 +160,7 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 				if update.CallbackQuery != nil {
 					callbackData := update.CallbackQuery.Data
 
-					if _, exists := acknowledgedCallbackDatas[update.CallbackQuery.ID]; exists {
+					if _, exists := acknowledgedCallbacks.get(update.CallbackQuery.ID); exists {
 						continue
 					}
 
@@ -169,7 +196,7 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 								continue
 							}
 
-							acknowledgedCallbackDatas[update.CallbackQuery.ID] = true
+							acknowledgedCallbacks.set(update.CallbackQuery.ID, true)
 
 							mostRecentDecision = update.CallbackQuery
 							decisions = append(decisions, buttonDecision)

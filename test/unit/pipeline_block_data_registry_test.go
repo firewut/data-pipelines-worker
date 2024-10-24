@@ -248,3 +248,87 @@ func (suite *UnitTestSuite) TestNewPipelineBlockDataRegistrySaveOutputNoSpaceOnD
 		suite.NotNil(saveOutputResult.Error)
 	}
 }
+
+func (suite *UnitTestSuite) TestNewPipelineBlockDataRegistryAddBlockData() {
+	// Given
+	processingId := uuid.New()
+	pipelineSlug := "test-pipeline-slug"
+	blockSlug := "test-block-slug"
+	storages := []interfaces.Storage{
+		suite.NewMockLocalStorage(0),
+	}
+	numItems := 5
+
+	pipelineBlockDataRegistry := registries.NewPipelineBlockDataRegistry(
+		processingId,
+		pipelineSlug,
+		storages,
+	)
+	suite.NotNil(pipelineBlockDataRegistry)
+	suite.Equal(
+		processingId,
+		pipelineBlockDataRegistry.GetProcessingId(),
+	)
+	suite.Equal(
+		pipelineSlug,
+		pipelineBlockDataRegistry.GetPipelineSlug(),
+	)
+
+	for i := 0; i < numItems; i++ {
+		pipelineBlockDataRegistry.AddBlockData(
+			blockSlug,
+			bytes.NewBufferString(fmt.Sprintf("output_%d", i)),
+		)
+	}
+
+	insertData := bytes.NewBufferString(fmt.Sprintf("output_%d", numItems))
+
+	// When
+	pipelineBlockDataRegistry.AddBlockData(blockSlug, insertData)
+
+	// Then
+	suite.Equal(numItems+1, len(pipelineBlockDataRegistry.GetAll()[blockSlug]))
+	suite.Equal(insertData, pipelineBlockDataRegistry.GetAll()[blockSlug][numItems])
+}
+
+func (suite *UnitTestSuite) TestNewPipelineBlockDataRegistryUpdateBlockData() {
+	// Given
+	processingId := uuid.New()
+	pipelineSlug := "test-pipeline-slug"
+	blockSlug := "test-block-slug"
+	storages := []interfaces.Storage{
+		suite.NewMockLocalStorage(0),
+	}
+	numItems := 5
+
+	pipelineBlockDataRegistry := registries.NewPipelineBlockDataRegistry(
+		processingId,
+		pipelineSlug,
+		storages,
+	)
+	suite.NotNil(pipelineBlockDataRegistry)
+	suite.Equal(
+		processingId,
+		pipelineBlockDataRegistry.GetProcessingId(),
+	)
+	suite.Equal(
+		pipelineSlug,
+		pipelineBlockDataRegistry.GetPipelineSlug(),
+	)
+
+	for i := 0; i < numItems; i++ {
+		pipelineBlockDataRegistry.AddBlockData(
+			blockSlug,
+			bytes.NewBufferString(fmt.Sprintf("output_%d", i)),
+		)
+	}
+
+	updateData := bytes.NewBufferString(fmt.Sprintf("output_%d", numItems))
+
+	// When
+	pipelineBlockDataRegistry.UpdateBlockData(blockSlug, numItems-1, updateData)
+
+	// Then
+	suite.Equal(numItems, len(pipelineBlockDataRegistry.GetAll()[blockSlug]))
+	suite.Equal(updateData, pipelineBlockDataRegistry.GetAll()[blockSlug][numItems-1])
+}

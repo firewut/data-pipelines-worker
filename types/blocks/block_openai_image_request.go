@@ -8,12 +8,12 @@ import (
 	"log"
 	"time"
 
-	openai "github.com/sashabaranov/go-openai"
-
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/generics"
 	"data-pipelines-worker/types/helpers"
 	"data-pipelines-worker/types/interfaces"
+
+	openai "github.com/sashabaranov/go-openai"
 )
 
 type ProcessorOpenAIRequestImage struct {

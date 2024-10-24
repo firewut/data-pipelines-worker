@@ -40,6 +40,126 @@
             "input": {
                 "block_slug": "send-event-text-moderation-to-telegram"
             }
+        },
+        {
+            "id": "openai_tts_request",
+            "slug": "get-event-tts",
+            "description": "Make a request to OpenAI TTS API to convert text to speech",
+            "input_config": {
+                "property": {
+                    "text": {
+                        "origin": "get-event-text",
+                        "jsonPath": "$"
+                    }
+                }
+            }
+        },
+        {
+            "id": "openai_transcription_request",
+            "slug": "get-event-transcription",
+            "description": "Make a request to OpenAI TTS API to convert text to speech",
+            "input_config": {
+                "property": {
+                    "audio_file": {
+                        "origin": "get-event-tts"
+                    }
+                }
+            }
+        },
+        {
+            "id": "text_add_prefix_suffix",
+            "slug": "make-system-prompt-for-image-prompt-generation",
+            "description": "Make a system prompt for image generation from the event text",
+            "input_config": {
+                "property": {
+                    "text": {
+                        "origin": "get-event-transcription",
+                        "jsonPath": "$.text"
+                    }
+                }
+            },
+            "input": {
+                "prefix": "You are going to create a prompt to generate an image according to this text and user request: "
+            }
+        },
+        {
+            "id": "openai_chat_completion",
+            "slug": "get-prompt-for-image-generation-text",
+            "description": "Get prompts for image generation from OpenAI Chat Completion",
+            "input_config": {
+                "type": "array",
+                "property": {
+                    "system_prompt": {
+                        "origin": "make-system-prompt-for-image-prompt-generation"
+                    },
+                    "user_prompt": {
+                        "origin": "get-event-transcription",
+                        "jsonPath": "$.segments[*].text"
+                    }
+                }
+            },
+            "input": {
+                "model": "gpt-4o-2024-08-06"
+            }
+        },
+        {
+            "id": "openai_image_request",
+            "slug": "get-event-images",
+            "description": "Make a request to OpenAI Image API to get an image",
+            "input_config": {
+                "type": "array",
+                "property": {
+                    "prompt": {
+                        "origin": "get-prompt-for-image-generation-text"
+                    }
+                }
+            },
+            "input": {
+                "quality": "hd",
+                "size": "1024x1792"
+            }
+        },
+        {
+            "id": "send_moderation_telegram",
+            "slug": "send-event-images-moderation-to-telegram",
+            "description": "Send generated Event Images to Telegram for moderation",
+            "input_config": {
+                "type": "array",
+                "parallel": true,
+                "property": {
+                    "image": {
+                        "origin": "get-event-images"
+                    },
+                    "text": {
+                        "origin": "get-event-transcription",
+                        "jsonPath": "$.segments[*].text"
+                    }
+                }
+            },
+            "input": {
+                "group_id": -4573786981,
+                "extra_decisions": {
+                    "Regenerate": "Refresh"
+                },
+                "regenerate_block_slug": "get-event-images"
+            }
+        },
+        {
+            "id": "fetch_moderation_telegram",
+            "slug": "fetch-event-images-moderation-from-telegram",
+            "description": "Fetch the moderation Image decision from Telegram",
+            "input_config": {
+                "type": "array",
+                "parallel": true,
+                "property": {
+                    "hack_for_array_trigger": {
+                        "origin": "send-event-images-moderation-to-telegram"
+                    }
+                }
+            },
+            "input": {
+                "block_slug": "send-event-images-moderation-to-telegram"
+            }
         }
     ]
 }

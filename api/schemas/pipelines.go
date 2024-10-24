@@ -15,9 +15,10 @@ type PipelineInputSchema struct {
 
 // Block represents the structure of the block object in the JSON.
 type BlockInputSchema struct {
-	Slug        string                 `json:"slug"`
-	Input       map[string]interface{} `json:"input"`
-	TargetIndex int                    `json:"target_index,omitempty,string"` // Use omitempty and string
+	Slug            string                 `json:"slug"`
+	Input           map[string]interface{} `json:"input"`
+	TargetIndex     int                    `json:"target_index,omitempty,string"`
+	DestinationSlug string                 `json:"destination_slug,omitempty"`
 }
 
 // UnmarshalJSON for BlockInputSchema to handle empty string for TargetIndex

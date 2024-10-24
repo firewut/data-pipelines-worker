@@ -38,6 +38,8 @@ type Processing struct {
 }
 
 func NewProcessing(
+	ctx context.Context,
+	ctxCancel context.CancelFunc,
 	id uuid.UUID,
 	pipeline interfaces.Pipeline,
 	block interfaces.Block,
@@ -45,7 +47,6 @@ func NewProcessing(
 ) *Processing {
 	instanceId := uuid.New()
 
-	ctx, ctxCancel := context.WithCancel(context.Background())
 	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingID{}, id)
 
 	return &Processing{
@@ -102,10 +103,11 @@ func (p *Processing) GetBlock() interfaces.Block {
 
 func (p *Processing) Shutdown(ctx context.Context) error {
 	p.setChannelClosed()
-	if p.GetStatus() != interfaces.ProcessingStatusCompleted {
+	switch p.GetStatus() {
+	case interfaces.ProcessingStatusCompleted:
+	default:
 		p.SetStatus(interfaces.ProcessingStatusFailed)
 	}
-	p.ctxCancel()
 
 	return nil
 }
@@ -127,6 +129,12 @@ func (p *Processing) SetStatus(status interfaces.ProcessingStatus) {
 		interfaces.ProcessingStatusUnknown:
 	case interfaces.ProcessingStatusRunning:
 		p.startTimestamp = time.Now().Unix()
+	case interfaces.ProcessingStatusFailed,
+		interfaces.ProcessingStatusStopped:
+
+		// Cancel the context
+		p.ctxCancel()
+		fallthrough
 	default:
 		p.endTimestamp = time.Now().Unix()
 	}
@@ -161,13 +169,13 @@ func (p *Processing) Start() interfaces.ProcessingOutput {
 
 	// Check initial status and fail if it's not pending
 	if p.GetStatus() != interfaces.ProcessingStatusPending {
-		p.sendResult(false)
 		processingOutput.SetError(
 			fmt.Errorf(
 				"processing with id %s is not in pending state",
 				p.GetId().String(),
 			),
 		)
+		p.sendResult(false)
 
 		return processingOutput
 	}
@@ -186,6 +194,20 @@ func (p *Processing) Start() interfaces.ProcessingOutput {
 
 	// Retry loop
 	for attempt := 0; attempt <= retryCount; attempt++ {
+		// Check if the context was canceled before processing
+		if p.ctx.Err() == context.Canceled {
+			processingOutput.SetError(
+				fmt.Errorf(
+					"processing with id %s was cancelled",
+					p.GetId().String(),
+				),
+			)
+			p.SetError(p.ctx.Err())
+			p.SetStatus(interfaces.ProcessingStatusFailed)
+			p.sendResult(false)
+			return processingOutput
+		}
+
 		output, stop, retry, targetBlock, targetBlockInputIndex, err = p.block.Process(p.ctx, p.processor, p.blockData)
 		processingOutput.SetValue(output)
 		processingOutput.SetError(err)
@@ -203,16 +225,15 @@ func (p *Processing) Start() interfaces.ProcessingOutput {
 		}
 
 		if err == context.Canceled {
-			p.SetError(err)
-			p.SetStatus(interfaces.ProcessingStatusFailed)
-			p.sendResult(true)
-
 			processingOutput.SetError(
 				fmt.Errorf(
 					"processing with id %s was cancelled",
 					p.GetId().String(),
 				),
 			)
+			p.SetError(err)
+			p.SetStatus(interfaces.ProcessingStatusFailed)
+			p.sendResult(false)
 			return processingOutput
 		}
 
@@ -233,9 +254,6 @@ func (p *Processing) Start() interfaces.ProcessingOutput {
 
 		// If we reach here and retry is still required, mark the process as failed
 		if attempt == retryCount && retry {
-			p.SetStatus(interfaces.ProcessingStatusRetryFailed)
-			p.sendResult(false)
-
 			processingOutput.SetError(
 				fmt.Errorf(
 					"processing with id %s failed after exhausting all %d retry attempts",
@@ -243,6 +261,9 @@ func (p *Processing) Start() interfaces.ProcessingOutput {
 					retryCount,
 				),
 			)
+			p.SetStatus(interfaces.ProcessingStatusRetryFailed)
+			p.sendResult(false)
+
 			return processingOutput
 		}
 
