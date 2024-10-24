@@ -49,7 +49,7 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramValidateSchemaFa
 	block.SchemaString = "{invalid schema"
 
 	_, _, err := block.ValidateSchema(validators.JSONSchemaValidator{})
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessIncorrectInput() {
@@ -65,7 +65,7 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessIncorrect
 	data.SetBlock(block)
 
 	// When
-	result, stop, _, err := block.Process(
+	result, stop, _, _, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorFetchModerationFromTelegram(),
 		data,
@@ -74,13 +74,12 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessIncorrect
 	// Then
 	suite.Empty(result)
 	suite.False(stop)
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess() {
 	// Given
 	processingId := uuid.New()
-	processingInstanceId := uuid.New()
 
 	block := blocks.NewBlockFetchModerationFromTelegram()
 	blockConfig := block.GetBlockConfig(suite._config)
@@ -89,14 +88,12 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess()
 		Id:   "fetch_moderation_telegram",
 		Slug: "fetch-moderation-decision",
 		Input: map[string]interface{}{
-			"block_slug":               "send-event-text-moderation-to-telegram",
-			"stop_pipeline_if_decline": true,
+			"block_slug": "send-event-text-moderation-to-telegram",
 		},
 	}
 	data.SetBlock(block)
 	ctx := suite.GetContextWithcancel()
 	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingID{}, processingId)
-	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingInstanceID{}, processingInstanceId)
 
 	cases := []struct {
 		decisions []blocks.ModerationAction
@@ -116,14 +113,7 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess()
 			},
 			expected: blocks.ModerationActionApprove,
 		},
-		{
-			decisions: []blocks.ModerationAction{
-				blocks.ShortenedActionApprove,
-				blocks.ShortenedActionDecline,
-				blocks.ShortenedActionApprove,
-			},
-			expected: blocks.ModerationActionApprove,
-		},
+
 		{
 			decisions: []blocks.ModerationAction{
 				blocks.ShortenedActionDecline,
@@ -145,19 +135,35 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess()
 				blocks.ShortenedActionDecline,
 			},
 			expected: blocks.ModerationActionDecline,
+		},
+		{
+			decisions: []blocks.ModerationAction{
+				blocks.ShortenedActionApprove,
+				blocks.ShortenedActionDecline,
+				blocks.ShortenedActionApprove,
+			},
+			expected: blocks.ModerationActionApprove,
 		},
 	}
 
 	for indexCase, c := range cases {
 		messages := make([]string, 0)
 		for indexDecision, decision := range c.decisions {
+			moderationMatchCallbackData := fmt.Sprintf("%s:%d", decision, 0)
+			reviewMessage := blocks.TelegramReviewMessage{
+				Text:         "Text",
+				ProcessingID: processingId.String(),
+				BlockSlug:    "send-event-text-moderation-to-telegram",
+				Index:        0,
+			}
+
 			messages = append(
 				messages,
 				fmt.Sprintf(`
 					{
 						"callback_query": {
 							"chat_instance": "111111111111111111",
-							"data": "%s:%s:7470d33caf7ef9a794eba8cdf",
+							"data": "%s",
 							"from": {
 								"first_name": "John",
 								"id": 987654321,
@@ -166,7 +172,7 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess()
 								"last_name": "Doe",
 								"username": "johndoe"
 							},
-							"id": "%d",
+							"id": "%s-%d",
 							"message": {
 								"chat": {
 									"first_name": "John",
@@ -176,15 +182,19 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess()
 									"username": "johndoe"
 								},
 								"date": 1633044475,
-								"message_id": 222,
-								"text": "Please approve or reject"
+								"message_id": 1%d,
+								"text": "%s"
 							}
 						},
 						"update_id": 123456790
 					}`,
-					decision,
-					processingId.String(),
+					moderationMatchCallbackData,
+					uuid.New().String(),
 					indexCase+indexDecision+1,
+					indexCase+indexDecision+1,
+					blocks.FormatTelegramMessage(
+						blocks.GenerateTelegramMessage(reviewMessage),
+					),
 				),
 			)
 		}
@@ -214,7 +224,7 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess()
 		suite._config.Telegram.SetClient(telegramClient)
 
 		// When
-		result, stop, _, err := block.Process(
+		result, stop, _, _, _, err := block.Process(
 			ctx,
 			blocks.NewProcessorFetchModerationFromTelegram(),
 			data,
@@ -236,7 +246,6 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess()
 func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessRetry() {
 	// Given
 	processingId := uuid.New()
-	processingInstanceId := uuid.New()
 
 	block := blocks.NewBlockFetchModerationFromTelegram()
 
@@ -244,14 +253,12 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessRetry() {
 		Id:   "fetch_moderation_telegram",
 		Slug: "fetch-moderation-decision",
 		Input: map[string]interface{}{
-			"block_slug":               "send-event-text-moderation-to-telegram",
-			"stop_pipeline_if_decline": true,
+			"block_slug": "send-event-text-moderation-to-telegram",
 		},
 	}
 	data.SetBlock(block)
 	ctx := suite.GetContextWithcancel()
 	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingID{}, processingId)
-	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingInstanceID{}, processingInstanceId)
 
 	moderationDecisions := `{
 		"ok": true,
@@ -297,13 +304,15 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessRetry() {
 	suite._config.Telegram.SetClient(telegramClient)
 
 	// When
-	result, stop, retry, err := block.Process(
+	result, stop, retry, targetBlockSlug, targetBlockInputIndex, err := block.Process(
 		ctx,
 		blocks.NewProcessorFetchModerationFromTelegram(),
 		data,
 	)
 
 	// Then
+	suite.Equal("", targetBlockSlug)
+	suite.Equal(-1, targetBlockInputIndex)
 	suite.True(retry)
 	suite.NotNil(result)
 	suite.False(stop)

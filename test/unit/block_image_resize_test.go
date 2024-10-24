@@ -41,7 +41,7 @@ func (suite *UnitTestSuite) TestBlockImageResizeValidateSchemaFail() {
 	block.SchemaString = "{invalid schema"
 
 	_, _, err := block.ValidateSchema(validators.JSONSchemaValidator{})
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockImageResizeProcessIncorrectInput() {
@@ -57,7 +57,7 @@ func (suite *UnitTestSuite) TestBlockImageResizeProcessIncorrectInput() {
 	data.SetBlock(block)
 
 	// When
-	result, stop, _, err := block.Process(
+	result, stop, _, _, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorImageResize(),
 		data,
@@ -66,7 +66,7 @@ func (suite *UnitTestSuite) TestBlockImageResizeProcessIncorrectInput() {
 	// Then
 	suite.Empty(result)
 	suite.False(stop)
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockImageResizeProcessSuccess() {
@@ -110,7 +110,7 @@ func (suite *UnitTestSuite) TestBlockImageResizeProcessSuccess() {
 		data.SetBlock(block)
 
 		// When
-		result, stop, _, err := block.Process(
+		result, stop, _, _, _, err := block.Process(
 			suite.GetContextWithcancel(),
 			blocks.NewProcessorImageResize(),
 			data,

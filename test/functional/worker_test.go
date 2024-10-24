@@ -10,7 +10,7 @@ import (
 
 func (suite *FunctionalTestSuite) TestHealthHandler() {
 	// Given
-	server, _, err := suite.NewWorkerServerWithHandlers(true)
+	server, _, err := suite.NewWorkerServerWithHandlers(true, suite._config)
 	suite.Nil(err)
 
 	api_path := "/health"
@@ -32,7 +32,7 @@ func (suite *FunctionalTestSuite) TestHealthHandler() {
 
 func (suite *FunctionalTestSuite) TestBlocksHandler() {
 	// Given
-	server, _, err := suite.NewWorkerServerWithHandlers(true)
+	server, _, err := suite.NewWorkerServerWithHandlers(true, suite._config)
 	suite.Nil(err)
 	api_path := "/blocks"
 
@@ -52,7 +52,7 @@ func (suite *FunctionalTestSuite) TestBlocksHandler() {
 
 func (suite *FunctionalTestSuite) TestWorkersHandler() {
 	// Given
-	server, _, err := suite.NewWorkerServerWithHandlers(true)
+	server, _, err := suite.NewWorkerServerWithHandlers(true, suite._config)
 	suite.Nil(err)
 	api_path := "/workers"
 
@@ -72,7 +72,7 @@ func (suite *FunctionalTestSuite) TestWorkersHandler() {
 
 func (suite *FunctionalTestSuite) TestPipelinesHandler() {
 	// Given
-	server, _, err := suite.NewWorkerServerWithHandlers(true)
+	server, _, err := suite.NewWorkerServerWithHandlers(true, suite._config)
 	suite.Nil(err)
 	api_path := "/pipelines"
 

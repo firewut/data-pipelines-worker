@@ -48,7 +48,7 @@ func (p *ProcessorStopPipeline) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, error) {
+) (*bytes.Buffer, bool, bool, string, int, error) {
 	output := &bytes.Buffer{}
 	blockConfig := &BlockStopPipelineConfig{}
 
@@ -62,7 +62,7 @@ func (p *ProcessorStopPipeline) Process(
 
 	stop, err := helpers.EvaluateCondition(blockConfig.Data, blockConfig.Value, blockConfig.Condition)
 
-	return output, stop, false, err
+	return output, stop, false, "", -1, err
 }
 
 type BlockStopPipelineConfig struct {

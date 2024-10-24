@@ -36,7 +36,7 @@ func (suite *UnitTestSuite) TestBlockHTTPValidateSchemaFail() {
 	block.SchemaString = "{invalid schema"
 
 	_, _, err := block.ValidateSchema(validators.JSONSchemaValidator{})
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockHTTPProcessIncorrectInput() {
@@ -51,14 +51,14 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessIncorrectInput() {
 	}
 
 	// Process the block
-	result, stop, _, err := block.Process(
+	result, stop, _, _, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorHTTP(),
 		data,
 	)
 	suite.Empty(result)
 	suite.False(stop)
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 	suite.Contains(
 		err.Error(),
 		"Expected: string, given: null",
@@ -80,7 +80,7 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessSuccess() {
 	}
 
 	// Process the block
-	result, stop, _, err := block.Process(
+	result, stop, _, _, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorHTTP(),
 		data,
@@ -113,7 +113,7 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessCancel() {
 	var err error
 	go func() {
 		defer wg.Done()
-		_, _, _, err = block.Process(
+		_, _, _, _, _, err = block.Process(
 			ctx,
 			blocks.NewProcessorHTTP(),
 			data,
@@ -128,7 +128,7 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessCancel() {
 	wg.Wait()
 
 	// Then
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 	suite.Contains(err.Error(), "context canceled")
 }
 
@@ -147,14 +147,14 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessError() {
 	}
 
 	// Process the block
-	result, stop, _, err := block.Process(
+	result, stop, _, _, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorHTTP(),
 		data,
 	)
 	suite.NotNil(result)
 	suite.False(stop)
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 	suite.Contains(result.String(), "Server panic")
 	suite.Contains(
 		err.Error(),

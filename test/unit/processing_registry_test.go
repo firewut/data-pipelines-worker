@@ -55,7 +55,13 @@ func (suite *UnitTestSuite) TestProcessingRegistryAdd() {
 		"test-block-slug",
 		nil,
 	)
+
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
 	processing := dataclasses.NewProcessing(
+		ctx,
+		ctxCancel,
 		processingId,
 		pipeline,
 		block,
@@ -88,7 +94,13 @@ func (suite *UnitTestSuite) TestProcessingRegistryGetAll() {
 		"test-block-slug",
 		nil,
 	)
+
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
 	processing := dataclasses.NewProcessing(
+		ctx,
+		ctxCancel,
 		processingId,
 		pipeline,
 		block,
@@ -122,7 +134,13 @@ func (suite *UnitTestSuite) TestProcessingRegistryGet() {
 		"test-block-slug",
 		nil,
 	)
+
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
 	processing := dataclasses.NewProcessing(
+		ctx,
+		ctxCancel,
 		processingId,
 		pipeline,
 		block,
@@ -155,7 +173,13 @@ func (suite *UnitTestSuite) TestProcessingRegistryDelete() {
 		"test-block-slug",
 		nil,
 	)
+
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
 	processing := dataclasses.NewProcessing(
+		ctx,
+		ctxCancel,
 		processingId,
 		pipeline,
 		block,
@@ -188,7 +212,13 @@ func (suite *UnitTestSuite) TestProcessingRegistryDeleteAll() {
 		"test-block-slug",
 		nil,
 	)
+
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
 	processing := dataclasses.NewProcessing(
+		ctx,
+		ctxCancel,
 		processingId,
 		pipeline,
 		block,
@@ -241,7 +271,12 @@ func (suite *UnitTestSuite) TestProcessingRegistryStartProcessing() {
 		},
 	)
 
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
 	processing := dataclasses.NewProcessing(
+		ctx,
+		ctxCancel,
 		processingId,
 		pipeline,
 		block,
@@ -290,7 +325,12 @@ func (suite *UnitTestSuite) TestProcessingRegistryStartProcessingTwoBlocks() {
 		},
 	)
 
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
 	processing1 := dataclasses.NewProcessing(
+		ctx,
+		ctxCancel,
 		processingId,
 		pipeline,
 		block,
@@ -300,7 +340,13 @@ func (suite *UnitTestSuite) TestProcessingRegistryStartProcessingTwoBlocks() {
 			Input: inputDataSchema.Block.Input,
 		},
 	)
+
+	ctx, ctxCancel = context.WithCancel(context.Background())
+	defer ctxCancel()
+
 	processing2 := dataclasses.NewProcessing(
+		ctx,
+		ctxCancel,
 		processingId,
 		pipeline,
 		block,
@@ -315,18 +361,18 @@ func (suite *UnitTestSuite) TestProcessingRegistryStartProcessingTwoBlocks() {
 
 	// When
 	go func() {
-		processing1Output, stop, err := registry.StartProcessing(processing1)
-		suite.Nil(err)
-		suite.False(stop)
-		suite.NotEmpty(processing1Output)
+		processingOutput := registry.StartProcessing(processing1)
+		suite.Nil(processingOutput.GetError())
+		suite.False(processingOutput.GetStop())
+		suite.NotEmpty(processingOutput.GetValue())
 	}()
 	completedProcessing1 := <-notificationChannel
 
 	go func() {
-		processing2Output, stop, err := registry.StartProcessing(processing2)
-		suite.Nil(err)
-		suite.False(stop)
-		suite.NotEmpty(processing2Output)
+		processingOutput := registry.StartProcessing(processing2)
+		suite.Nil(processingOutput.GetError())
+		suite.False(processingOutput.GetStop())
+		suite.NotEmpty(processingOutput.GetValue())
 	}()
 	completedProcessing2 := <-notificationChannel
 
@@ -343,7 +389,6 @@ func (suite *UnitTestSuite) TestProcessingRegistryShutdownCompletedProcessing() 
 	processingId := uuid.New()
 
 	registry := registries.NewProcessingRegistry()
-
 	block := blocks.NewBlockHTTP()
 
 	processDelay := time.Millisecond * 10
@@ -359,8 +404,18 @@ func (suite *UnitTestSuite) TestProcessingRegistryShutdownCompletedProcessing() 
 			"url": successUrl,
 		},
 	)
-	ctx := suite.GetShutDownContext(shutdownDelay)
+
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
+	go func() {
+		time.Sleep(shutdownDelay)
+		ctxCancel()
+	}()
+
 	processing := dataclasses.NewProcessing(
+		ctx,
+		ctxCancel,
 		processingId,
 		pipeline,
 		block,
@@ -408,8 +463,18 @@ func (suite *UnitTestSuite) TestProcessingRegistryShutdownRunningProcessing() {
 			"url": successUrl,
 		},
 	)
-	ctx := suite.GetShutDownContext(shutdownDelay)
+
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
+	go func() {
+		time.Sleep(shutdownDelay)
+		ctxCancel()
+	}()
+
 	processing := dataclasses.NewProcessing(
+		ctx,
+		ctxCancel,
 		processingId,
 		pipeline,
 		block,
@@ -431,8 +496,78 @@ func (suite *UnitTestSuite) TestProcessingRegistryShutdownRunningProcessing() {
 	err := registry.Shutdown(ctx)
 
 	// Then
-	suite.NotNil(err)
-	suite.Equal(context.DeadlineExceeded, err)
+	suite.NotNil(err, err)
+	suite.Equal(context.Canceled, err)
+}
+
+func (suite *UnitTestSuite) TestProcessingCancelOtherRunningNProcessings() {
+	// Given
+	processingId := uuid.New()
+
+	processingsNum := 5
+	notificationChannel := make(chan interfaces.Processing, processingsNum)
+	registry := registries.NewProcessingRegistry()
+	registry.SetNotificationChannel(notificationChannel)
+
+	processDelay := time.Hour
+	shutdownTriggerDelay := time.Millisecond * 10
+	shutdownDelay := time.Millisecond * 10
+
+	block := blocks.NewBlockHTTP()
+	successUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusOK, processDelay)
+	pipeline, inputDataSchema, _ := suite.RegisterTestPipelineAndInputForProcessing(
+		suite.GetTestPipelineOneBlock(successUrl),
+		"test-pipeline-slug",
+		"test-block-slug",
+		map[string]interface{}{
+			"url": successUrl,
+		},
+	)
+
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
+	go func() {
+		time.Sleep(shutdownDelay)
+		ctxCancel()
+	}()
+
+	processings := make([]*dataclasses.Processing, 0)
+
+	for i := 0; i < processingsNum; i++ {
+		processing := dataclasses.NewProcessing(
+			ctx,
+			ctxCancel,
+			processingId,
+			pipeline,
+			block,
+			&dataclasses.BlockData{
+				Id:    block.GetId(),
+				Slug:  "test-block-slug",
+				Input: inputDataSchema.Block.Input,
+			},
+		)
+		suite.Equal(interfaces.ProcessingStatusPending, processing.GetStatus())
+		registry.Add(processing)
+		processings = append(processings, processing)
+	}
+
+	suite.NotEmpty(registry.GetAll())
+
+	for _, processing := range processings {
+		go registry.StartProcessing(processing)
+	}
+
+	time.Sleep(shutdownTriggerDelay)
+
+	// When
+	ctxCancel()
+
+	// Then
+	for i := 0; i < processingsNum; i++ {
+		processing := <-notificationChannel
+		suite.Equal(interfaces.ProcessingStatusFailed, processing.GetStatus())
+	}
 }
 
 func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingFailed() {
@@ -503,7 +638,12 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingFailed() {
 	}
 	data.SetBlock(block)
 
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
 	processing := dataclasses.NewProcessing(
+		ctx,
+		ctxCancel,
 		processingId,
 		pipeline,
 		block,
@@ -633,8 +773,14 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingSucceededFirstT
 		},
 	}
 	data.SetBlock(block)
+	data.SetInputIndex(11)
+
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
 
 	processing := dataclasses.NewProcessing(
+		ctx,
+		ctxCancel,
 		processingId,
 		pipeline,
 		block,
@@ -643,13 +789,20 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingSucceededFirstT
 	suite.Equal(interfaces.ProcessingStatusPending, processing.GetStatus())
 	suite.Empty(registry.GetAll())
 
+	reviewMessage := blocks.TelegramReviewMessage{
+		Text:         "Content for Review",
+		ProcessingID: processingId.String(),
+		BlockSlug:    "send-event-text-moderation-to-telegram",
+		Index:        data.GetInputIndex(),
+	}
+
 	moderationDecisions := fmt.Sprintf(`{
 			"ok": true,
 			"result": [
 				{
 					"callback_query": {
 						"chat_instance": "111111111111111111",
-						"data": "%s:%s:7470d33caf7ef9a794eba8cdf",
+						"data": "%s:%d",
 						"from": {
 							"first_name": "John",
 							"id": 987654321,
@@ -658,7 +811,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingSucceededFirstT
 							"last_name": "Doe",
 							"username": "johndoe"
 						},
-						"id": "123456789",
+						"id": "%s",
 						"message": {
 							"chat": {
 								"first_name": "John",
@@ -669,7 +822,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingSucceededFirstT
 							},
 							"date": 1633044475,
 							"message_id": 222,
-							"text": "Please approve or reject"
+							"text": "%s"
 						}
 					},
 					"update_id": 123456790
@@ -677,7 +830,11 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingSucceededFirstT
 			]
 		}`,
 		blocks.ShortenedActionApprove,
-		processingId.String(),
+		data.GetInputIndex(),
+		uuid.New().String(),
+		blocks.FormatTelegramMessage(
+			blocks.GenerateTelegramMessage(reviewMessage),
+		),
 	)
 
 	telegramMockAPI := suite.GetMockHTTPServer(

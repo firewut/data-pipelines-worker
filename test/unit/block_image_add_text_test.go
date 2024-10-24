@@ -40,7 +40,7 @@ func (suite *UnitTestSuite) TestBlockImageAddTextValidateSchemaFail() {
 	block.SchemaString = "{invalid schema"
 
 	_, _, err := block.ValidateSchema(validators.JSONSchemaValidator{})
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockImageAddTextProcessIncorrectInput() {
@@ -57,7 +57,7 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessIncorrectInput() {
 	data.SetBlock(block)
 
 	// When
-	result, stop, _, err := block.Process(
+	result, stop, _, _, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorImageAddText(),
 		data,
@@ -66,7 +66,7 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessIncorrectInput() {
 	// Then
 	suite.Empty(result)
 	suite.False(stop)
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockImageAddTextProcessSuccess() {
@@ -166,7 +166,7 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessSuccess() {
 			data.SetBlock(block)
 
 			// Process the block
-			result, stop, _, err := block.Process(
+			result, stop, _, _, _, err := block.Process(
 				suite.GetContextWithcancel(),
 				blocks.NewProcessorImageAddText(),
 				data,

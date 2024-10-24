@@ -57,7 +57,7 @@ type BlockRegistry interface {
 type ProcessingRegistry interface {
 	generics.Registry[Processing]
 
-	StartProcessing(Processing) (ProcessingOutput, bool, error)
+	StartProcessing(Processing) ProcessingOutput
 	GetProcessingCompletedChannel() chan Processing
 
 	SetNotificationChannel(chan Processing)

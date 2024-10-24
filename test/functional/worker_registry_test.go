@@ -10,13 +10,14 @@ import (
 
 	"data-pipelines-worker/api/schemas"
 	"data-pipelines-worker/test/factories"
+	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/interfaces"
 )
 
 func (suite *FunctionalTestSuite) TestWorkerShutdownCorrect() {
 	// Given
 	httpClient := &http.Client{}
-	server1, _, err := suite.NewWorkerServerWithHandlers(true)
+	server1, _, err := suite.NewWorkerServerWithHandlers(true, suite._config)
 
 	// When
 	suite.Nil(err)
@@ -38,9 +39,9 @@ func (suite *FunctionalTestSuite) TestTwoWorkersDifferentRegistries() {
 	defer shutdown()
 
 	// When
-	server1, worker1, err := factories.NewWorkerServerWithHandlers(ctx, true)
+	server1, worker1, err := factories.NewWorkerServerWithHandlers(ctx, true, suite._config)
 	suite.Nil(err)
-	server2, worker2, err := factories.NewWorkerServerWithHandlers(ctx, false)
+	server2, worker2, err := factories.NewWorkerServerWithHandlers(ctx, false, suite._config)
 	suite.Nil(err)
 
 	// Then
@@ -61,11 +62,11 @@ func (suite *FunctionalTestSuite) TestTwoWorkersDifferentRegistries() {
 func (suite *FunctionalTestSuite) TestTwoWorkersAPIDiscoveryCommunication() {
 	// Given
 	testPipelineSlug, testBlockId := "test-two-http-blocks", "http_request"
-	server1, worker1, err := suite.NewWorkerServerWithHandlers(true)
+	server1, worker1, err := suite.NewWorkerServerWithHandlers(true, suite._config)
 	suite.Nil(err)
 	server1.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
 
-	server2, worker2, err := suite.NewWorkerServerWithHandlers(true)
+	server2, worker2, err := suite.NewWorkerServerWithHandlers(true, suite._config)
 	suite.Nil(err)
 	server2.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
 
@@ -102,10 +103,10 @@ func (suite *FunctionalTestSuite) TestTwoWorkersAPIDiscoveryCommunication() {
 func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocksDisabledEverywhere() {
 	// Given
 	testPipelineSlug, testBlockId := "test-two-http-blocks", "http_request"
-	server1, worker1, err := suite.NewWorkerServerWithHandlers(true)
+	server1, worker1, err := suite.NewWorkerServerWithHandlers(true, suite._config)
 	suite.Nil(err)
 	server1.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
-	server2, worker2, err := suite.NewWorkerServerWithHandlers(true)
+	server2, worker2, err := suite.NewWorkerServerWithHandlers(true, suite._config)
 	suite.Nil(err)
 	server2.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
 
@@ -169,10 +170,10 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocks
 func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocksDisabledFirst() {
 	// Given
 	testPipelineSlug, testBlockId := "test-two-http-blocks", "http_request"
-	server1, worker1, err := suite.NewWorkerServerWithHandlers(true)
+	server1, worker1, err := suite.NewWorkerServerWithHandlers(true, suite._config)
 	suite.Nil(err)
 	server1.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
-	server2, worker2, err := suite.NewWorkerServerWithHandlers(true)
+	server2, worker2, err := suite.NewWorkerServerWithHandlers(true, suite._config)
 	suite.Nil(err)
 	server2.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(""))
 
@@ -309,10 +310,10 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingWorker1HasNoSe
 		),
 	)
 
-	server1, worker1, err := suite.NewWorkerServerWithHandlers(true)
+	server1, worker1, err := suite.NewWorkerServerWithHandlers(true, suite._config)
 	suite.Nil(err)
 	server1.GetPipelineRegistry().Add(pipeline)
-	server2, worker2, err := suite.NewWorkerServerWithHandlers(true)
+	server2, worker2, err := suite.NewWorkerServerWithHandlers(true, suite._config)
 	suite.Nil(err)
 	server2.GetPipelineRegistry().Add(pipeline)
 
@@ -446,10 +447,10 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingWorker1HasNoSe
 		),
 	)
 
-	server1, worker1, err := suite.NewWorkerServerWithHandlers(true)
+	server1, worker1, err := suite.NewWorkerServerWithHandlers(true, suite._config)
 	suite.Nil(err)
 	server1.GetPipelineRegistry().Add(pipeline)
-	server2, worker2, err := suite.NewWorkerServerWithHandlers(true)
+	server2, worker2, err := suite.NewWorkerServerWithHandlers(true, suite._config)
 	suite.Nil(err)
 	server2.GetPipelineRegistry().Add(pipeline)
 
@@ -614,10 +615,11 @@ func (suite *FunctionalTestSuite) TestTwoWorkersResumeProcessing2Times() {
 		),
 	)
 
-	server1, worker1, err := suite.NewWorkerServerWithHandlers(true)
+	server1, worker1, err := suite.NewWorkerServerWithHandlers(true, config.GetConfig())
 	suite.Nil(err)
 	server1.GetPipelineRegistry().Add(pipeline)
-	server2, worker2, err := suite.NewWorkerServerWithHandlers(true)
+
+	server2, worker2, err := suite.NewWorkerServerWithHandlers(true, config.GetConfig())
 	suite.Nil(err)
 	server2.GetPipelineRegistry().Add(pipeline)
 

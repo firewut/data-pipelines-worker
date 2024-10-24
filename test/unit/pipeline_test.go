@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -22,7 +23,7 @@ func (suite *UnitTestSuite) TestNewPipelineErrorBrokenJSON() {
 			"title": "Test Pipeline"`,
 		),
 	)
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestNewPipelineCorrectJSON() {
@@ -53,7 +54,7 @@ func (suite *UnitTestSuite) TestPipelineProcessMissingBlock() {
 	)
 
 	// Then
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 	suite.Empty(processingId)
 	suite.Equal(
 		err,
@@ -397,6 +398,18 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineTrueThreeBlocks() {
 	processing2Output := processing2.GetOutput()
 	suite.NotNil(processing2Output)
 	suite.True(processing2Output.GetStop())
+
+	// Third block must not be processed
+	select {
+	case <-time.After(500 * time.Millisecond):
+	case sideProcessing := <-notificationChannel:
+		suite.Fail(
+			fmt.Sprintf(
+				"Expected notification channel to be empty, but got a value: %s",
+				sideProcessing.GetOutput().GetValue().String(),
+			),
+		)
+	}
 }
 func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalseThreeBlocks() {
 	// Given

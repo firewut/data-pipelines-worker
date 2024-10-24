@@ -40,7 +40,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTranscriptionValidateSchemaFai
 	block.SchemaString = "{invalid schema"
 
 	_, _, err := block.ValidateSchema(validators.JSONSchemaValidator{})
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockOpenAIRequestTranscriptionProcessIncorrectInput() {
@@ -56,7 +56,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTranscriptionProcessIncorrectI
 	data.SetBlock(block)
 
 	// When
-	result, stop, _, err := block.Process(
+	result, stop, _, _, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorOpenAIRequestTranscription(),
 		data,
@@ -65,7 +65,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTranscriptionProcessIncorrectI
 	// Then
 	suite.Empty(result)
 	suite.False(stop)
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockOpenAIRequestTranscriptionProcessEmptyClient() {
@@ -83,7 +83,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTranscriptionProcessEmptyClien
 	suite._config.OpenAI.SetClient(nil)
 
 	// When
-	result, stop, _, err := block.Process(
+	result, stop, _, _, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorOpenAIRequestTranscription(),
 		data,
@@ -92,7 +92,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTranscriptionProcessEmptyClien
 	// Then
 	suite.Empty(result)
 	suite.False(stop)
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 }
 
 func (suite *UnitTestSuite) TestBlockOpenAIRequestTranscriptionProcessSuccess() {
@@ -143,7 +143,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTranscriptionProcessSuccess() 
 	suite._config.OpenAI.SetClient(openaiClient)
 
 	// When
-	result, stop, _, err := block.Process(
+	result, stop, _, _, _, err := block.Process(
 		suite.GetContextWithcancel(),
 		blocks.NewProcessorOpenAIRequestTranscription(),
 		data,

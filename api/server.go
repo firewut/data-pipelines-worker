@@ -39,14 +39,7 @@ type Server struct {
 	processingRegistry interfaces.ProcessingRegistry
 }
 
-func NewServer(configs ...config.Config) *Server {
-	var _config config.Config
-	if len(configs) == 0 {
-		_config = config.GetConfig()
-	} else {
-		_config = configs[0]
-	}
-
+func NewServer(_config config.Config) *Server {
 	workerRegistry := registries.GetWorkerRegistry(true)
 	blockRegistry := registries.GetBlockRegistry(true)
 	processingRegistry := registries.GetProcessingRegistry(true)
@@ -64,8 +57,8 @@ func NewServer(configs ...config.Config) *Server {
 	// Set the pipeline result storages
 	pipelineRegistry.SetPipelineResultStorages(
 		[]interfaces.Storage{
-			types.NewLocalStorage(os.TempDir()),
 			types.NewMINIOStorage(),
+			types.NewLocalStorage(os.TempDir()),
 		},
 	)
 

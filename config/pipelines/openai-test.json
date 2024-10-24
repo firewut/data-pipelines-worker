@@ -10,7 +10,7 @@
             "input": {
                 "model": "gpt-4o-2024-08-06",
                 "system_prompt": "You must look for Historical event ( use google ) which happened today years ago. Write a short story about it. Add some interesting facts and make it engaging. The story MUST BE 30 words long!!!!!!!!",
-                "user_prompt": "What happened years ago at date October 5 ?"
+                "user_prompt": "What happened years ago at date October 23 ?"
             }
         },
         {
@@ -26,7 +26,11 @@
                 }
             },
             "input": {
-                "group_id": -4573786981
+                "group_id": -4573786981,
+                "extra_decisions": {
+                    "Regenerate": "Refresh"
+                },
+                "regenerate_block_slug": "get-event-text"
             }
         },
         {
@@ -133,13 +137,26 @@
                 }
             },
             "input": {
-                "group_id": -4573786981
+                "group_id": -4573786981,
+                "extra_decisions": {
+                    "Regenerate": "Refresh"
+                },
+                "regenerate_block_slug": "get-event-images"
             }
         },
         {
             "id": "fetch_moderation_telegram",
-            "slug": "fetch-image-moderation-from-telegram",
+            "slug": "fetch-event-images-moderation-from-telegram",
             "description": "Fetch the moderation Image decision from Telegram",
+            "input_config": {
+                "type": "array",
+                "parallel": true,
+                "property": {
+                    "hack_for_array_trigger": {
+                        "origin": "send-event-images-moderation-to-telegram"
+                    }
+                }
+            },
             "input": {
                 "block_slug": "send-event-images-moderation-to-telegram"
             }

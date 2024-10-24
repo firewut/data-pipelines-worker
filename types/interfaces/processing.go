@@ -10,7 +10,6 @@ import (
 
 type ProcessingStatus int
 type ContextKeyProcessingID struct{}
-type ContextKeyProcessingInstanceID struct{}
 
 const (
 	ProcessingStatusUnknown ProcessingStatus = iota
@@ -20,6 +19,7 @@ const (
 	ProcessingStatusFailed
 	ProcessingStatusTransferred
 	ProcessingStatusStopped
+	ProcessingStatusStoppedForRegeneration
 	ProcessingStatusRetry
 	ProcessingStatusRetryFailed
 )
@@ -39,7 +39,7 @@ type Processing interface {
 
 	SetRegistryNotificationChannel(chan Processing)
 
-	Start() (ProcessingOutput, bool, error)
+	Start() ProcessingOutput
 	Shutdown(context.Context) error
 
 	// Stop pending processing
@@ -48,6 +48,20 @@ type Processing interface {
 
 type ProcessingOutput interface {
 	GetId() string
-	GetStop() bool
 	GetValue() *bytes.Buffer
+	GetError() error
+	GetStop() bool
+	GetRetry() bool
+	GetRetryAttempt() int
+	GetTargetBlockSlug() string
+	GetTargetBlockInputIndex() int
+
+	SetId(string)
+	SetValue(*bytes.Buffer)
+	SetError(error)
+	SetStop(bool)
+	SetRetry(bool)
+	SetRetryAttempt(int)
+	SetTargetBlockSlug(string)
+	SetTargetBlockInputIndex(int)
 }

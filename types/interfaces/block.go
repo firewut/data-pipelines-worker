@@ -27,6 +27,8 @@ type BlockProcessor interface {
 		*bytes.Buffer,
 		bool,
 		bool,
+		string,
+		int,
 		error,
 	)
 }
@@ -56,6 +58,8 @@ type Block interface {
 		*bytes.Buffer,
 		bool,
 		bool,
+		string,
+		int,
 		error,
 	)
 }
@@ -69,6 +73,9 @@ type ProcessableBlockData interface {
 
 	GetId() string
 	GetSlug() string
+
+	GetInputIndex() int
+	SetInputIndex(int)
 
 	GetInput() map[string]interface{}
 	GetInputConfig() map[string]interface{}

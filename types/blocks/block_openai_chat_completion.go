@@ -59,7 +59,7 @@ func (p *ProcessorOpenAIRequestCompletion) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, error) {
+) (*bytes.Buffer, bool, bool, string, int, error) {
 	output := &bytes.Buffer{}
 	blockConfig := &BlockOpenAIRequestCompletionConfig{}
 
@@ -73,7 +73,7 @@ func (p *ProcessorOpenAIRequestCompletion) Process(
 
 	client := _config.OpenAI.GetClient()
 	if client == nil {
-		return output, false, false, errors.New("openAI client is not configured")
+		return output, false, false, "", -1, errors.New("openAI client is not configured")
 	}
 
 	messages := make([]openai.ChatCompletionMessage, 0)
@@ -96,11 +96,11 @@ func (p *ProcessorOpenAIRequestCompletion) Process(
 		},
 	)
 	if err != nil {
-		return output, false, false, err
+		return output, false, false, "", -1, err
 	}
 
 	output = bytes.NewBufferString(resp.Choices[0].Message.Content)
-	return output, false, false, err
+	return output, false, false, "", -1, err
 }
 
 type BlockOpenAIRequestCompletionConfig struct {

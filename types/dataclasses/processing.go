@@ -20,14 +20,13 @@ type Processing struct {
 	instanceId uuid.UUID
 	status     interfaces.ProcessingStatus
 
-	pipeline  interfaces.Pipeline
-	block     interfaces.Block
-	processor interfaces.BlockProcessor
-	blockData interfaces.ProcessableBlockData
+	pipeline   interfaces.Pipeline
+	block      interfaces.Block
+	processor  interfaces.BlockProcessor
+	blockData  interfaces.ProcessableBlockData
+	inputIndex int
 
 	output                      *ProcessingOutput
-	stop                        bool
-	err                         error
 	registryNotificationChannel chan interfaces.Processing
 	channelClosed               bool
 	startTimestamp              int64
@@ -39,6 +38,8 @@ type Processing struct {
 }
 
 func NewProcessing(
+	ctx context.Context,
+	ctxCancel context.CancelFunc,
 	id uuid.UUID,
 	pipeline interfaces.Pipeline,
 	block interfaces.Block,
@@ -46,9 +47,7 @@ func NewProcessing(
 ) *Processing {
 	instanceId := uuid.New()
 
-	ctx, ctxCancel := context.WithCancel(context.Background())
 	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingID{}, id)
-	ctx = context.WithValue(ctx, interfaces.ContextKeyProcessingInstanceID{}, instanceId)
 
 	return &Processing{
 		Id:                          id,
@@ -58,12 +57,19 @@ func NewProcessing(
 		block:                       block,
 		processor:                   block.GetProcessor(),
 		blockData:                   blockData,
+		inputIndex:                  blockData.GetInputIndex(),
 		channelClosed:               true,
 		registryNotificationChannel: nil,
 		ctx:                         ctx,
 		ctxCancel:                   ctxCancel,
-		output:                      nil,
-		err:                         nil,
+		output: NewProcessingOutput(
+			blockData.GetSlug(),
+			false,
+			bytes.NewBuffer([]byte{}),
+			-1,
+			"",
+			nil,
+		),
 	}
 }
 
@@ -97,10 +103,11 @@ func (p *Processing) GetBlock() interfaces.Block {
 
 func (p *Processing) Shutdown(ctx context.Context) error {
 	p.setChannelClosed()
-	if p.GetStatus() != interfaces.ProcessingStatusCompleted {
+	switch p.GetStatus() {
+	case interfaces.ProcessingStatusCompleted:
+	default:
 		p.SetStatus(interfaces.ProcessingStatusFailed)
 	}
-	p.ctxCancel()
 
 	return nil
 }
@@ -118,11 +125,17 @@ func (p *Processing) SetStatus(status interfaces.ProcessingStatus) {
 
 	p.status = status
 	switch status {
+	case interfaces.ProcessingStatusPending,
+		interfaces.ProcessingStatusUnknown:
 	case interfaces.ProcessingStatusRunning:
 		p.startTimestamp = time.Now().Unix()
-	case interfaces.ProcessingStatusCompleted,
-		interfaces.ProcessingStatusFailed,
-		interfaces.ProcessingStatusTransferred:
+	case interfaces.ProcessingStatusFailed,
+		interfaces.ProcessingStatusStopped:
+
+		// Cancel the context
+		p.ctxCancel()
+		fallthrough
+	default:
 		p.endTimestamp = time.Now().Unix()
 	}
 }
@@ -149,33 +162,79 @@ func (p *Processing) SetRegistryNotificationChannel(channel chan interfaces.Proc
 	p.registryNotificationChannel = channel
 }
 
-func (p *Processing) Start() (interfaces.ProcessingOutput, bool, error) {
+func (p *Processing) Start() interfaces.ProcessingOutput {
 	logger := config.GetLogger()
 
+	processingOutput := p.GetOutput()
+
+	// Check initial status and fail if it's not pending
 	if p.GetStatus() != interfaces.ProcessingStatusPending {
+		processingOutput.SetError(
+			fmt.Errorf(
+				"processing with id %s is not in pending state",
+				p.GetId().String(),
+			),
+		)
 		p.sendResult(false)
-		return nil, false, fmt.Errorf("processing with id %s is not in pending state", p.GetId().String())
+
+		return processingOutput
 	}
 	p.SetStatus(interfaces.ProcessingStatusRunning)
 
 	retryCount := p.processor.GetRetryCount(p.block)
 	retryInterval := p.processor.GetRetryInterval(p.block)
 
-	var processResult *bytes.Buffer
-	var stop, retry bool
-	var err error
+	var (
+		output                *bytes.Buffer
+		stop, retry           bool
+		err                   error
+		targetBlock           string
+		targetBlockInputIndex int
+	)
 
+	// Retry loop
 	for attempt := 0; attempt <= retryCount; attempt++ {
-		processResult, stop, retry, err = p.block.Process(p.ctx, p.processor, p.blockData)
+		// Check if the context was canceled before processing
+		if p.ctx.Err() == context.Canceled {
+			processingOutput.SetError(
+				fmt.Errorf(
+					"processing with id %s was cancelled",
+					p.GetId().String(),
+				),
+			)
+			p.SetError(p.ctx.Err())
+			p.SetStatus(interfaces.ProcessingStatusFailed)
+			p.sendResult(false)
+			return processingOutput
+		}
+
+		output, stop, retry, targetBlock, targetBlockInputIndex, err = p.block.Process(p.ctx, p.processor, p.blockData)
+		processingOutput.SetValue(output)
+		processingOutput.SetError(err)
+		processingOutput.SetRetry(retry)
+		processingOutput.SetRetryAttempt(attempt)
+		if targetBlock != "" {
+			processingOutput.SetTargetBlockSlug(targetBlock)
+			if targetBlockInputIndex >= 0 {
+				processingOutput.SetTargetBlockInputIndex(targetBlockInputIndex)
+			}
+		}
 
 		if err == nil && !retry {
 			break
 		}
 
 		if err == context.Canceled {
+			processingOutput.SetError(
+				fmt.Errorf(
+					"processing with id %s was cancelled",
+					p.GetId().String(),
+				),
+			)
+			p.SetError(err)
 			p.SetStatus(interfaces.ProcessingStatusFailed)
-			p.sendResult(true)
-			return nil, false, fmt.Errorf("processing with id %s was cancelled", p.GetId().String())
+			p.sendResult(false)
+			return processingOutput
 		}
 
 		// If retry is required and we haven't exhausted retry attempts
@@ -195,16 +254,31 @@ func (p *Processing) Start() (interfaces.ProcessingOutput, bool, error) {
 
 		// If we reach here and retry is still required, mark the process as failed
 		if attempt == retryCount && retry {
+			processingOutput.SetError(
+				fmt.Errorf(
+					"processing with id %s failed after exhausting all %d retry attempts",
+					p.GetId().String(),
+					retryCount,
+				),
+			)
 			p.SetStatus(interfaces.ProcessingStatusRetryFailed)
 			p.sendResult(false)
-			return nil, false, fmt.Errorf("processing with id %s failed after exhausting all %d retry attempts", p.GetId().String(), retryCount)
+
+			return processingOutput
 		}
 
 		// If unrecoverable error, mark as failed
 		if err != nil {
+			retryMsg := ""
+			if attempt > 0 {
+				retryMsg = fmt.Sprintf(" after %d attempt(s)", attempt+1)
+			}
+			_err := fmt.Errorf("processing with id %s failed%s: %w", p.GetId().String(), retryMsg, err)
+			processingOutput.SetError(_err)
+
 			p.SetStatus(interfaces.ProcessingStatusFailed)
 			p.sendResult(false)
-			return nil, false, fmt.Errorf("processing with id %s failed after %d attempts: %w", p.GetId().String(), attempt+1, err)
+			return processingOutput
 		}
 
 	}
@@ -212,20 +286,20 @@ func (p *Processing) Start() (interfaces.ProcessingOutput, bool, error) {
 	// Processing completed without errors or retries
 	p.Lock()
 
-	// Create a ProcessingOutput using the result from the block process
-	p.output = NewProcessingOutput(p.blockData.GetSlug(), stop, processResult)
-
-	p.stop = stop
+	processingOutput.SetStop(stop)
 	p.status = interfaces.ProcessingStatusCompleted
 	if stop {
 		p.status = interfaces.ProcessingStatusStopped
+		if targetBlock != "" && targetBlockInputIndex >= 0 {
+			p.status = interfaces.ProcessingStatusStoppedForRegeneration
+		}
 	}
 
 	p.Unlock()
 
 	p.sendResult(false)
 
-	return p.output, stop, nil
+	return processingOutput
 }
 
 func (p *Processing) Stop(status interfaces.ProcessingStatus, err error) {
@@ -238,14 +312,14 @@ func (p *Processing) SetError(err error) {
 	p.Lock()
 	defer p.Unlock()
 
-	p.err = err
+	p.output.SetError(err)
 }
 
 func (p *Processing) GetError() error {
 	p.Lock()
 	defer p.Unlock()
 
-	return p.err
+	return p.output.GetError()
 }
 
 func (p *Processing) setChannelClosed() {
@@ -299,27 +373,141 @@ func (p *Processing) GetProcessingTime() time.Duration {
 }
 
 type ProcessingOutput struct {
-	blockSlug string
-	stop      bool
-	data      *bytes.Buffer
+	sync.Mutex
+
+	blockSlug             string
+	stop                  bool
+	retry                 bool
+	retryAttempt          int
+	data                  *bytes.Buffer
+	err                   error
+	targetBlockInputIndex int
+	targetBlockSlug       string
 }
 
-func NewProcessingOutput(blockSlug string, stop bool, data *bytes.Buffer) *ProcessingOutput {
+func NewProcessingOutput(
+	blockSlug string,
+	stop bool,
+	data *bytes.Buffer,
+	targetBlockInputIndex int,
+	targetBlockSlug string,
+	err error,
+) *ProcessingOutput {
 	return &ProcessingOutput{
-		blockSlug: blockSlug,
-		stop:      stop,
-		data:      data,
+		blockSlug:             blockSlug,
+		stop:                  stop,
+		data:                  data,
+		err:                   err,
+		targetBlockInputIndex: targetBlockInputIndex,
+		targetBlockSlug:       targetBlockSlug,
 	}
 }
 
 func (po *ProcessingOutput) GetId() string {
+	po.Lock()
+	defer po.Unlock()
+
 	return po.blockSlug
 }
 
 func (po *ProcessingOutput) GetStop() bool {
+	po.Lock()
+	defer po.Unlock()
+
 	return po.stop
 }
 
 func (po *ProcessingOutput) GetValue() *bytes.Buffer {
+	po.Lock()
+	defer po.Unlock()
+
 	return po.data
+}
+
+func (po *ProcessingOutput) GetError() error {
+	po.Lock()
+	defer po.Unlock()
+
+	return po.err
+}
+
+func (po *ProcessingOutput) GetRetry() bool {
+	po.Lock()
+	defer po.Unlock()
+
+	return po.retry
+}
+
+func (po *ProcessingOutput) GetRetryAttempt() int {
+	po.Lock()
+	defer po.Unlock()
+
+	return po.retryAttempt
+}
+
+func (po *ProcessingOutput) SetId(blockSlug string) {
+	po.Lock()
+	defer po.Unlock()
+
+	po.blockSlug = blockSlug
+}
+
+func (po *ProcessingOutput) SetStop(stop bool) {
+	po.Lock()
+	defer po.Unlock()
+
+	po.stop = stop
+}
+
+func (po *ProcessingOutput) SetValue(data *bytes.Buffer) {
+	po.Lock()
+	defer po.Unlock()
+
+	po.data = data
+}
+
+func (po *ProcessingOutput) SetError(err error) {
+	po.Lock()
+	defer po.Unlock()
+
+	po.err = err
+}
+
+func (po *ProcessingOutput) SetRetry(retry bool) {
+	po.Lock()
+	defer po.Unlock()
+
+	po.retry = retry
+}
+
+func (po *ProcessingOutput) SetRetryAttempt(retryAttempt int) {
+	po.Lock()
+	defer po.Unlock()
+
+	po.retryAttempt = retryAttempt
+}
+
+func (po *ProcessingOutput) GetTargetBlockSlug() string {
+	po.Lock()
+	defer po.Unlock()
+
+	return po.targetBlockSlug
+}
+func (po *ProcessingOutput) GetTargetBlockInputIndex() int {
+	po.Lock()
+	defer po.Unlock()
+
+	return po.targetBlockInputIndex
+}
+func (po *ProcessingOutput) SetTargetBlockSlug(targetBlockSlug string) {
+	po.Lock()
+	defer po.Unlock()
+
+	po.targetBlockSlug = targetBlockSlug
+}
+func (po *ProcessingOutput) SetTargetBlockInputIndex(targetBlockInputIndex int) {
+	po.Lock()
+	defer po.Unlock()
+
+	po.targetBlockInputIndex = targetBlockInputIndex
 }

@@ -170,7 +170,11 @@ func (r *PipelineBlockDataRegistry) LoadOutput(blockSlug string) []*bytes.Buffer
 				continue
 			}
 
-			r.AddBlockData(blockSlug, data)
+			// If there is only one storage, we can assume that the data is the same
+			// otherwise, we only add the data if the storage is minio ( Remote )
+			if storage.GetStorageName() == "minio" || len(storages) == 1 {
+				r.AddBlockData(blockSlug, data)
+			}
 		}
 	}
 

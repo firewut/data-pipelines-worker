@@ -56,7 +56,7 @@ func (p *ProcessorImageAddText) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, error) {
+) (*bytes.Buffer, bool, bool, string, int, error) {
 	output := &bytes.Buffer{}
 	blockConfig := &BlockImageAddTextConfig{}
 
@@ -70,18 +70,18 @@ func (p *ProcessorImageAddText) Process(
 
 	text, err := helpers.GetValue[string](_data, "text")
 	if err != nil {
-		return nil, false, false, err
+		return nil, false, false, "", -1, err
 	}
 
 	imageBytes, err := helpers.GetValue[[]byte](_data, "image")
 	if err != nil {
-		return nil, false, false, err
+		return nil, false, false, "", -1, err
 	}
 
 	imgBuf := bytes.NewBuffer(imageBytes)
 	img, format, err := image.Decode(imgBuf)
 	if err != nil {
-		return nil, false, false, err
+		return nil, false, false, "", -1, err
 	}
 	config.GetLogger().Debugf("Image format: %s", format)
 
@@ -91,11 +91,11 @@ func (p *ProcessorImageAddText) Process(
 
 	fontBytes, err := config.LoadFont(blockConfig.Font)
 	if err != nil {
-		return nil, false, false, err
+		return nil, false, false, "", -1, err
 	}
 	fontParsed, err := truetype.Parse(fontBytes)
 	if err != nil {
-		return nil, false, false, err
+		return nil, false, false, "", -1, err
 	}
 	fontFace := truetype.NewFace(
 		fontParsed,
@@ -214,7 +214,7 @@ func (p *ProcessorImageAddText) Process(
 		config.GetLogger().Fatalf("Failed to encode PNG image: %v", err)
 	}
 
-	return output, false, false, nil
+	return output, false, false, "", -1, nil
 }
 
 type BlockImageAddTextConfig struct {
@@ -275,31 +275,6 @@ func drawTextWithBackground(dc *gg.Context, s string, x, y, ax, ay float64, widt
 	}
 
 }
-
-// TextClip(
-// 	txt=params["text"],
-// 	fontsize=params["fontsize"],
-// 	size=(0.8 * background_clip.size[0], 0),
-// 	color=params["text_color"],
-// 	method=params["text_method"],
-// )
-// .set_position("center")
-// .set_duration(params["duration"])
-
-// ColorClip(
-// 	size=(settings.video_width, int(text_clip.size[1] * 1.4)),
-// 	color=params.get(
-// 		"text_bg_color", (0, 0, 0)
-// 	),  # Default to black if no color is specified
-// 	duration=params["duration"],
-// )
-// .set_opacity(0.8)
-// .set_duration(
-// 	text_clip.duration,
-// )
-// .set_position(
-// 	"center",
-// )
 
 type BlockImageAddText struct {
 	generics.ConfigurableBlock[BlockImageAddTextConfig]

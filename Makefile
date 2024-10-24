@@ -4,7 +4,7 @@ BINARY_NAME=data-pipelines-worker
 TEST_UNIT_PATH=./test/unit/...
 TEST_FUNCTIONAL_PATH=./test/functional/...
 CONFIG_FILE=${PWD}/config/config.yaml
-TEST_TIMEOUT=10s
+TEST_TIMEOUT=20s
 
 export CONFIG_FILE
 

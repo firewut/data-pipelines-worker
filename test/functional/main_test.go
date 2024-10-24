@@ -112,19 +112,22 @@ func (suite *FunctionalTestSuite) GetMockHTTPServer(
 	body string,
 	statusCode int,
 	responseDelay time.Duration,
-	bodyMapping map[string]string,
+	bodyMapping map[string][]string,
 ) *httptest.Server {
 	suite.Lock()
 	defer suite.Unlock()
 
 	// Merge all body mappings into a single map
-	var bodyMap map[string]string
+	var bodyMap map[string][]string
+	bodyMapSliceIndex := make(map[string]int)
+
 	if len(bodyMapping) > 0 {
 		bodyMap = bodyMapping
 	} else {
-		bodyMap = make(map[string]string)
+		bodyMap = make(map[string][]string)
 	}
 
+	serverMutex := &sync.Mutex{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(statusCode)
 
@@ -132,9 +135,21 @@ func (suite *FunctionalTestSuite) GetMockHTTPServer(
 			time.Sleep(responseDelay)
 		}
 
+		serverMutex.Lock()
+		defer serverMutex.Unlock()
+
 		// Check if the requested path is in the bodyMap
-		if responseBody, exists := bodyMap[r.URL.Path]; exists {
-			w.Write([]byte(responseBody))
+		if responseBodySlice, exists := bodyMap[r.URL.Path]; exists {
+			if _, exists := bodyMapSliceIndex[r.URL.Path]; !exists {
+				bodyMapSliceIndex[r.URL.Path] = 0
+			}
+
+			w.Write([]byte(responseBodySlice[bodyMapSliceIndex[r.URL.Path]]))
+
+			bodyMapSliceIndex[r.URL.Path] += 1
+			if bodyMapSliceIndex[r.URL.Path] >= len(responseBodySlice) {
+				bodyMapSliceIndex[r.URL.Path] = 0
+			}
 		} else if body != "" {
 			// Default body if no specific path is matched
 			w.Write([]byte(body))
@@ -154,22 +169,22 @@ func (suite *FunctionalTestSuite) GetMockHTTPServerURL(
 		body,
 		statusCode,
 		responseDelay,
-		make(map[string]string),
+		make(map[string][]string),
 	).URL
 }
 
 func (suite *FunctionalTestSuite) NewWorkerServerWithHandlers(
 	available bool,
-	configs ...config.Config,
+	_config config.Config,
 ) (*api.Server, interfaces.Worker, error) {
 	suite.Lock()
 	defer suite.Unlock()
 
-	_, shutdown := context.WithCancel(context.Background())
+	ctx, shutdown := context.WithCancel(context.Background())
 	server, worker, err := factories.NewWorkerServerWithHandlers(
-		context.Background(),
+		ctx,
 		available,
-		configs...,
+		_config,
 	)
 	suite.Nil(err)
 	suite.NotEmpty(server)
@@ -349,4 +364,16 @@ func (suite *FunctionalTestSuite) GetPNGImageBuffer(width int, height int) bytes
 	suite.Nil(err)
 
 	return *buf
+}
+
+func (suite *FunctionalTestSuite) GetTelegramBotInfo() string {
+	return `{
+		"ok": true,
+		"result": {
+			"id": 123456789,
+			"is_bot": true,
+			"first_name": "Test Bot",
+			"username": "test_bot"
+		}
+	}`
 }

@@ -356,7 +356,7 @@ func (suite *UnitTestSuite) TestGetInputConfigDataOneDependencyMissing() {
 	firstInputData, _, err := firstBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
 	secondInputData, _, err := secondBlock.GetInputConfigData(pipelineResults)
-	suite.NotNil(err)
+	suite.NotNil(err, err)
 	suite.Contains(err.Error(), "origin test-block-missing-slug not found in pipelineResults")
 
 	// Then
