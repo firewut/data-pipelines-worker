@@ -369,7 +369,7 @@ func (p *PipelineData) Process(
 								targetBlockSlug,
 								targetBlockInputIndex,
 							)
-							_processing.Stop(interfaces.ProcessingStatusStoppedForRegeneration, nil)
+
 							go func(
 								p *PipelineData,
 								_workerRegistry interfaces.WorkerRegistry,

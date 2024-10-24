@@ -127,12 +127,16 @@ func (suite *FunctionalTestSuite) GetMockHTTPServer(
 		bodyMap = make(map[string][]string)
 	}
 
+	serverMutex := &sync.Mutex{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(statusCode)
 
 		if responseDelay > 0 {
 			time.Sleep(responseDelay)
 		}
+
+		serverMutex.Lock()
+		defer serverMutex.Unlock()
 
 		// Check if the requested path is in the bodyMap
 		if responseBodySlice, exists := bodyMap[r.URL.Path]; exists {

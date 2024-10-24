@@ -666,7 +666,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingSucceededFirstT
 							"last_name": "Doe",
 							"username": "johndoe"
 						},
-						"id": "123456789",
+						"id": "%s",
 						"message": {
 							"chat": {
 								"first_name": "John",
@@ -686,6 +686,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingSucceededFirstT
 		}`,
 		blocks.ShortenedActionApprove,
 		data.GetInputIndex(),
+		uuid.New().String(),
 		blocks.FormatTelegramMessage(
 			blocks.GenerateTelegramMessage(reviewMessage),
 		),

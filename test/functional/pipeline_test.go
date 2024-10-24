@@ -996,7 +996,8 @@ func (suite *FunctionalTestSuite) TestPipelineResumeArrayTargetIndex() {
 							"group_id": -4573786981,
 							"extra_decisions": {
 								"Regenerate": "Regenerate It!"
-							}
+							},
+							"regenerate_block_slug": "get-event-image"
 						}
 					}
 				]
@@ -1750,7 +1751,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationApproveAll() {
 			fmt.Sprintf(`
 				{
 					"callback_query": {
-						"chat_instance": "111111111111111111",
+						"chat_instance": "%s",
 						"data": "%s",
 						"from": {
 							"first_name": "John",
@@ -1760,7 +1761,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationApproveAll() {
 							"last_name": "Doe",
 							"username": "johndoe"
 						},
-						"id": "%d",
+						"id": "%s",
 						"message": {
 							"chat": {
 								"first_name": "John",
@@ -1776,8 +1777,9 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationApproveAll() {
 					},
 					"update_id": 123456790
 				}`,
+				uuid.New().String(),
 				moderationMatchCallbackData,
-				i,
+				uuid.New().String(),
 				i,
 				blocks.FormatTelegramMessage(
 					blocks.GenerateTelegramMessage(reviewMessage),
@@ -2163,7 +2165,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationDeclineThird() {
 							"last_name": "Doe",
 							"username": "johndoe"
 						},
-						"id": "%d",
+						"id": "%s-%d",
 						"message": {
 							"chat": {
 								"first_name": "John",
@@ -2180,6 +2182,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationDeclineThird() {
 					"update_id": 123456790
 				}`,
 				moderationMatchCallbackData,
+				uuid.New().String(),
 				i,
 				i,
 				blocks.FormatTelegramMessage(
@@ -2567,7 +2570,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 				"last_name": "Doe",
 				"username": "johndoe"
 			},
-			"id": "%d",
+			"id": "%s",
 			"message": {
 				"chat": {
 					"first_name": "John",
@@ -2600,7 +2603,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 
 		messageWithRegenerate := fmt.Sprintf(messageTemplate,
 			fmt.Sprintf("%s:%d", decisionsRegenerate[i], i),
-			i,
+			uuid.New().String(),
 			i,
 			blocks.FormatTelegramMessage(
 				blocks.GenerateTelegramMessage(reviewMessage),
@@ -2609,8 +2612,8 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 
 		messageWithApprove := fmt.Sprintf(messageTemplate,
 			fmt.Sprintf("%s:%d", decisionsApprove[i], i),
-			i+i,
-			i+i,
+			uuid.New().String(),
+			i+10,
 			blocks.FormatTelegramMessage(
 				blocks.GenerateTelegramMessage(reviewMessage),
 			),
@@ -2843,16 +2846,17 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 		suite.Nil(sendModerationProcessing.GetError())
 	}
 
+	moderationStatuses := []interfaces.ProcessingStatus{
+		interfaces.ProcessingStatusCompleted,
+		interfaces.ProcessingStatusCompleted,
+		interfaces.ProcessingStatusStoppedForRegeneration,
+	}
 	for i := 0; i < 3; i++ {
 		fetchModerationProcessing := <-notificationChannel
 		suite.Equal("fetch_moderation_telegram", fetchModerationProcessing.GetBlock().GetId())
 		suite.Equal(processingResponse.ProcessingID, fetchModerationProcessing.GetId())
 
-		if i == 2 {
-			suite.Equal(interfaces.ProcessingStatusStoppedForRegeneration, fetchModerationProcessing.GetStatus(), i)
-		} else {
-			suite.Equal(interfaces.ProcessingStatusCompleted, fetchModerationProcessing.GetStatus(), i)
-		}
+		suite.Equal(moderationStatuses[i], fetchModerationProcessing.GetStatus(), fetchModerationProcessing.GetInstanceId().String())
 		suite.Nil(fetchModerationProcessing.GetError())
 	}
 

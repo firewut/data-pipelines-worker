@@ -45,6 +45,8 @@ var moderationActionMap = map[string]ModerationAction{
 	ShortenedActionRegenerate: ModerationActionRegenerate,
 }
 
+var acknowledgedCallbackDatas = map[string]bool{}
+
 func GetModerationAction(action string) ModerationAction {
 	if val, exists := moderationActionMap[action]; exists {
 		return val
@@ -104,10 +106,13 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 	}
 
 	shouldExit := false
-
-	var moderationMessage TelegramReviewMessage
-
 	decisions := make([]ModerationAction, 0)
+
+	var (
+		moderationMessage  TelegramReviewMessage
+		mostRecentDecision *tgbotapi.CallbackQuery
+	)
+
 	for !shouldExit {
 		select {
 		case <-ctx.Done():
@@ -127,6 +132,11 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 			for _, update := range updates {
 				if update.CallbackQuery != nil {
 					callbackData := update.CallbackQuery.Data
+
+					if _, exists := acknowledgedCallbackDatas[update.CallbackQuery.ID]; exists {
+						continue
+					}
+
 					parts := strings.Split(callbackData, ":")
 
 					if len(parts) == 2 {
@@ -159,10 +169,9 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 								continue
 							}
 
-							// Acknowledge callback (removes the loading indicator)
-							callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
-							client.Request(callback)
+							acknowledgedCallbackDatas[update.CallbackQuery.ID] = true
 
+							mostRecentDecision = update.CallbackQuery
 							decisions = append(decisions, buttonDecision)
 						}
 					}
@@ -181,6 +190,22 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 	// Get most recent decision
 	if len(decisions) > 0 {
 		moderationDecision.Action = decisions[len(decisions)-1]
+		if mostRecentDecision != nil {
+			// Remove keyboard from the message
+			edit := tgbotapi.NewEditMessageReplyMarkup(
+				mostRecentDecision.Message.Chat.ID,
+				mostRecentDecision.Message.MessageID,
+				tgbotapi.InlineKeyboardMarkup{
+					InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{},
+				},
+			)
+
+			if _, err := client.Request(edit); err == nil {
+				// Acknowledge the callback (removes the loading indicator)
+				callback := tgbotapi.NewCallback(mostRecentDecision.ID, "Processing...")
+				client.Request(callback)
+			}
+		}
 
 		if moderationDecision.Action == ModerationActionApprove ||
 			moderationDecision.Action == ShortenedActionApprove {

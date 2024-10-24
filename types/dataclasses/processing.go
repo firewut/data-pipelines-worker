@@ -123,11 +123,11 @@ func (p *Processing) SetStatus(status interfaces.ProcessingStatus) {
 
 	p.status = status
 	switch status {
+	case interfaces.ProcessingStatusPending,
+		interfaces.ProcessingStatusUnknown:
 	case interfaces.ProcessingStatusRunning:
 		p.startTimestamp = time.Now().Unix()
-	case interfaces.ProcessingStatusCompleted,
-		interfaces.ProcessingStatusFailed,
-		interfaces.ProcessingStatusTransferred:
+	default:
 		p.endTimestamp = time.Now().Unix()
 	}
 }
@@ -269,6 +269,9 @@ func (p *Processing) Start() interfaces.ProcessingOutput {
 	p.status = interfaces.ProcessingStatusCompleted
 	if stop {
 		p.status = interfaces.ProcessingStatusStopped
+		if targetBlock != "" && targetBlockInputIndex >= 0 {
+			p.status = interfaces.ProcessingStatusStoppedForRegeneration
+		}
 	}
 
 	p.Unlock()

@@ -113,14 +113,7 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess()
 			},
 			expected: blocks.ModerationActionApprove,
 		},
-		{
-			decisions: []blocks.ModerationAction{
-				blocks.ShortenedActionApprove,
-				blocks.ShortenedActionDecline,
-				blocks.ShortenedActionApprove,
-			},
-			expected: blocks.ModerationActionApprove,
-		},
+
 		{
 			decisions: []blocks.ModerationAction{
 				blocks.ShortenedActionDecline,
@@ -142,6 +135,14 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess()
 				blocks.ShortenedActionDecline,
 			},
 			expected: blocks.ModerationActionDecline,
+		},
+		{
+			decisions: []blocks.ModerationAction{
+				blocks.ShortenedActionApprove,
+				blocks.ShortenedActionDecline,
+				blocks.ShortenedActionApprove,
+			},
+			expected: blocks.ModerationActionApprove,
 		},
 	}
 
@@ -171,7 +172,7 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess()
 								"last_name": "Doe",
 								"username": "johndoe"
 							},
-							"id": "%d",
+							"id": "%s-%d",
 							"message": {
 								"chat": {
 									"first_name": "John",
@@ -181,13 +182,15 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess()
 									"username": "johndoe"
 								},
 								"date": 1633044475,
-								"message_id": 222,
+								"message_id": 1%d,
 								"text": "%s"
 							}
 						},
 						"update_id": 123456790
 					}`,
 					moderationMatchCallbackData,
+					uuid.New().String(),
+					indexCase+indexDecision+1,
 					indexCase+indexDecision+1,
 					blocks.FormatTelegramMessage(
 						blocks.GenerateTelegramMessage(reviewMessage),

@@ -137,6 +137,7 @@ func (suite *UnitTestSuite) GetMockHTTPServer(
 		bodyMap = make(map[string]string)
 	}
 
+	serverMutex := &sync.Mutex{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Create a channel to listen for cancellation
 		ctx := r.Context()
@@ -151,6 +152,9 @@ func (suite *UnitTestSuite) GetMockHTTPServer(
 		}
 
 		w.WriteHeader(statusCode)
+		serverMutex.Lock()
+		defer serverMutex.Unlock()
+
 		// Check if the requested path is in the bodyMap
 		if responseBody, exists := bodyMap[r.URL.Path]; exists {
 			w.Write([]byte(responseBody))

@@ -276,31 +276,6 @@ func drawTextWithBackground(dc *gg.Context, s string, x, y, ax, ay float64, widt
 
 }
 
-// TextClip(
-// 	txt=params["text"],
-// 	fontsize=params["fontsize"],
-// 	size=(0.8 * background_clip.size[0], 0),
-// 	color=params["text_color"],
-// 	method=params["text_method"],
-// )
-// .set_position("center")
-// .set_duration(params["duration"])
-
-// ColorClip(
-// 	size=(settings.video_width, int(text_clip.size[1] * 1.4)),
-// 	color=params.get(
-// 		"text_bg_color", (0, 0, 0)
-// 	),  # Default to black if no color is specified
-// 	duration=params["duration"],
-// )
-// .set_opacity(0.8)
-// .set_duration(
-// 	text_clip.duration,
-// )
-// .set_position(
-// 	"center",
-// )
-
 type BlockImageAddText struct {
 	generics.ConfigurableBlock[BlockImageAddTextConfig]
 	BlockParent
