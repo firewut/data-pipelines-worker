@@ -14,7 +14,7 @@
             }
         },
         {
-            "id": "send_moderation_telegram",
+            "id": "send_moderation_tg",
             "slug": "send-event-text-moderation-to-telegram",
             "description": "Send the Event Text to Telegram for moderation",
             "input_config": {
@@ -34,7 +34,7 @@
             }
         },
         {
-            "id": "fetch_moderation_telegram",
+            "id": "fetch_moderation_tg",
             "slug": "fetch-event-text-moderation-from-telegram",
             "description": "Fetch the Event Text moderation decision from Telegram",
             "input": {
@@ -120,7 +120,7 @@
             }
         },
         {
-            "id": "send_moderation_telegram",
+            "id": "send_moderation_tg",
             "slug": "send-event-images-moderation-to-telegram",
             "description": "Send generated Event Images to Telegram for moderation",
             "input_config": {
@@ -145,7 +145,7 @@
             }
         },
         {
-            "id": "fetch_moderation_telegram",
+            "id": "fetch_moderation_tg",
             "slug": "fetch-event-images-moderation-from-telegram",
             "description": "Fetch the moderation Image decision from Telegram",
             "input_config": {
@@ -201,6 +201,19 @@
                     },
                     "image": {
                         "origin": "add-text-to-event-images"
+                    }
+                }
+            }
+        },
+        {
+            "id": "join_videos",
+            "slug": "join-videos-from-array",
+            "description": "Join Videos from Array of Videos",
+            "input_config": {
+                "property": {
+                    "videos": {
+                        "origin": "generate-videos-from-images-and-transcriptions",
+                        "array_input": true
                     }
                 }
             }

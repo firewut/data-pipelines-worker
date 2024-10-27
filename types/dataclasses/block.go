@@ -213,6 +213,10 @@ func (b *BlockData) GetInputConfigData(
 	//    	            "body": "hello 1",
 	//    	        }
 	//          }
+	//
+	//  property
+	//  	array_input = true
+	//      	the function assigns an array to the property
 
 	inputData := make([]map[string]interface{}, 0)
 	inputTypeArrayParallel := false
@@ -270,13 +274,19 @@ func (b *BlockData) GetInputConfigData(
 						if _, ok := property_config.(map[string]interface{})["array_input"]; ok {
 							arrayInput = property_config.(map[string]interface{})["array_input"].(bool)
 						}
-						_ = arrayInput
 
 						if results, ok := pipelineResults[origin]; ok {
 							for _, resultValue := range results {
+								var rawValue interface{}
+
+								rawValue = resultValue
+								if arrayInput {
+									rawValue = results
+								}
+
 								valueCasted, err := helpers.CastPropertyData(
 									property,
-									resultValue,
+									rawValue,
 									schema,
 								)
 

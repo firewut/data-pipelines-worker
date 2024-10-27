@@ -17,7 +17,7 @@ import (
 func (suite *UnitTestSuite) TestBlockSendModerationToTelegram() {
 	block := blocks.NewBlockSendModerationToTelegram()
 
-	suite.Equal("send_moderation_telegram", block.GetId())
+	suite.Equal("send_moderation_tg", block.GetId())
 	suite.Equal("Send Moderation to Telegram", block.GetName())
 	suite.Equal("Send Moderation Request to Telegram", block.GetDescription())
 	suite.NotNil(block.GetSchema())
@@ -50,7 +50,7 @@ func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessIncorrectInp
 	// Given
 	block := blocks.NewBlockSendModerationToTelegram()
 	data := &dataclasses.BlockData{
-		Id:   "send_moderation_telegram",
+		Id:   "send_moderation_tg",
 		Slug: "send-moderation",
 		Input: map[string]interface{}{
 			"text": nil,
@@ -76,7 +76,7 @@ func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccessTextD
 	processingId := uuid.New()
 	block := blocks.NewBlockSendModerationToTelegram()
 	data := &dataclasses.BlockData{
-		Id:   "send_moderation_telegram",
+		Id:   "send_moderation_tg",
 		Slug: "send-moderation-text",
 		Input: map[string]interface{}{
 			"text":     "Hello world!",
@@ -109,7 +109,7 @@ func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccessTextE
 	processingId := uuid.New()
 	block := blocks.NewBlockSendModerationToTelegram()
 	data := &dataclasses.BlockData{
-		Id:   "send_moderation_telegram",
+		Id:   "send_moderation_tg",
 		Slug: "send-moderation-text",
 		Input: map[string]interface{}{
 			"text":     "Hello world!",
@@ -150,7 +150,7 @@ func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccessTextW
 	processingId := uuid.New()
 	block := blocks.NewBlockSendModerationToTelegram()
 	data := &dataclasses.BlockData{
-		Id:   "send_moderation_telegram",
+		Id:   "send_moderation_tg",
 		Slug: "send-moderation-text",
 		Input: map[string]interface{}{
 			"text":     "Hello world!",

@@ -13,7 +13,7 @@
             }
         },
         {
-            "id": "send_to_telegram_for_moderation",
+            "id": "send_to_tg_for_moderation",
             "slug": "send-text-for-moderation",
             "description": "Send Text for Moderation",
             "input_config": {
@@ -204,7 +204,7 @@
             }
         },
         {
-            "id": "send_video_to_telegram_for_moderation",
+            "id": "send_video_to_tg_for_moderation",
             "slug": "send-video-for-moderation",
             "description": "Send Video for Moderation",
             "input_config": {
@@ -221,7 +221,7 @@
             }
         },
         {
-            "id": "fetch_moderation_telegram",
+            "id": "fetch_moderation_tg",
             "slug": "fetch-video-moderation-decision",
             "description": "Fetch Video Modration Decision from Telegram",
             "input_config": {

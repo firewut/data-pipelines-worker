@@ -78,6 +78,7 @@ func (br *BlockRegistry) DetectBlocks() {
 	textReplaceBlock := blocks.NewBlockTextReplace()
 	textAddPrefixOrSuffixBlock := blocks.NewBlockTextAddPrefixOrSuffix()
 	videoFromImageBlock := blocks.NewBlockVideoFromImage()
+	joinVideosBlock := blocks.NewBlockJoinVideos()
 
 	br.blocksDetector = map[interfaces.Block]interfaces.BlockDetector{
 		httpBlock: blocks.NewDetectorHTTP(
@@ -128,6 +129,9 @@ func (br *BlockRegistry) DetectBlocks() {
 		),
 		videoFromImageBlock: blocks.NewDetectorVideoFromImage(
 			_config.Blocks[videoFromImageBlock.GetId()].Detector,
+		),
+		joinVideosBlock: blocks.NewDetectorJoinVideos(
+			_config.Blocks[joinVideosBlock.GetId()].Detector,
 		),
 	}
 

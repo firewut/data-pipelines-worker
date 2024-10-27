@@ -287,7 +287,7 @@ func (b *BlockSendModerationToTelegram) GetBlockConfig(_config config.Config) *B
 func NewBlockSendModerationToTelegram() *BlockSendModerationToTelegram {
 	block := &BlockSendModerationToTelegram{
 		BlockParent: BlockParent{
-			Id:          "send_moderation_telegram",
+			Id:          "send_moderation_tg",
 			Name:        "Send Moderation to Telegram",
 			Description: "Send Moderation Request to Telegram",
 			Version:     "1",

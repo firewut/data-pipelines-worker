@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"reflect"
 
+	"data-pipelines-worker/test/factories"
+	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/dataclasses"
 )
 
@@ -1327,4 +1329,108 @@ func (suite *UnitTestSuite) TestOpenAIPipeline() {
 		{"prompt": " Interestingly, John Lennon's harmonica playing added a distinct touch,"},
 		{"prompt": " propelling them toward unprecedented stardom in the music industry."},
 	}, transcriptions)
+}
+
+func (suite *UnitTestSuite) TestPipelineJoinVideos() {
+	// Given
+	pipelineString := `{
+		"slug": "openai-test",
+		"title": "Youtube video generation pipeline from prompt",
+		"description": "Generates videos for youtube Channel <CHANNEL>. Uses Prompt in the Block.",
+		"blocks": [
+			{
+				"id": "video_from_image",
+				"slug": "generate-videos-from-images-and-transcriptions",
+				"description": "Generate video from Images and Transcription Segments",
+				"input_config": {
+					"type": "array", 
+					"parallel": true,
+					"property": {
+						"start": {
+							"origin": "get-event-transcription",
+							"json_path": "$.segments[*].start"
+						},
+						"end": {
+							"origin": "get-event-transcription",
+							"json_path": "$.segments[*].end"
+						},
+						"image": {
+							"origin": "add-text-to-event-images"
+						}
+					}
+				}
+			},
+			{
+				"id": "join_videos",
+				"slug": "join-videos-from-array",
+				"description": "Join Videos from Array of Videos",
+				"input_config": {
+					"property": {
+						"videos": {
+							"origin": "generate-videos-from-images-and-transcriptions",
+							"array_input": true
+						}
+					}
+				}
+			}
+		]
+	}`
+
+	imageWidth := 2
+	imageHeight := 2
+
+	images := []bytes.Buffer{
+		factories.GetPNGImageBuffer(imageWidth, imageHeight),
+		factories.GetPNGImageBuffer(imageWidth, imageHeight),
+	}
+	videos := make([]*bytes.Buffer, len(images))
+	for i, image := range images {
+		videoBlock := blocks.NewBlockVideoFromImage()
+		_data := &dataclasses.BlockData{
+			Id:   "video_from_image",
+			Slug: "video-from-image",
+			Input: map[string]interface{}{
+				"image":  image.Bytes(),
+				"start":  0.0,
+				"end":    0.1,
+				"fps":    1,
+				"preset": "veryfast",
+				"crf":    23,
+			},
+		}
+		_data.SetBlock(videoBlock)
+		_result, _stop, _, _, _, err := videoBlock.Process(
+			suite.GetContextWithcancel(),
+			blocks.NewProcessorVideoFromImage(),
+			_data,
+		)
+
+		suite.NotNil(_result)
+		suite.False(_stop)
+		suite.Nil(err)
+
+		videos[i] = _result
+	}
+
+	pipelineResults := map[string][]*bytes.Buffer{
+		"generate-videos-from-images-and-transcriptions": videos,
+	}
+
+	pipeline := suite.GetTestPipeline(pipelineString)
+	suite.NotNil(pipeline)
+
+	blocks := pipeline.GetBlocks()
+	suite.NotEmpty(blocks)
+
+	videosJoinBlock := blocks[1]
+	suite.NotNil(videosJoinBlock)
+
+	// When
+	inputData, _, err := videosJoinBlock.GetInputConfigData(pipelineResults)
+
+	// Then
+	suite.Nil(err)
+	suite.NotEmpty(inputData)
+	suite.Equal(1, len(inputData))
+	suite.Equal(2, len(inputData[0]["videos"].([]interface{})))
 }

@@ -10,6 +10,7 @@ import (
 )
 
 func GetValue[T any](m map[string]interface{}, key string) (T, error) {
+	// Does not work with array of arrays, e.g. [][]byte"
 	value, err := gjm.GetProperty(m, key)
 	if err != nil {
 		return *new(T), err

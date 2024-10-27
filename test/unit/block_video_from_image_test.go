@@ -103,5 +103,4 @@ func (suite *UnitTestSuite) TestBlockVideoFromImageProcessSuccess() {
 	suite.NotNil(result)
 	suite.False(stop)
 	suite.Nil(err)
-
 }

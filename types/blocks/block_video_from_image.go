@@ -47,6 +47,7 @@ func (p *ProcessorVideoFromImage) GetRetryCount(_ interfaces.Block) int {
 func (p *ProcessorVideoFromImage) GetRetryInterval(_ interfaces.Block) time.Duration {
 	return 0
 }
+
 func (p *ProcessorVideoFromImage) Process(
 	ctx context.Context,
 	block interfaces.Block,
@@ -114,7 +115,7 @@ func (p *ProcessorVideoFromImage) Process(
 		"-c:v", "libx264", // Video codec
 		"-preset", blockConfig.Preset, // Set encoding speed
 		"-crf", fmt.Sprintf("%d", blockConfig.CRF), // Set constant rate factor
-		"-f", blockConfig.Format, // Output format as MP4
+		"-f", blockConfig.Format, // Video Output format
 		tempVideoFile.Name(),
 	}
 

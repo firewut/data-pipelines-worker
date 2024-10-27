@@ -977,7 +977,7 @@ func (suite *FunctionalTestSuite) TestPipelineResumeArrayTargetIndex() {
 						}
 					},
 					{
-						"id": "send_moderation_telegram",
+						"id": "send_moderation_tg",
 						"slug": "send-event-images-moderation-to-telegram",
 						"description": "Send generated Event Images to Telegram for moderation",
 						"input_config": {
@@ -1107,7 +1107,7 @@ func (suite *FunctionalTestSuite) TestPipelineResumeArrayTargetIndex() {
 		suite.Equal(moderationProcessing.GetId(), processingResponse.ProcessingID)
 		suite.Equal(interfaces.ProcessingStatusCompleted, moderationProcessing.GetStatus())
 		suite.Nil(moderationProcessing.GetError())
-		suite.Equal("send_moderation_telegram", moderationProcessing.GetBlock().GetId())
+		suite.Equal("send_moderation_tg", moderationProcessing.GetBlock().GetId())
 
 		blockData := moderationProcessing.GetData().GetInputData().(map[string]interface{})
 		suite.Equal(finalImageBuffers[i].Bytes(), blockData["image"].([]byte))
@@ -1900,7 +1900,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationApproveAll() {
 						}
 					},
 					{
-						"id": "send_moderation_telegram",
+						"id": "send_moderation_tg",
 						"slug": "send-event-images-moderation-to-telegram",
 						"description": "Send generated Event Images to Telegram for moderation",
 						"input_config": {
@@ -1924,7 +1924,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationApproveAll() {
 						}
 					},
 					{
-						"id": "fetch_moderation_telegram",
+						"id": "fetch_moderation_tg",
 						"slug": "fetch-event-images-moderation-from-telegram",
 						"description": "Fetch the moderation Image decision from Telegram",
 						"input_config": {
@@ -2003,7 +2003,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationApproveAll() {
 
 	for i := 0; i < 4; i++ {
 		sendModerationProcessing := <-notificationChannel
-		suite.Equal("send_moderation_telegram", sendModerationProcessing.GetBlock().GetId())
+		suite.Equal("send_moderation_tg", sendModerationProcessing.GetBlock().GetId())
 		suite.Equal(processingResponse.ProcessingID, sendModerationProcessing.GetId())
 
 		suite.Equal(interfaces.ProcessingStatusCompleted, sendModerationProcessing.GetStatus())
@@ -2012,7 +2012,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationApproveAll() {
 
 	for i := 0; i < 4; i++ {
 		fetchModerationProcessing := <-notificationChannel
-		suite.Equal("fetch_moderation_telegram", fetchModerationProcessing.GetBlock().GetId())
+		suite.Equal("fetch_moderation_tg", fetchModerationProcessing.GetBlock().GetId())
 		suite.Equal(processingResponse.ProcessingID, fetchModerationProcessing.GetId())
 
 		suite.Equal(interfaces.ProcessingStatusCompleted, fetchModerationProcessing.GetStatus())
@@ -2305,7 +2305,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationDeclineThird() {
 						}
 					},
 					{
-						"id": "send_moderation_telegram",
+						"id": "send_moderation_tg",
 						"slug": "send-event-images-moderation-to-telegram",
 						"description": "Send generated Event Images to Telegram for moderation",
 						"input_config": {
@@ -2329,7 +2329,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationDeclineThird() {
 						}
 					},
 					{
-						"id": "fetch_moderation_telegram",
+						"id": "fetch_moderation_tg",
 						"slug": "fetch-event-images-moderation-from-telegram",
 						"description": "Fetch the moderation Image decision from Telegram",
 						"input_config": {
@@ -2408,7 +2408,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationDeclineThird() {
 
 	for i := 0; i < 4; i++ {
 		sendModerationProcessing := <-notificationChannel
-		suite.Equal("send_moderation_telegram", sendModerationProcessing.GetBlock().GetId())
+		suite.Equal("send_moderation_tg", sendModerationProcessing.GetBlock().GetId())
 		suite.Equal(processingResponse.ProcessingID, sendModerationProcessing.GetId())
 
 		suite.Equal(interfaces.ProcessingStatusCompleted, sendModerationProcessing.GetStatus())
@@ -2417,7 +2417,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationDeclineThird() {
 
 	for i := 0; i < 3; i++ {
 		fetchModerationProcessing := <-notificationChannel
-		suite.Equal("fetch_moderation_telegram", fetchModerationProcessing.GetBlock().GetId())
+		suite.Equal("fetch_moderation_tg", fetchModerationProcessing.GetBlock().GetId())
 		suite.Equal(processingResponse.ProcessingID, fetchModerationProcessing.GetId())
 
 		if i == 2 {
@@ -2735,7 +2735,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 						}
 					},
 					{
-						"id": "send_moderation_telegram",
+						"id": "send_moderation_tg",
 						"slug": "send-event-images-moderation-to-telegram",
 						"description": "Send generated Event Images to Telegram for moderation",
 						"input_config": {
@@ -2759,7 +2759,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 						}
 					},
 					{
-						"id": "fetch_moderation_telegram",
+						"id": "fetch_moderation_tg",
 						"slug": "fetch-event-images-moderation-from-telegram",
 						"description": "Fetch the moderation Image decision from Telegram",
 						"input_config": {
@@ -2841,7 +2841,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 
 	for i := 0; i < 4; i++ {
 		sendModerationProcessing := <-notificationChannel
-		suite.Equal("send_moderation_telegram", sendModerationProcessing.GetBlock().GetId())
+		suite.Equal("send_moderation_tg", sendModerationProcessing.GetBlock().GetId())
 		suite.Equal(processingResponse.ProcessingID, sendModerationProcessing.GetId())
 
 		suite.Equal(interfaces.ProcessingStatusCompleted, sendModerationProcessing.GetStatus())
@@ -2855,7 +2855,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 	}
 	for i := 0; i < 3; i++ {
 		fetchModerationProcessing := <-notificationChannel
-		suite.Equal("fetch_moderation_telegram", fetchModerationProcessing.GetBlock().GetId())
+		suite.Equal("fetch_moderation_tg", fetchModerationProcessing.GetBlock().GetId())
 		suite.Equal(processingResponse.ProcessingID, fetchModerationProcessing.GetId())
 
 		suite.Equal(moderationStatuses[i], fetchModerationProcessing.GetStatus(), fetchModerationProcessing.GetInstanceId().String())
@@ -2871,7 +2871,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 
 	for i := 0; i < 4; i++ {
 		sendModerationProcessing := <-notificationChannel
-		suite.Equal("send_moderation_telegram", sendModerationProcessing.GetBlock().GetId())
+		suite.Equal("send_moderation_tg", sendModerationProcessing.GetBlock().GetId())
 		suite.Equal(processingResponse.ProcessingID, sendModerationProcessing.GetId())
 		suite.Equal(interfaces.ProcessingStatusCompleted, sendModerationProcessing.GetStatus())
 		suite.Nil(sendModerationProcessing.GetError())
@@ -2879,7 +2879,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 
 	for i := 0; i < 4; i++ {
 		fetchModerationProcessing := <-notificationChannel
-		suite.Equal("fetch_moderation_telegram", fetchModerationProcessing.GetBlock().GetId())
+		suite.Equal("fetch_moderation_tg", fetchModerationProcessing.GetBlock().GetId())
 		suite.Equal(processingResponse.ProcessingID, fetchModerationProcessing.GetId())
 
 		suite.Equal(interfaces.ProcessingStatusCompleted, fetchModerationProcessing.GetStatus(), i)

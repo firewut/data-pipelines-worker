@@ -298,7 +298,7 @@ func (b *BlockFetchModerationFromTelegram) GetBlockConfig(_config config.Config)
 func NewBlockFetchModerationFromTelegram() *BlockFetchModerationFromTelegram {
 	block := &BlockFetchModerationFromTelegram{
 		BlockParent: BlockParent{
-			Id:          "fetch_moderation_telegram",
+			Id:          "fetch_moderation_tg",
 			Name:        "Fetch Moderation from Telegram",
 			Description: "Fetch Moderation Action from Telegram",
 			Version:     "1",

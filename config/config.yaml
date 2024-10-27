@@ -146,7 +146,7 @@ blocks:
     config:
       stop: false
 
-  send_moderation_telegram:
+  send_moderation_tg:
     detector:
       check_interval: 1m
       conditions:
@@ -159,7 +159,7 @@ blocks:
       regenerate: "Regenerate"
       group_id: "0"
   
-  fetch_moderation_telegram:
+  fetch_moderation_tg:
     detector:
       check_interval: 1m
       conditions:
@@ -206,3 +206,14 @@ blocks:
       fps: 30
       start: 0.0
       end: 1.0
+  
+  join_videos:
+    detector:
+      check_interval: 60m
+      conditions:
+    reliability:
+      policy: "none"
+    parallel_available: false
+    config:
+      ffmpeg_binary: ""
+      re_encode: false

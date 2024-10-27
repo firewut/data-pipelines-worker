@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"reflect"
 )
 
 // Function to extract type and format from the JSON schema
@@ -50,6 +51,7 @@ func getArrayItemType(propMap map[string]interface{}) (string, error) {
 // Function to cast data to the specified type based on the JSON schema
 func CastDataToType(data interface{}, schema map[string]interface{}) (interface{}, error) {
 	propType, propFormat, err := extractTypeAndFormat(schema)
+
 	if err != nil {
 		return nil, err
 	}
@@ -88,23 +90,32 @@ func CastDataToType(data interface{}, schema map[string]interface{}) (interface{
 	case "null":
 		return nil, nil
 	case "array":
-		itemType, err := getArrayItemType(schema)
-		if err != nil {
-			return nil, err
-		}
-		result := []interface{}{}
-		dataArray, ok := data.([]interface{})
+		itemSchema, ok := schema["items"].(map[string]interface{})
 		if !ok {
+			return nil, errors.New("array type must have items defined")
+		}
+
+		result := []interface{}{}
+
+		// Use reflection to check the type of data
+		val := reflect.ValueOf(data)
+		if val.Kind() != reflect.Slice {
 			return nil, errors.New("data must be an array")
 		}
-		for _, item := range dataArray {
-			castedItem, err := CastDataToType(item, map[string]interface{}{"type": itemType})
+
+		// Iterate over the elements of the slice
+		for i := 0; i < val.Len(); i++ {
+			item := val.Index(i).Interface() // Get the element at index i
+
+			// Recursively cast the item using the item schema
+			castedItem, err := CastDataToType(item, itemSchema)
 			if err != nil {
 				return nil, err
 			}
 			result = append(result, castedItem)
 		}
 		return result, nil
+
 	case "object":
 		result := make(map[string]interface{})
 		dataMap, ok := data.(map[string]interface{})
