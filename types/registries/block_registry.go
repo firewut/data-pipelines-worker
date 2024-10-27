@@ -77,6 +77,7 @@ func (br *BlockRegistry) DetectBlocks() {
 	fetchModerationFromTelegramBlock := blocks.NewBlockFetchModerationFromTelegram()
 	textReplaceBlock := blocks.NewBlockTextReplace()
 	textAddPrefixOrSuffixBlock := blocks.NewBlockTextAddPrefixOrSuffix()
+	videoFromImageBlock := blocks.NewBlockVideoFromImage()
 
 	br.blocksDetector = map[interfaces.Block]interfaces.BlockDetector{
 		httpBlock: blocks.NewDetectorHTTP(
@@ -124,6 +125,9 @@ func (br *BlockRegistry) DetectBlocks() {
 		),
 		textAddPrefixOrSuffixBlock: blocks.NewDetectorTextAddPrefixOrSuffix(
 			_config.Blocks[textAddPrefixOrSuffixBlock.GetId()].Detector,
+		),
+		videoFromImageBlock: blocks.NewDetectorVideoFromImage(
+			_config.Blocks[videoFromImageBlock.GetId()].Detector,
 		),
 	}
 

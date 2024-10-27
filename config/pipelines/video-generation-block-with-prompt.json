@@ -20,7 +20,7 @@
                 "property": {
                     "message": {
                         "origin": "get-text-content-for-video",
-                        "jsonPath": "$"
+                        "json_path": "$"
                     }
                 }
             },
@@ -54,7 +54,7 @@
                 "property": {
                     "condition": {
                         "origin": "fetch-text-moderation-decision",
-                        "jsonPath": "action='declined'"
+                        "json_path": "action='declined'"
                     }
                 }
             }
@@ -67,7 +67,7 @@
                 "property": {
                     "text": {
                         "origin": "get-text-content-for-video",
-                        "jsonPath": "choices[0].message"
+                        "json_path": "choices[0].message"
                     }
                 }
             }
@@ -102,7 +102,7 @@
                 "property": {
                     "body": {
                         "origin": "request-tts-transcription",
-                        "jsonPath": "//segments"
+                        "json_path": "//segments"
                     }
                 }
             },
@@ -128,7 +128,7 @@
                 "property": {
                     "url": {
                         "origin": "request-image-for-tts-segment",
-                        "jsonPath": "//url"
+                        "json_path": "//url"
                     }
                 }
             },
@@ -149,7 +149,7 @@
                 "property": {
                     "text": {
                         "origin": "request-image-for-tts-segment",
-                        "jsonPath": "//segments"
+                        "json_path": "//segments"
                     },
                     "image": {
                         "origin": "download-image"
@@ -172,11 +172,11 @@
                 "property": {
                     "start": {
                         "origin": "request-tts-transcription",
-                        "jsonPath": "//segments[$INDEX]/start"
+                        "json_path": "//segments[$INDEX]/start"
                     },
                     "end": {
                         "origin": "request-tts-transcription",
-                        "jsonPath": "//segments[$INDEX]/end"
+                        "json_path": "//segments[$INDEX]/end"
                     },
                     "image": {
                         "origin": "add-transcription-text-to-image"
@@ -244,7 +244,7 @@
                 "property": {
                     "condition": {
                         "origin": "fetch-video-moderation-decision",
-                        "jsonPath": "action='declined'"
+                        "json_path": "action='declined'"
                     }
                 }
             }
@@ -257,7 +257,7 @@
                 "property": {
                     "user_request": {
                         "origin": "get-text-content-for-video",
-                        "jsonPath": "choices[0].message"
+                        "json_path": "choices[0].message"
                     }
                 }
             },
@@ -279,7 +279,7 @@
                 "property": {
                     "user_request": {
                         "origin": "get-text-content-for-video",
-                        "jsonPath": "choices[0].message"
+                        "json_path": "choices[0].message"
                     }
                 }
             },
@@ -301,13 +301,13 @@
                 "property": {
                     "user_request": {
                         "origin": "get-text-content-for-video",
-                        "jsonPath": "choices[0].message"
+                        "json_path": "choices[0].message"
                     }
                 },
                 "format_vars": {
                     "exclude_tags": {
                         "origin": "",
-                        "jsonPath": ""
+                        "json_path": ""
                     }
                 }
             },

@@ -222,7 +222,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayFromJSONPathStart() {
 							"property": {
 								"text": {
 									"origin": "get-event-text",
-									"jsonPath": "$"
+									"json_path": "$"
 								}
 							}
 						}
@@ -248,7 +248,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayFromJSONPathStart() {
 							"property": {
 								"prompt": {
 									"origin": "get-event-transcription",
-									"jsonPath": "$.segments[*].text"
+									"json_path": "$.segments[*].text"
 								}
 							}
 						},
@@ -428,7 +428,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayFromJSONPathResume() {
 							"property": {
 								"text": {
 									"origin": "get-event-text",
-									"jsonPath": "$"
+									"json_path": "$"
 								}
 							}
 						}
@@ -454,7 +454,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayFromJSONPathResume() {
 							"property": {
 								"prompt": {
 									"origin": "get-event-transcription",
-									"jsonPath": "$.segments[*].text"
+									"json_path": "$.segments[*].text"
 								}
 							}
 						},
@@ -682,7 +682,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayFromJSONPathReplaceStart() {
 							"property": {
 								"text": {
 									"origin": "get-event-text",
-									"jsonPath": "$"
+									"json_path": "$"
 								}
 							}
 						}
@@ -708,15 +708,15 @@ func (suite *FunctionalTestSuite) TestPipelineArrayFromJSONPathReplaceStart() {
 							"property": {
 								"text": {
 									"origin": "get-event-transcription",
-									"jsonPath": "$.text"
+									"json_path": "$.text"
 								},
 								"old": {
 									"origin": "get-event-transcription",
-									"jsonPath": "$.segments[*].text"
+									"json_path": "$.segments[*].text"
 								},
 								"new": {
 									"origin": "get-event-transcription",
-									"jsonPath": "$.segments[*].text"
+									"json_path": "$.segments[*].text"
 								}
 							}
 						},
@@ -941,7 +941,7 @@ func (suite *FunctionalTestSuite) TestPipelineResumeArrayTargetIndex() {
 							"property": {
 								"text": {
 									"origin": "get-event-text",
-									"jsonPath": "$"
+									"json_path": "$"
 								}
 							}
 						}
@@ -967,7 +967,7 @@ func (suite *FunctionalTestSuite) TestPipelineResumeArrayTargetIndex() {
 							"property": {
 								"prompt": {
 									"origin": "get-event-transcription",
-									"jsonPath": "$.segments[*].text"
+									"json_path": "$.segments[*].text"
 								}
 							}
 						},
@@ -988,7 +988,7 @@ func (suite *FunctionalTestSuite) TestPipelineResumeArrayTargetIndex() {
 								},
 								"text": {
 									"origin": "get-event-transcription",
-									"jsonPath": "$.segments[*].text"
+									"json_path": "$.segments[*].text"
 								}
 							}
 						},
@@ -1257,7 +1257,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayFromJSONPathStartParallel() {
 							"property": {
 								"text": {
 									"origin": "get-event-text",
-									"jsonPath": "$"
+									"json_path": "$"
 								}
 							}
 						}
@@ -1284,7 +1284,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayFromJSONPathStartParallel() {
 							"property": {
 								"prompt": {
 									"origin": "get-event-transcription",
-									"jsonPath": "$.segments[*].text"
+									"json_path": "$.segments[*].text"
 								}
 							}
 						},
@@ -1505,7 +1505,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayFromJSONPathStartParallelFail
 							"property": {
 								"text": {
 									"origin": "get-event-text",
-									"jsonPath": "$"
+									"json_path": "$"
 								}
 							}
 						}
@@ -1532,7 +1532,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayFromJSONPathStartParallelFail
 							"property": {
 								"prompt": {
 									"origin": "get-event-transcription",
-									"jsonPath": "$.segments[*].text"
+									"json_path": "$.segments[*].text"
 								}
 							}
 						},
@@ -1863,7 +1863,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationApproveAll() {
 							"property": {
 								"text": {
 									"origin": "get-event-text",
-									"jsonPath": "$"
+									"json_path": "$"
 								}
 							}
 						}
@@ -1890,7 +1890,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationApproveAll() {
 							"property": {
 								"prompt": {
 									"origin": "get-event-transcription",
-									"jsonPath": "$.segments[*].text"
+									"json_path": "$.segments[*].text"
 								}
 							}
 						},
@@ -1912,7 +1912,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationApproveAll() {
 								},
 								"text": {
 									"origin": "get-event-transcription",
-									"jsonPath": "$.segments[*].text"
+									"json_path": "$.segments[*].text"
 								}
 							}
 						},
@@ -2268,7 +2268,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationDeclineThird() {
 							"property": {
 								"text": {
 									"origin": "get-event-text",
-									"jsonPath": "$"
+									"json_path": "$"
 								}
 							}
 						}
@@ -2295,7 +2295,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationDeclineThird() {
 							"property": {
 								"prompt": {
 									"origin": "get-event-transcription",
-									"jsonPath": "$.segments[*].text"
+									"json_path": "$.segments[*].text"
 								}
 							}
 						},
@@ -2317,7 +2317,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationDeclineThird() {
 								},
 								"text": {
 									"origin": "get-event-transcription",
-									"jsonPath": "$.segments[*].text"
+									"json_path": "$.segments[*].text"
 								}
 							}
 						},
@@ -2699,7 +2699,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 							"property": {
 								"text": {
 									"origin": "get-event-text",
-									"jsonPath": "$"
+									"json_path": "$"
 								}
 							}
 						}
@@ -2725,7 +2725,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 							"property": {
 								"prompt": {
 									"origin": "get-event-transcription",
-									"jsonPath": "$.segments[*].text"
+									"json_path": "$.segments[*].text"
 								}
 							}
 						},
@@ -2746,7 +2746,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 								},
 								"text": {
 									"origin": "get-event-transcription",
-									"jsonPath": "$.segments[*].text"
+									"json_path": "$.segments[*].text"
 								}
 							}
 						},

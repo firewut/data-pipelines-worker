@@ -220,7 +220,7 @@ func (b *BlockData) GetInputConfigData(
 	var schema map[string]interface{}
 	err := json.Unmarshal([]byte(b.GetBlock().GetSchemaString()), &schema)
 	if err != nil {
-		fmt.Println("Error unmarshaling schema:", err)
+
 		return nil, false, err
 	}
 
@@ -248,7 +248,6 @@ func (b *BlockData) GetInputConfigData(
 		default:
 		}
 	}
-	_ = inputTypeArray
 
 	for property, property_config := range b.InputConfig {
 		if property_config == nil {
@@ -267,6 +266,12 @@ func (b *BlockData) GetInputConfigData(
 
 					// Check origin in PropertyData exists in pipelineResults
 					if origin, ok := property_config.(map[string]interface{})["origin"].(string); ok {
+						arrayInput := false
+						if _, ok := property_config.(map[string]interface{})["array_input"]; ok {
+							arrayInput = property_config.(map[string]interface{})["array_input"].(bool)
+						}
+						_ = arrayInput
+
 						if results, ok := pipelineResults[origin]; ok {
 							for _, resultValue := range results {
 								valueCasted, err := helpers.CastPropertyData(
@@ -284,7 +289,7 @@ func (b *BlockData) GetInputConfigData(
 								}
 
 								// jsonPath same level as `origin`
-								if jsonPath, ok := property_config.(map[string]interface{})["jsonPath"].(string); ok {
+								if jsonPath, ok := property_config.(map[string]interface{})["json_path"].(string); ok {
 									data, err := HandleResultValue(resultValue.Bytes())
 									if err != nil {
 										return nil, false, err
@@ -333,7 +338,6 @@ func (b *BlockData) GetInputConfigData(
 
 	if inputTypeArray {
 		inputData = MergeMaps(inputData)
-
 	} else {
 		inputDataNotArray := make(map[string]interface{})
 		for _, data := range inputData {

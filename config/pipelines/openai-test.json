@@ -21,7 +21,7 @@
                 "property": {
                     "text": {
                         "origin": "get-event-text",
-                        "jsonPath": "$"
+                        "json_path": "$"
                     }
                 }
             },
@@ -49,7 +49,7 @@
                 "property": {
                     "text": {
                         "origin": "get-event-text",
-                        "jsonPath": "$"
+                        "json_path": "$"
                     }
                 }
             }
@@ -67,14 +67,14 @@
             }
         },
         {
-            "id": "text_add_prefix_suffix",
+            "id": "wrap_text",
             "slug": "make-system-prompt-for-image-prompt-generation",
             "description": "Make a system prompt for image generation from the event text",
             "input_config": {
                 "property": {
                     "text": {
                         "origin": "get-event-transcription",
-                        "jsonPath": "$.text"
+                        "json_path": "$.text"
                     }
                 }
             },
@@ -94,7 +94,7 @@
                     },
                     "user_prompt": {
                         "origin": "get-event-transcription",
-                        "jsonPath": "$.segments[*].text"
+                        "json_path": "$.segments[*].text"
                     }
                 }
             },
@@ -132,7 +132,7 @@
                     },
                     "text": {
                         "origin": "get-event-transcription",
-                        "jsonPath": "$.segments[*].text"
+                        "json_path": "$.segments[*].text"
                     }
                 }
             },
@@ -159,6 +159,50 @@
             },
             "input": {
                 "block_slug": "send-event-images-moderation-to-telegram"
+            }
+        },
+        {
+            "id": "image_add_text",
+            "slug": "add-text-to-event-images",
+            "description": "Add text to the generated Event Images",
+            "input_config": {
+                "type": "array",
+                "parallel": true,
+                "property": {
+                    "image": {
+                        "origin": "get-event-images"
+                    },
+                    "text": {
+                        "origin": "get-event-transcription",
+                        "json_path": "$.segments[*].text"
+                    }
+                }
+            },
+            "input": {
+                "font_color": "#fff",
+                "text_bg_margin": 25
+            }
+        },
+        {
+            "id": "video_from_image",
+            "slug": "generate-videos-from-images-and-transcriptions",
+            "description": "Generate video from Images and Transcription Segments",
+            "input_config": {
+                "type": "array", 
+                "parallel": true,
+                "property": {
+                    "start": {
+                        "origin": "get-event-transcription",
+                        "json_path": "$.segments[*].start"
+                    },
+                    "end": {
+                        "origin": "get-event-transcription",
+                        "json_path": "$.segments[*].end"
+                    },
+                    "image": {
+                        "origin": "add-text-to-event-images"
+                    }
+                }
             }
         }
     ]

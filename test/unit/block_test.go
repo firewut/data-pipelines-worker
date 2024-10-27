@@ -555,7 +555,7 @@ func (suite *UnitTestSuite) TestGetInputConfigDataJSONPathPlainProperty() {
 					"property": {
 						"body": {
 							"origin": "request-tts-transcription",
-							"jsonPath": "$.language"
+							"json_path": "$.language"
 						}
 					}
 				},
@@ -623,7 +623,7 @@ func (suite *UnitTestSuite) TestGetInputConfigDataJSONPathArrayNthObjectProperty
 					"property": {
 						"body": {
 							"origin": "request-tts-transcription",
-							"jsonPath": "$.segments[1].text"
+							"json_path": "$.segments[1].text"
 						}
 					}
 				},
@@ -691,7 +691,7 @@ func (suite *UnitTestSuite) TestGetInputConfigDataJSONPathValueAsArray() {
 					"property": {
 						"body": {
 							"origin": "request-tts-transcription",
-							"jsonPath": "$.segments[*].text"
+							"json_path": "$.segments[*].text"
 						}
 					}
 				},
@@ -765,11 +765,11 @@ func (suite *UnitTestSuite) TestGetInputConfigDataJSONPathValueAsArrayMultipleDe
 					"property": {
 						"body": {
 							"origin": "request-tts-transcription",
-							"jsonPath": "$.segments[*].text"
+							"json_path": "$.segments[*].text"
 						},
 						"query": {
 							"origin": "request-tts-transcription",
-							"jsonPath": "$.segments[*].end"
+							"json_path": "$.segments[*].end"
 						}
 					}
 				},
@@ -847,7 +847,7 @@ func (suite *UnitTestSuite) TestGetInputConfigDataTypeNotArrayInputArray() {
 					"property": {
 						"body": {
 							"origin": "request-tts-transcription",
-							"jsonPath": "$.segments[*].text"
+							"json_path": "$.segments[*].text"
 						}
 					}
 				},
@@ -954,7 +954,7 @@ func (suite *UnitTestSuite) TestGetInputConfigDataTypeArrayInputArray() {
 					"property": {
 						"body": {
 							"origin": "request-tts-transcription",
-							"jsonPath": "$.segments[*].text"
+							"json_path": "$.segments[*].text"
 						}
 					}
 				},
@@ -971,7 +971,7 @@ func (suite *UnitTestSuite) TestGetInputConfigDataTypeArrayInputArray() {
 					"property": {
 						"body": {
 							"origin": "request-tts-transcription",
-							"jsonPath": "$.text"
+							"json_path": "$.text"
 						}
 					}
 				},
@@ -1106,7 +1106,7 @@ func (suite *UnitTestSuite) TestGetInputConfigDataTypeDefaultInputArray() {
 					"property": {
 						"body": {
 							"origin": "request-tts-transcription",
-							"jsonPath": "$.segments[*].text"
+							"json_path": "$.segments[*].text"
 						}
 					}
 				},
@@ -1123,7 +1123,7 @@ func (suite *UnitTestSuite) TestGetInputConfigDataTypeDefaultInputArray() {
 					"property": {
 						"body": {
 							"origin": "request-tts-transcription",
-							"jsonPath": "$.text"
+							"json_path": "$.text"
 						}
 					}
 				},
@@ -1250,7 +1250,7 @@ func (suite *UnitTestSuite) TestOpenAIPipeline() {
 					"property": {
 						"text": {
 							"origin": "get-event-text",
-							"jsonPath": "$"
+							"json_path": "$"
 						}
 					}
 				}
@@ -1276,7 +1276,7 @@ func (suite *UnitTestSuite) TestOpenAIPipeline() {
 					"property": {
 						"prompt": {
 							"origin": "get-event-transcription",
-							"jsonPath": "$.segments[*].text"
+							"json_path": "$.segments[*].text"
 						}
 					}
 				},

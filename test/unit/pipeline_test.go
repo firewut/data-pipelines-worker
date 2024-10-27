@@ -141,7 +141,7 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineTrue() {
 							"property": {
 								"data": {
 									"origin": "test-block-first-slug",
-									"jsonPath": "$.action"
+									"json_path": "$.action"
 								}
 							}
 						},
@@ -232,7 +232,7 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalse() {
 							"property": {
 								"data": {
 									"origin": "test-block-first-slug",
-									"jsonPath": "$.action"
+									"json_path": "$.action"
 								}
 							}
 						},
@@ -324,7 +324,7 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineTrueThreeBlocks() {
 							"property": {
 								"data": {
 									"origin": "test-block-first-slug",
-									"jsonPath": "$"
+									"json_path": "$"
 								}
 							}
 						},
@@ -440,7 +440,7 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalseThreeBlocks() {
 							"property": {
 								"data": {
 									"origin": "test-block-first-slug",
-									"jsonPath": "$"
+									"json_path": "$"
 								}
 							}
 						},

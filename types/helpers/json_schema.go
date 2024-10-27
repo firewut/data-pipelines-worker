@@ -54,6 +54,13 @@ func CastDataToType(data interface{}, schema map[string]interface{}) (interface{
 		return nil, err
 	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			// Handle the panic, return an error
+			err = fmt.Errorf("panic occurred: %v", r)
+		}
+	}()
+
 	// Handle different formats as needed
 	switch propType {
 	case "string":

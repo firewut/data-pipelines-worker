@@ -182,7 +182,7 @@ blocks:
     parallel_available: true
     config:
   
-  text_add_prefix_suffix:
+  wrap_text:
     detector:
       check_interval: 50m
       conditions:
@@ -190,3 +190,19 @@ blocks:
       policy: "none"
     parallel_available: true
     config:
+
+  video_from_image:
+    detector:
+      check_interval: 60m
+      conditions:
+    reliability:
+      policy: "none"
+    parallel_available: true
+    config:
+      ffmpeg_binary: ""
+      format: "mp4"
+      preset: "veryfast"
+      crf: 23
+      fps: 30
+      start: 0.0
+      end: 1.0

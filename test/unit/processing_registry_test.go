@@ -609,7 +609,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingFailed() {
 						"property": {
 							"text": {
 								"origin": "get-event-text",
-								"jsonPath": "$"
+								"json_path": "$"
 							}
 						}
 					},
@@ -745,7 +745,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingSucceededFirstT
 						"property": {
 							"text": {
 								"origin": "get-event-text",
-								"jsonPath": "$"
+								"json_path": "$"
 							}
 						}
 					},
