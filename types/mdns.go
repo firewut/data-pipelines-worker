@@ -103,7 +103,7 @@ func (m *MDNS) GetTXT() []string {
 		keys = append(keys, k)
 	}
 
-	return []string{
+	txt := []string{
 		fmt.Sprintf("version=%s", m.DNSSDStatus.Version),
 		fmt.Sprintf("load=%.2f", m.load),
 		fmt.Sprintf("available=%t", m.available),
@@ -115,6 +115,8 @@ func (m *MDNS) GetTXT() []string {
 			),
 		),
 	}
+
+	return txt
 }
 
 func (m *MDNS) Announce() {

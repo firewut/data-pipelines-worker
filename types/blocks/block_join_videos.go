@@ -102,6 +102,7 @@ func (p *ProcessorJoinVideos) Process(
 		if err != nil {
 			return nil, false, false, "", -1, err
 		}
+		defer os.Remove(tempVideoFile.Name())
 
 		// Write the video buffer to the temp file
 		if _, err = tempVideoFile.Write(videoBuffer); err != nil {

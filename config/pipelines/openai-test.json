@@ -217,6 +217,24 @@
                     }
                 }
             }
+        },
+        {
+            "id": "video_add_audio",
+            "slug": "add-audio-to-joined-video",
+            "description": "Add Generated TTS to Result Video",
+            "input_config": {
+                "property": {
+                    "audio": {
+                        "origin": "get-event-tts"
+                    },
+                    "video": {
+                        "origin": "join-videos-from-array"
+                    }
+                }
+            },
+            "input": {
+                "replace_original_audio": true
+            }
         }
     ]
 }

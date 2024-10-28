@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -155,6 +157,56 @@ func NewOpenAIClient(url string) *openai.Client {
 func NewTelegramClient(url string) (*tgbotapi.BotAPI, error) {
 	apiEndpoint := url + "/bot%s/%s"
 	return tgbotapi.NewBotAPIWithAPIEndpoint("TOKEN", apiEndpoint)
+}
+
+func GetShortAudioBuffer(durationSeconds int) bytes.Buffer {
+	buf := new(bytes.Buffer)
+
+	ffmpegBinary, err := config.GetFFmpegBinary()
+	if err != nil {
+		panic(err)
+	}
+
+	tempOutputFile, err := os.CreateTemp("", "output-*.wav")
+	if err != nil {
+		panic(err)
+	}
+	defer os.Remove(tempOutputFile.Name())
+
+	args := []string{
+		"-y",
+		"-f", "lavfi",
+		"-i", fmt.Sprintf(
+			"sine=frequency=1000:duration=%d",
+			durationSeconds,
+		),
+		"-c:a", "pcm_s16le",
+		"-ar", "44100",
+		"-ac", "2",
+	}
+	args = append(args, tempOutputFile.Name())
+
+	var stderr bytes.Buffer
+	cmd := exec.Command(ffmpegBinary, args...)
+	cmd.Stderr = &stderr
+
+	err = cmd.Run()
+	if err != nil {
+		fmt.Printf("FFmpeg error: %v\n", err)
+		fmt.Printf("FFmpeg stderr: %s\n", stderr.String()) // Capture full error message
+
+		panic(err)
+	}
+
+	// Read the resulting video into a buffer
+	audioBuffer, err := os.ReadFile(tempOutputFile.Name())
+	if err != nil {
+		panic(err)
+	}
+
+	buf.Write(audioBuffer)
+
+	return *buf
 }
 
 func GetPNGImageBuffer(width int, height int) bytes.Buffer {

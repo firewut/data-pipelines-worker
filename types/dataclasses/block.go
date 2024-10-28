@@ -291,6 +291,7 @@ func (b *BlockData) GetInputConfigData(
 								)
 
 								if err != nil {
+									// TODO: must be rawValue
 									valueCasted = resultValue.String()
 								}
 

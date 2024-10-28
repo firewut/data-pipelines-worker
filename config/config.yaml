@@ -217,3 +217,14 @@ blocks:
     config:
       ffmpeg_binary: ""
       re_encode: false
+  
+  video_add_audio:
+    detector:
+      check_interval: 60m
+      conditions:
+    reliability:
+      policy: "none"
+    parallel_available: false
+    config:
+      ffmpeg_binary: ""
+      replace_original_audio: false
