@@ -179,7 +179,9 @@
                 }
             },
             "input": {
+                "font": "Roboto-Regular.ttf",
                 "font_color": "#fff",
+                "text_bg_alpha": "0.8",
                 "text_bg_margin": 25
             }
         },
