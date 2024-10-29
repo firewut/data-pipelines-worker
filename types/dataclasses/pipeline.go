@@ -306,6 +306,12 @@ func (p *PipelineData) Process(
 			blockInputProcessingResults := make(chan blockInputProcessingResult, len(blockInputData))
 			defer close(blockInputProcessingResults)
 
+			if parallel {
+				// TODO: Enable by default
+				// Parallel processings must update registry instead of append
+				pipelineBlockDataRegistry.PrepareBlockData(blockData.GetSlug(), len(blockInputData))
+			}
+
 			for blockInputIndex, blockInput := range blockInputData {
 				registryAddBlockData := true
 				if inputData.Block.TargetIndex >= 0 {
@@ -329,6 +335,10 @@ func (p *PipelineData) Process(
 
 						registryAddBlockData = false
 					}
+				}
+
+				if parallel {
+					registryAddBlockData = false
 				}
 
 				logger.Infof(
@@ -358,6 +368,7 @@ func (p *PipelineData) Process(
 					_blockData interfaces.ProcessableBlockData,
 					_processing interfaces.Processing,
 					_blockInputProcessingResults chan blockInputProcessingResult,
+					_registryAddBlockData bool,
 				) (interfaces.ProcessingOutput, error) {
 					defer blockInputWg.Done()
 
@@ -479,7 +490,7 @@ func (p *PipelineData) Process(
 						blockInputIndex,
 					)
 
-					if registryAddBlockData {
+					if _registryAddBlockData {
 						pipelineBlockDataRegistry.AddBlockData(
 							_blockData.GetSlug(),
 							processingOutput.GetValue(),
@@ -528,12 +539,14 @@ func (p *PipelineData) Process(
 						blockDataClone,
 						processing,
 						blockInputProcessingResults,
+						registryAddBlockData,
 					)
 				} else {
 					processingOutput, err := processBlockInput(
 						blockDataClone,
 						processing,
 						blockInputProcessingResults,
+						registryAddBlockData,
 					)
 					if err != nil ||
 						processingOutput.GetStop() ||

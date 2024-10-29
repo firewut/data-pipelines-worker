@@ -79,6 +79,98 @@ func (suite *UnitTestSuite) TestNewPipelineBlockDataRegistrySetStorages() {
 	)
 }
 
+func (suite *UnitTestSuite) TestNewPipelineBlockDataRegistryLoadOutputLocalStorage() {
+	// Given
+	numFiles := 10
+	processingId := uuid.New()
+	pipelineSlug := "test-pipeline-slug"
+	blockSlug := "test-block-slug"
+	storages := []interfaces.Storage{
+		types.NewLocalStorage(""),
+	}
+
+	pipelineBlockDataRegistry := registries.NewPipelineBlockDataRegistry(
+		processingId,
+		pipelineSlug,
+		storages,
+	)
+	suite.NotNil(pipelineBlockDataRegistry)
+
+	savedFilesContents := make([]*bytes.Buffer, 0)
+	for i := 0; i < numFiles; i++ {
+		savedFilesContents = append(
+			savedFilesContents,
+			bytes.NewBufferString(
+				fmt.Sprintf("Hello, world %d!", i),
+			),
+		)
+	}
+	for i, fileContent := range savedFilesContents {
+		savedOutputResults := pipelineBlockDataRegistry.SaveOutput(
+			blockSlug, i, fileContent,
+		)
+		for _, savedOutputResult := range savedOutputResults {
+			defer savedOutputResult.StorageLocation.Delete()
+		}
+	}
+
+	// When
+	loadedFilesContents := pipelineBlockDataRegistry.LoadOutput(blockSlug)
+
+	// Then
+	suite.Equal(numFiles, len(loadedFilesContents))
+	for i, fileContent := range loadedFilesContents {
+		suite.Equal(savedFilesContents[i].String(), fileContent.String())
+	}
+}
+
+func (suite *UnitTestSuite) TestNewPipelineBlockDataRegistryPrepareBlockData() {
+	// Given
+	numFiles := 10
+	processingId := uuid.New()
+	pipelineSlug := "test-pipeline-slug"
+	blockSlug := "test-block-slug"
+	storages := []interfaces.Storage{
+		types.NewLocalStorage(""),
+	}
+
+	pipelineBlockDataRegistry := registries.NewPipelineBlockDataRegistry(
+		processingId,
+		pipelineSlug,
+		storages,
+	)
+	suite.NotNil(pipelineBlockDataRegistry)
+
+	savedFilesContents := make([]*bytes.Buffer, 0)
+	for i := 0; i < numFiles; i++ {
+		savedFilesContents = append(
+			savedFilesContents,
+			bytes.NewBufferString(
+				fmt.Sprintf("Hello, world %d!", i),
+			),
+		)
+	}
+	for i, fileContent := range savedFilesContents {
+		savedOutputResults := pipelineBlockDataRegistry.SaveOutput(
+			blockSlug, i, fileContent,
+		)
+		for _, savedOutputResult := range savedOutputResults {
+			defer savedOutputResult.StorageLocation.Delete()
+		}
+	}
+
+	loadedFilesContents := pipelineBlockDataRegistry.LoadOutput(blockSlug)
+
+	// When
+	pipelineBlockDataRegistry.PrepareBlockData(blockSlug, len(loadedFilesContents))
+
+	// Then
+	suite.Equal(numFiles, len(loadedFilesContents))
+	for i, fileContent := range loadedFilesContents {
+		suite.Equal(savedFilesContents[i].String(), fileContent.String())
+	}
+}
+
 func (suite *UnitTestSuite) TestNewPipelineBlockDataRegistrySaveOutputLocalStorage() {
 	// Given
 	processingId := uuid.New()

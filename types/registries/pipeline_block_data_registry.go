@@ -50,6 +50,23 @@ func NewPipelineBlockDataRegistry(
 func (r *PipelineBlockDataRegistry) Add(input []*bytes.Buffer) {
 }
 
+func (r *PipelineBlockDataRegistry) PrepareBlockData(blockSlug string, size int) {
+	r.Lock()
+	defer r.Unlock()
+
+	// if array does not exist, create it
+	if _, ok := r.pipelineBlockData[blockSlug]; !ok {
+		r.pipelineBlockData[blockSlug] = make([]*bytes.Buffer, size)
+	}
+
+	// if array is not long enough, copy and extend it
+	if size > len(r.pipelineBlockData[blockSlug]) {
+		newData := make([]*bytes.Buffer, size)
+		copy(newData, r.pipelineBlockData[blockSlug])
+		r.pipelineBlockData[blockSlug] = newData
+	}
+}
+
 func (r *PipelineBlockDataRegistry) UpdateBlockData(blockSlug string, index int, data *bytes.Buffer) {
 	r.Lock()
 	defer r.Unlock()
@@ -165,6 +182,7 @@ func (r *PipelineBlockDataRegistry) LoadOutput(blockSlug string) []*bytes.Buffer
 		}
 
 		for _, object := range objects {
+			// TODO: Add respect to file suffix ( output_{i}.<mimetype> )
 			data, err := storage.GetObjectBytes(object)
 			if err != nil {
 				continue

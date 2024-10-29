@@ -72,22 +72,30 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessIncorrectInput() {
 func (suite *UnitTestSuite) TestBlockImageAddTextProcessSuccess() {
 	// Given
 	width := 100
-	height := 200
+	height := 100
 
 	texts := []string{
-		"On October 5, 1962, the world was forever changed as the Beatles released their debut single in the UK.",
+		" On October 29, 1929, the United States experienced the Wall Street crash, ",
+		" marking the beginning of the Great Depression. ",
+		" Stocks plummeted, affecting economies worldwide and leading to economic reforms. ",
 	}
 	fonts := []string{"Roboto-Regular.ttf"}
 	fontSizes := []int{5}
-	fontColors := []string{"#AA44AA"}
+	fontColors := []string{"#FFFFFF"}
 	textPositions := []string{
-		"top-left", "top-center", "top-right",
-		"center-left", "center-center", "center-right",
-		"bottom-left", "bottom-center", "bottom-right",
+		"top-left",
+		"top-center",
+		"top-right",
+		"center-left",
+		"center-center",
+		"center-right",
+		"bottom-left",
+		"bottom-center",
+		"bottom-right",
 	}
 	textBgColors := []string{"#000000"}
 	textBgAlphas := []float64{0.8}
-	textBgMargins := []float64{2}
+	textBgMargins := []float64{2.5}
 	textBgAllWidths := []bool{true}
 
 	type testCase struct {
@@ -176,6 +184,11 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessSuccess() {
 			suite.NotNil(result)
 			suite.False(stop)
 			suite.Nil(err)
+
+			// os.MkdirAll("images", os.ModePerm)
+			// f, _ := os.Create(fmt.Sprintf("images/image_add_text_%d.png", idx))
+			// f.Write(result.Bytes())
+			// f.Close()
 
 			// Decode the resulting image
 			image, err := png.Decode(bytes.NewReader(result.Bytes()))

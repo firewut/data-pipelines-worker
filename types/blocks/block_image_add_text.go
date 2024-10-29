@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"image"
 	"image/png"
+	"strings"
 	"time"
 
 	"github.com/fogleman/gg"
@@ -68,10 +69,16 @@ func (p *ProcessorImageAddText) Process(
 	helpers.MapToJSONStruct(_data, userBlockConfig)
 	helpers.MergeStructs(defaultBlockConfig, userBlockConfig, blockConfig)
 
+	// False is not merging correct over true ( default is false )
+	if userBlockConfig.TextBgAllWidth != defaultBlockConfig.TextBgAllWidth {
+		blockConfig.TextBgAllWidth = userBlockConfig.TextBgAllWidth
+	}
+
 	text, err := helpers.GetValue[string](_data, "text")
 	if err != nil {
 		return nil, false, false, "", -1, err
 	}
+	text = strings.Trim(text, " ")
 
 	imageBytes, err := helpers.GetValue[[]byte](_data, "image")
 	if err != nil {
@@ -108,96 +115,49 @@ func (p *ProcessorImageAddText) Process(
 	defer fontFace.Close()
 
 	dc := gg.NewContextForImage(img)
-
 	dc.SetFontFace(fontFace)
 
-	lineHeight := blockConfig.FontSize * 1.2 // Increase the line height for better readability
-	maxWidth := float64(dc.Width())          // Use the full width of the context
+	lineHeight := dc.FontHeight() * 1.2 // Increase the line height for better readability
 
 	var (
-		x           float64
-		y           float64
-		ax          float64
-		ay          float64
-		width       float64
-		lineSpacing float64 = 1.2
-		align       gg.Align
+		y     float64
+		align gg.Align
 	)
 	switch blockConfig.TextPosition {
 	case "top-left":
-		x = lineHeight
 		y = lineHeight
-		ax = 0
-		ay = 0
-		width = maxWidth - lineHeight*2
 		align = gg.AlignLeft
 	case "top-center":
-		x = lineHeight
 		y = lineHeight
-		ax = 0
-		ay = 0
-		width = maxWidth - lineHeight*2
 		align = gg.AlignCenter
 	case "top-right":
-		x = lineHeight
 		y = lineHeight
-		ax = 0
-		ay = 0
-		width = maxWidth - lineHeight*2
 		align = gg.AlignRight
 	case "center-left":
-		x = lineHeight
 		y = float64(dc.Height()) / 2
-		ax = 0
-		ay = 0
-		width = maxWidth - lineHeight*2
 		align = gg.AlignLeft
 	case "center-center":
-		x = lineHeight
 		y = float64(dc.Height()) / 2
-		ax = 0
-		ay = 0
-		width = maxWidth - lineHeight*2
 		align = gg.AlignCenter
 	case "center-right":
-		x = lineHeight
 		y = float64(dc.Height()) / 2
-		ax = 0
-		ay = 0
-		width = maxWidth - lineHeight*2
 		align = gg.AlignRight
 	case "bottom-left":
-		x = lineHeight
-		y = float64(dc.Height()) - lineHeight
-		ax = 0
-		ay = 1
-		width = maxWidth - lineHeight*2
+		y = float64(dc.Height())
 		align = gg.AlignLeft
 	case "bottom-center":
-		x = lineHeight
-		y = float64(dc.Height()) - lineHeight
-		ax = 0
-		ay = 1
-		width = maxWidth - lineHeight*2
+		y = float64(dc.Height())
 		align = gg.AlignCenter
 	case "bottom-right":
-		x = lineHeight
-		y = float64(dc.Height()) - lineHeight
-		ax = 0
-		ay = 1
-		width = maxWidth - lineHeight*2
+		y = float64(dc.Height())
 		align = gg.AlignRight
 	default:
-		x = lineHeight
 		y = float64(dc.Height()) / 2
-		ax = 0
-		ay = 0
-		width = maxWidth - lineHeight*2
 		align = gg.AlignCenter
 	}
 
 	drawTextWithBackground(
-		dc, text, x, y, ax, ay, width, lineSpacing, align,
+		dc, text, lineHeight, y, align,
 		blockConfig,
 	)
 
@@ -228,52 +188,81 @@ type BlockImageAddTextConfig struct {
 	TextBgAllWidth bool    `yaml:"text_bg_all_width" json:"text_bg_all_width"`
 }
 
-func drawTextWithBackground(dc *gg.Context, s string, x, y, ax, ay float64, width, lineSpacing float64, align gg.Align, blockConfig *BlockImageAddTextConfig) {
-	lines := dc.WordWrap(s, width)
-
-	// Sync height formula with MeasureMultilineString
-	h := float64(len(lines)) * dc.FontHeight() * lineSpacing
-	h -= (lineSpacing - 1) * dc.FontHeight()
-
-	x -= ax * width
-	y -= ay * h
-
-	switch align {
-	case gg.AlignLeft:
-		ax = 0
-	case gg.AlignCenter:
-		ax = 0.5
-		x += width / 2
-	case gg.AlignRight:
-		ax = 1
-		x += width
-	}
-
-	ay = 1
-	lineHeight := dc.FontHeight() * lineSpacing // Calculate the line height
-
-	// Initialize variables to gather dimensions
+func drawTextWithBackground(
+	dc *gg.Context,
+	s string,
+	lineHeight float64,
+	y float64,
+	align gg.Align,
+	blockConfig *BlockImageAddTextConfig,
+) {
 	margin := blockConfig.TextBgMargin
-	totalHeight := lineHeight*float64(len(lines)) + margin*2
 
+	// Set background color for the rectangle
 	bgr, bgg, bgb := helpers.HexToRGB(blockConfig.TextBgColor)
 	dc.SetRGBA255(int(bgr), int(bgg), int(bgb), int(blockConfig.TextBgAlpha*255))
 
+	rectWidth := float64(dc.Width()) * 0.8 // Rectangle width is 80% of canvas width
+	rectX := (float64(dc.Width()) - rectWidth) / 2
+
+	// Check if rectangle should span the full width
 	if blockConfig.TextBgAllWidth {
-		dc.DrawRectangle(0, y-margin/2, float64(dc.Width()), totalHeight)
-	} else {
-		dc.DrawRectangle(x-margin, y-margin/2, ax+margin, totalHeight)
+		rectX = 0
+		rectWidth = float64(dc.Width())
 	}
+
+	wrappedText := dc.WordWrap(s, rectWidth-(2*margin))           // Wrap the text within the rectangle
+	rectHeight := float64(len(wrappedText))*lineHeight + 2*margin // Calculate rectangle height
+
+	// Edge cases
+	switch {
+	case y < 0.0:
+		// Negative top
+		y = 0.0
+	case y == float64(dc.Height()):
+		// Bottom
+		y -= rectHeight
+	}
+
+	// Draw the background rectangle
+	dc.DrawRectangle(rectX, y, rectWidth, rectHeight)
 	dc.Fill()
 
-	// Second pass: Draw the text over the rectangle
-	for _, line := range lines {
-		// Draw the text anchored
-		dc.SetHexColor(blockConfig.FontColor)
-		dc.DrawStringAnchored(line, x, y, ax, ay)
-		y += lineHeight // Move y down for the next line
+	// Clip to the rectangle to ensure text doesn't overflow
+	dc.Push()
+	dc.DrawRectangle(rectX, y, rectWidth, rectHeight)
+	dc.Clip()
+
+	// Set the text color
+	dc.SetHexColor(blockConfig.FontColor)
+
+	// Adjust textY to properly position the first line of text inside the rectangle
+	// Offset the textY by 0.8*lineHeight to account for the baseline shift
+	textY := y + margin + 0.8*lineHeight
+
+	// Draw each line of wrapped text with the specified alignment
+	for _, line := range wrappedText {
+		var textX float64
+		textWidth, _ := dc.MeasureString(line)
+
+		// Align text based on the alignment parameter (left, center, right)
+		switch align {
+		case gg.AlignLeft:
+			textX = rectX + margin
+		case gg.AlignCenter:
+			textX = rectX + (rectWidth-textWidth)/2
+		case gg.AlignRight:
+			textX = rectX + rectWidth - textWidth - margin
+		}
+
+		// Draw the line of text
+		dc.DrawString(line, textX, textY)
+		// Move textY down for the next line
+		textY += lineHeight
 	}
 
+	// Restore the context to remove the clipping
+	dc.Pop()
 }
 
 type BlockImageAddText struct {
@@ -359,10 +348,9 @@ func NewBlockImageAddText() *BlockImageAddText {
 								"default": 0.5
 							},
 							"text_bg_all_width": {
-								"description": "Text Background all width. Always true for now",
+								"description": "Text Background all width",
 								"type": "boolean",
-								"default": true,
-								"enum": [true]
+								"default": false
 							},
 							"text_position": {
 								"description": "Text position",

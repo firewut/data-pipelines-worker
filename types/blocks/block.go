@@ -166,18 +166,19 @@ func (b *BlockParent) Process(
 	validationResult, err := blockSchema.Validate(dataLoader)
 	if err != nil {
 		logger.Errorf(
-			"Block (%s) schema validation error: %v",
+			"Block (%s #%d) schema validation error: %v",
 			b.GetId(),
+			data.GetInputIndex(),
 			err,
 		)
 		return result, false, false, "", -1, err
 	}
 	if !validationResult.Valid() {
-		errStr := "Block (%s) schema is invalid for data: %s"
+		errStr := "Block (%s #%d) schema is invalid for data: %s"
 		for _, err := range validationResult.Errors() {
 			errStr += fmt.Sprintf("\n- %s", err)
 		}
-		logger.Errorf(errStr, b.GetId(), data.GetStringRepresentation())
+		logger.Errorf(errStr, b.GetId(), data.GetInputIndex(), data.GetStringRepresentation())
 		return result, false, false, "", -1, fmt.Errorf(errStr, b.GetId(), data.GetStringRepresentation())
 	}
 
