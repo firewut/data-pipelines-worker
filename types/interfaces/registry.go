@@ -18,7 +18,6 @@ type WorkerRegistry interface {
 	generics.Registry[Worker]
 
 	GetAvailableWorkers() map[string]Worker
-	GetWorkersWithBlocksDetected(map[string]Worker, string) map[string]Worker
 	GetWorkersWithPipeline(map[string]Worker, string) map[string]Worker
 	GetWorkersWithBlocksAvailable(map[string]Worker, string) map[string]Worker
 	GetValidWorkers(string, string) map[string]Worker

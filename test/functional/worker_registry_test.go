@@ -85,8 +85,8 @@ func (suite *FunctionalTestSuite) TestTwoWorkersAPIDiscoveryCommunication() {
 	suite.Equal(availableWorkers1[worker2.GetId()], worker2)
 	suite.Equal(availableWorkers2[worker1.GetId()], worker1)
 
-	workersWithBlocks1 := workerRegistry1.GetWorkersWithBlocksDetected(availableWorkers1, testBlockId)
-	workersWithBlocks2 := workerRegistry2.GetWorkersWithBlocksDetected(availableWorkers2, testBlockId)
+	workersWithBlocks1 := workerRegistry1.GetWorkersWithBlocksAvailable(availableWorkers1, testBlockId)
+	workersWithBlocks2 := workerRegistry2.GetWorkersWithBlocksAvailable(availableWorkers2, testBlockId)
 	suite.Equal(len(workersWithBlocks1), 1)
 	suite.Equal(len(workersWithBlocks2), 1)
 	suite.Equal(workersWithBlocks1[worker2.GetId()], worker2)

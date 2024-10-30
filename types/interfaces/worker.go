@@ -15,5 +15,4 @@ type WorkerStatus interface {
 	GetLoad() float32
 	GetAvailable() bool
 	GetVersion() string
-	GetBlocks() []string
 }

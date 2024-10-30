@@ -13,7 +13,6 @@ import (
 
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/dataclasses"
-	"data-pipelines-worker/types/interfaces"
 )
 
 type MDNS struct {
@@ -21,8 +20,6 @@ type MDNS struct {
 
 	server      *zeroconf.Server
 	DNSSDStatus config.DNSSD
-
-	blocksMap map[string]interfaces.Block
 
 	discoverWorkersLock sync.Mutex
 	discoveredWorkers   []*dataclasses.Worker
@@ -37,7 +34,6 @@ func NewMDNS() *MDNS {
 
 	return &MDNS{
 		DNSSDStatus:         config.DNSSD,
-		blocksMap:           make(map[string]interfaces.Block),
 		discoveredWorkers:   make([]*dataclasses.Worker, 0),
 		load:                0.0,
 		available:           false,
@@ -73,47 +69,14 @@ func (m *MDNS) GetAvailable() bool {
 	return m.available
 }
 
-func (m *MDNS) SetBlocks(blocks map[string]interfaces.Block) {
-	m.Lock()
-	defer m.Unlock()
-
-	m.blocksMap = blocks
-}
-
-func (m *MDNS) GetBlocks() map[string]interfaces.Block {
-	m.Lock()
-	defer m.Unlock()
-
-	return m.blocksMap
-}
-
-func (m *MDNS) GetBlock(id string) interfaces.Block {
-	m.Lock()
-	defer m.Unlock()
-
-	return m.blocksMap[id]
-}
-
 func (m *MDNS) GetTXT() []string {
 	m.Lock()
 	defer m.Unlock()
-
-	keys := make([]string, 0, len(m.blocksMap))
-	for k := range m.blocksMap {
-		keys = append(keys, k)
-	}
 
 	txt := []string{
 		fmt.Sprintf("version=%s", m.DNSSDStatus.Version),
 		fmt.Sprintf("load=%.2f", m.load),
 		fmt.Sprintf("available=%t", m.available),
-		fmt.Sprintf(
-			"blocks=%s",
-			strings.Join(
-				keys,
-				",",
-			),
-		),
 	}
 
 	return txt

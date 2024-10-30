@@ -61,10 +61,9 @@ func (w *Worker) GetAPIEndpoint() string {
 }
 
 type WorkerStatus struct {
-	Load      float32  `json:"load"`
-	Available bool     `json:"available"`
-	Version   string   `json:"version"`
-	Blocks    []string `json:"blocks"`
+	Load      float32 `json:"load"`
+	Available bool    `json:"available"`
+	Version   string  `json:"version"`
 }
 
 func (ws *WorkerStatus) GetLoad() float32 {
@@ -77,10 +76,6 @@ func (ws *WorkerStatus) GetAvailable() bool {
 
 func (ws *WorkerStatus) GetVersion() string {
 	return ws.Version
-}
-
-func (ws *WorkerStatus) GetBlocks() []string {
-	return ws.Blocks
 }
 
 func NewWorker(entry *zeroconf.ServiceEntry) *Worker {
@@ -107,7 +102,6 @@ func NewWorkerStatus(infoFields map[string]interface{}) interfaces.WorkerStatus 
 		Load:      0.0,
 		Available: false,
 		Version:   "",
-		Blocks:    make([]string, 0),
 	}
 
 	loadStr, ok := infoFields["load"].(string)
@@ -119,12 +113,6 @@ func NewWorkerStatus(infoFields map[string]interface{}) interfaces.WorkerStatus 
 	version, ok := infoFields["version"].(string)
 	if ok {
 		workerStatus.Version = version
-	}
-
-	blocks, ok := infoFields["blocks"].(string)
-	if ok && blocks != "" {
-		// Split the blocks string by comma and add each block to the worker status.
-		workerStatus.Blocks = strings.Split(blocks, ",")
 	}
 
 	available, ok := infoFields["available"].(string)

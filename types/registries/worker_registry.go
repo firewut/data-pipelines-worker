@@ -142,23 +142,6 @@ func (wr *WorkerRegistry) GetAvailableWorkers() map[string]interfaces.Worker {
 	return availableWorkers
 }
 
-func (wr *WorkerRegistry) GetWorkersWithBlocksDetected(
-	workers map[string]interfaces.Worker,
-	blockId string,
-) map[string]interfaces.Worker {
-	workersWithBlocks := make(map[string]interfaces.Worker)
-	for id, worker := range workers {
-		workerBlocks := worker.GetStatus().GetBlocks()
-		for _, workerBlockId := range workerBlocks {
-			if workerBlockId == blockId {
-				workersWithBlocks[id] = worker
-			}
-		}
-	}
-
-	return workersWithBlocks
-}
-
 func (wr *WorkerRegistry) GetWorkersWithPipeline(
 	workers map[string]interfaces.Worker,
 	pipelineSlug string,
@@ -211,8 +194,7 @@ func (wr *WorkerRegistry) GetValidWorkers(
 	pipelineSlug string,
 	blockId string,
 ) map[string]interfaces.Worker {
-	availableWorkers := wr.GetAvailableWorkers()
-	workersWithBlocks := wr.GetWorkersWithBlocksDetected(availableWorkers, blockId)
+	workersWithBlocks := wr.GetAvailableWorkers()
 	workersWithPipeline := wr.GetWorkersWithPipeline(workersWithBlocks, pipelineSlug)
 	workersWithBlocksAndPipeline := wr.GetWorkersWithBlocksAvailable(workersWithPipeline, blockId)
 
