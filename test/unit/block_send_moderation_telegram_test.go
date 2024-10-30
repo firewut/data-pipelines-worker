@@ -187,7 +187,7 @@ func (suite *UnitTestSuite) TestTelegramReviewMessageGenerationBasic() {
 	}
 
 	// When
-	generatedMessage := blocks.GenerateTelegramMessage(review)
+	generatedMessage := blocks.GenerateTelegramReviewMessage(review)
 
 	// Then
 	suite.NotEmpty(generatedMessage)
@@ -213,7 +213,7 @@ func (suite *UnitTestSuite) TestTelegramReviewMessageGenerationWithExtraButtons(
 	}
 
 	// When
-	generatedMessage := blocks.GenerateTelegramMessage(review)
+	generatedMessage := blocks.GenerateTelegramReviewMessage(review)
 
 	// Then
 	suite.NotEmpty(generatedMessage)
@@ -240,7 +240,7 @@ func (suite *UnitTestSuite) TestTelegramReviewMessageGenerationWithImage() {
 	}
 
 	// When
-	generatedMessage := blocks.GenerateTelegramMessage(review)
+	generatedMessage := blocks.GenerateTelegramReviewMessage(review)
 
 	// Then
 	suite.NotEmpty(generatedMessage)
@@ -257,7 +257,7 @@ BlockSlug: send-event-images-moderation-to-telegram
 RegenerateBlockSlug: get-event-images
 Index: 5`
 
-	parsedMessage, err := blocks.ParseTelegramMessage(message)
+	parsedMessage, err := blocks.ParseTelegramReviewMessage(message)
 	suite.NoError(err)
 	suite.Equal("Please check the event.", parsedMessage.Text)
 	suite.Equal("30ec9fb3-8d63-43e2-84dc-9faf72a22253", parsedMessage.ProcessingID)
@@ -272,7 +272,7 @@ ProcessingId: 30ec9fb3-8d63-43e2-84dc-9faf72a22253
 BlockSlug: send-event-images-moderation-to-telegram
 Index: 5`
 
-	parsedMessage, err := blocks.ParseTelegramMessage(message)
+	parsedMessage, err := blocks.ParseTelegramReviewMessage(message)
 	suite.NoError(err)
 	suite.Equal("Please check the event.", parsedMessage.Text)
 	suite.Equal("30ec9fb3-8d63-43e2-84dc-9faf72a22253", parsedMessage.ProcessingID)
@@ -286,7 +286,7 @@ func (suite *UnitTestSuite) TestParseTelegramMessage_MissingProcessingID() {
 BlockSlug: send-event-images-moderation-to-telegram
 Index: 5`
 
-	parsedMessage, err := blocks.ParseTelegramMessage(message)
+	parsedMessage, err := blocks.ParseTelegramReviewMessage(message)
 	suite.Error(err)
 	suite.Equal("missing or malformed text", err.Error())
 	suite.Empty(parsedMessage.Text)
@@ -299,7 +299,7 @@ Index: 5`
 func (suite *UnitTestSuite) TestParseTelegramMessage_MalformedMessage() {
 	message := `Invalid message format`
 
-	parsedMessage, err := blocks.ParseTelegramMessage(message)
+	parsedMessage, err := blocks.ParseTelegramReviewMessage(message)
 	suite.Error(err)
 	suite.Equal("missing or malformed text", err.Error())
 	suite.Empty(parsedMessage.Text)

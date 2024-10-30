@@ -62,6 +62,7 @@ blocks:
       model: "gpt-4o-2024-08-06"
       system_prompt: "You are a helpful assistant."
       user_prompt: "Hello ChatGPT, how are you?"
+      response_format: "text"
 
   openai_tts_request:
     detector:
@@ -228,3 +229,13 @@ blocks:
     config:
       ffmpeg_binary: ""
       replace_original_audio: false
+  
+  send_message_tg:
+    detector:
+      check_interval: 1m
+      conditions:
+    reliability:
+      policy: "none"
+    parallel_available: true
+    config:
+      group_id: "0"

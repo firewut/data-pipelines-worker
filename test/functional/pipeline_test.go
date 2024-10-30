@@ -1782,7 +1782,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationApproveAll() {
 				uuid.New().String(),
 				i,
 				blocks.FormatTelegramMessage(
-					blocks.GenerateTelegramMessage(reviewMessage),
+					blocks.GenerateTelegramReviewMessage(reviewMessage),
 				),
 			),
 		)
@@ -2186,7 +2186,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationDeclineThird() {
 				i,
 				i,
 				blocks.FormatTelegramMessage(
-					blocks.GenerateTelegramMessage(reviewMessage),
+					blocks.GenerateTelegramReviewMessage(reviewMessage),
 				),
 			),
 		)
@@ -2606,7 +2606,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 			uuid.New().String(),
 			i,
 			blocks.FormatTelegramMessage(
-				blocks.GenerateTelegramMessage(reviewMessage),
+				blocks.GenerateTelegramReviewMessage(reviewMessage),
 			),
 		)
 
@@ -2615,7 +2615,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 			uuid.New().String(),
 			i+10,
 			blocks.FormatTelegramMessage(
-				blocks.GenerateTelegramMessage(reviewMessage),
+				blocks.GenerateTelegramReviewMessage(reviewMessage),
 			),
 		)
 

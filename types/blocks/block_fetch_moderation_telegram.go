@@ -184,7 +184,7 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 								messageText = update.CallbackQuery.Message.Caption // Fallback to caption if text is empty
 							}
 
-							moderationMessage, err = ParseTelegramMessage(messageText)
+							moderationMessage, err = ParseTelegramReviewMessage(messageText)
 							if err != nil {
 								fmt.Println("Error parsing Telegram message:", err)
 								continue

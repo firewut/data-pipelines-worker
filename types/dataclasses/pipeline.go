@@ -216,6 +216,7 @@ func (p *PipelineData) Process(
 				)
 
 				if err != nil {
+					logger.Error(err)
 					tmpProcessing.Stop(
 						interfaces.ProcessingStatusFailed,
 						fmt.Errorf(

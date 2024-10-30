@@ -193,7 +193,7 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess()
 					indexCase+indexDecision+1,
 					indexCase+indexDecision+1,
 					blocks.FormatTelegramMessage(
-						blocks.GenerateTelegramMessage(reviewMessage),
+						blocks.GenerateTelegramReviewMessage(reviewMessage),
 					),
 				),
 			)

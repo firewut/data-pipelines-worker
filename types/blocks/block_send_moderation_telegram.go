@@ -30,7 +30,7 @@ type TelegramReviewMessage struct {
 	Index               int
 }
 
-func GenerateTelegramMessage(review TelegramReviewMessage) string {
+func GenerateTelegramReviewMessage(review TelegramReviewMessage) string {
 	template := `Please review: %s
 ProcessingId: %s
 BlockSlug: %s
@@ -53,7 +53,7 @@ func FormatTelegramMessage(message string) string {
 	return strings.ReplaceAll(message, "\n", "\\n") // Escape newline characters
 }
 
-func ParseTelegramMessage(message string) (TelegramReviewMessage, error) {
+func ParseTelegramReviewMessage(message string) (TelegramReviewMessage, error) {
 	reText := regexp.MustCompile(`Please review: (.+?)\nProcessingId:`)
 	reProcessingID := regexp.MustCompile(`ProcessingId: ([^\n]+)`)
 	reBlockSlug := regexp.MustCompile(`BlockSlug: ([^\n]+)`)
@@ -223,7 +223,7 @@ func (p *ProcessorSendModerationToTelegram) Process(
 				Bytes: imageBytes,
 			}
 			photo := tgbotapi.NewPhoto(blockConfig.GroupId, imgFile)
-			photo.Caption = GenerateTelegramMessage(review)
+			photo.Caption = GenerateTelegramReviewMessage(review)
 			photo.ReplyMarkup = keyboard
 			sentMessage, err = client.Send(photo)
 		} else {
@@ -236,7 +236,7 @@ func (p *ProcessorSendModerationToTelegram) Process(
 	if err != nil || imgErr != nil {
 		msg := tgbotapi.NewMessage(
 			blockConfig.GroupId,
-			GenerateTelegramMessage(review),
+			GenerateTelegramReviewMessage(review),
 		)
 		msg.ReplyMarkup = keyboard
 		sentMessage, err = client.Send(msg)

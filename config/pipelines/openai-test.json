@@ -79,7 +79,8 @@
                 }
             },
             "input": {
-                "prefix": "You are going to create a prompt to generate an image according to this text and user request: "
+                "prefix": "You are going to create a prompt to generate an image according to this text and user request: ",
+                "suffix": "Add EXPLICIT Instruction to reflect the cultural and social norms of that era without including modern influences: inclusivity, diversity, etc. EXPLICITLY EXCLUDE any modern influences. The image HAVE TO be historically accurate no matter if someone does not like it."
             }
         },
         {
@@ -162,6 +163,23 @@
             }
         },
         {
+            "id": "openai_chat_completion",
+            "slug": "get-event-details",
+            "description": "Get a title, description and tags for the event",
+            "input_config": {
+                "property": {
+                    "user_prompt": {
+                        "origin": "get-event-text"
+                    }
+                }
+            },
+            "input": {
+                "response_format": "json",
+                "model": "gpt-4o-2024-08-06",
+                "system_prompt": "Generate a JSON object with three keys: \"title\", \"summary\", and \"tags\". For the \"title\", create a title for the provided text consisting of exactly three words, where two of the words summarize the main theme or idea. For the \"summary\", provide a short summary of the text in five to six words that is informative and engaging. For the \"tags\", generate a list of tags related to the text that are formatted as valid hashtags (e.g., #tag1, #tag2), ensuring that only words are used without any additional symbols. The response should be in the following JSON format: { \"title\": \"...\", \"summary\": \"...\", \"tags\": [\"#tag1\", \"#tag2\", \"#tag3\"] }"
+            }
+        },
+        {
             "id": "image_add_text",
             "slug": "add-text-to-event-images",
             "description": "Add text to the generated Event Images",
@@ -237,6 +255,24 @@
             },
             "input": {
                 "replace_original_audio": true
+            }
+        },
+        {
+            "id": "send_message_tg",
+            "slug": "send-event-video-to-telegram",
+            "description": "Send the generated Event Video to Telegram",
+            "input_config": {
+                "property": {
+                    "video": {
+                        "origin": "add-audio-to-joined-video"
+                    },
+                    "text": {
+                        "origin": "get-event-details"
+                    }
+                }
+            },
+            "input": {
+                "group_id": -4573786981
             }
         }
     ]

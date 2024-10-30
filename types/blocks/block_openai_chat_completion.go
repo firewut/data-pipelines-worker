@@ -88,11 +88,21 @@ func (p *ProcessorOpenAIRequestCompletion) Process(
 		Content: blockConfig.UserPrompt,
 	})
 
+	responseFormat := &openai.ChatCompletionResponseFormat{
+		Type: openai.ChatCompletionResponseFormatTypeText,
+	}
+	if blockConfig.ResponseFormat == "json" {
+		responseFormat = &openai.ChatCompletionResponseFormat{
+			Type: openai.ChatCompletionResponseFormatTypeJSONObject,
+		}
+	}
+
 	resp, err := client.CreateChatCompletion(
 		ctx,
 		openai.ChatCompletionRequest{
-			Model:    blockConfig.Model,
-			Messages: messages,
+			Model:          blockConfig.Model,
+			Messages:       messages,
+			ResponseFormat: responseFormat,
 		},
 	)
 	if err != nil {
@@ -104,9 +114,10 @@ func (p *ProcessorOpenAIRequestCompletion) Process(
 }
 
 type BlockOpenAIRequestCompletionConfig struct {
-	Model        string `yaml:"model" json:"model"`
-	SystemPrompt string `yaml:"system_prompt" json:"system_prompt"`
-	UserPrompt   string `yaml:"user_prompt" json:"user_prompt"`
+	Model          string `yaml:"model" json:"model"`
+	SystemPrompt   string `yaml:"system_prompt" json:"system_prompt"`
+	UserPrompt     string `yaml:"user_prompt" json:"user_prompt"`
+	ResponseFormat string `yaml:"response_format" json:"response_format"`
 }
 
 type BlockOpenAIRequestCompletion struct {
@@ -164,6 +175,12 @@ func NewBlockOpenAIRequestCompletion() *BlockOpenAIRequestCompletion {
 								"description": "Prompt for user request",
 								"type": "string",
 								"default": "%s"
+							},
+							"response_format": {
+								"description": "Response format. Check that model supports it at https://platform.openai.com/docs/guides/structured-outputs/introduction",
+								"type": "string",
+								"default": "text",
+								"enum": ["text", "json"]
 							}
 						},
 						"required": ["user_prompt"]

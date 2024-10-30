@@ -833,7 +833,7 @@ func (suite *UnitTestSuite) TestProcessingRegistryRetryProcessingSucceededFirstT
 		data.GetInputIndex(),
 		uuid.New().String(),
 		blocks.FormatTelegramMessage(
-			blocks.GenerateTelegramMessage(reviewMessage),
+			blocks.GenerateTelegramReviewMessage(reviewMessage),
 		),
 	)
 
