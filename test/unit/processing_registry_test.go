@@ -391,9 +391,9 @@ func (suite *UnitTestSuite) TestProcessingRegistryShutdownCompletedProcessing() 
 	registry := registries.NewProcessingRegistry()
 	block := blocks.NewBlockHTTP()
 
-	processDelay := time.Millisecond * 10
+	processDelay := time.Millisecond * 1
 	shutdownTriggerDelay := processDelay + time.Millisecond*5
-	shutdownDelay := time.Millisecond * 20
+	shutdownDelay := time.Millisecond * 50
 
 	successUrl := suite.GetMockHTTPServerURL("Hello, world!", http.StatusOK, processDelay)
 	pipeline, inputDataSchema, _ := suite.RegisterTestPipelineAndInputForProcessing(

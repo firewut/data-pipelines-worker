@@ -41,7 +41,7 @@ func (suite *FunctionalTestSuite) TestPipelineStartHandler() {
 	// Then
 	suite.Equal(http.StatusOK, rec.Code)
 	suite.NotNil(rec.Body.String())
-	suite.Contains(rec.Body.String(), "YT-CHANNEL-video-generation-block-prompt")
+	suite.Contains(rec.Body.String(), "openai-yt-short-generation")
 	suite.Contains(rec.Body.String(), "test-two-http-blocks")
 }
 

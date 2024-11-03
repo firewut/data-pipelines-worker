@@ -239,3 +239,13 @@ blocks:
     parallel_available: true
     config:
       group_id: "0"
+  
+  format_string_from_object:
+    detector:
+      check_interval: 60m
+      conditions:
+    reliability:
+      policy: "none"
+    parallel_available: true
+    config:
+      template: ""

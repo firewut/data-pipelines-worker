@@ -131,7 +131,7 @@ func (suite *UnitTestSuite) TestPipelineRegistryLoadFromCatalogue() {
 	)
 	suite.Nil(err)
 
-	pipelineSlug := "YT-CHANNEL-video-generation-block-prompt"
+	pipelineSlug := "openai-yt-short-generation"
 	pipeline := registry.Get(pipelineSlug)
 
 	suite.NotEmpty(pipeline)

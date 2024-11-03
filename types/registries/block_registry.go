@@ -81,6 +81,7 @@ func (br *BlockRegistry) DetectBlocks() {
 	joinVideosBlock := blocks.NewBlockJoinVideos()
 	videoAddAudioBlock := blocks.NewBlockVideoAddAudio()
 	sendMessageToTelegramBlock := blocks.NewBlockSendMessageToTelegram()
+	formatStringFromObjectBlock := blocks.NewBlockFormatStringFromObject()
 
 	br.blocksDetector = map[interfaces.Block]interfaces.BlockDetector{
 		httpBlock: blocks.NewDetectorHTTP(
@@ -141,6 +142,9 @@ func (br *BlockRegistry) DetectBlocks() {
 		sendMessageToTelegramBlock: blocks.NewDetectorTelegramBot(
 			_config.Telegram.GetClient(),
 			_config.Blocks[sendMessageToTelegramBlock.GetId()].Detector,
+		),
+		formatStringFromObjectBlock: blocks.NewDetectorFormatStringFromObject(
+			_config.Blocks[formatStringFromObjectBlock.GetId()].Detector,
 		),
 	}
 
