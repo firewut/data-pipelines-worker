@@ -28,16 +28,6 @@ jobs:
       - name: Install dependencies
         run: go mod tidy
 
-      - name: Build binaries
-        run: make build-linux
-      
-      - name: Prepare RPM build environment
-        run: |
-          mkdir -p /tmp/rpm-build/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-          cp bin/data-pipelines-worker-linux /tmp/rpm-build/SOURCES/
-          cp -r config /tmp/rpm-build/SOURCES/
-          cp ./data-pipelines-worker.spec /tmp/rpm-build/SPECS/
-
       - name: Build RPM
         run: make build-rpm
 

@@ -10,13 +10,13 @@ RPM_SPEC_FILE=data-pipelines-worker.spec
 export CONFIG_FILE
 
 build-darwin:
-	GOARCH=amd64 GOOS=darwin go build -ldflags="-s -w" -o bin/${BINARY_NAME}-darwin cmd/data-pipelines/worker.go
+	GOARCH=amd64 GOOS=darwin CGO_ENABLED=0  go build -ldflags="-s -w" -o bin/${BINARY_NAME}-darwin cmd/data-pipelines/worker.go
 	
 build-linux:
-	GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o bin/${BINARY_NAME}-linux cmd/data-pipelines/worker.go
+	GOARCH=amd64 GOOS=linux CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/${BINARY_NAME}-linux cmd/data-pipelines/worker.go
 	
 build-windows:
-	GOARCH=amd64 GOOS=windows go build -ldflags="-s -w" -o bin/${BINARY_NAME}-windows cmd/data-pipelines/worker.go
+	GOARCH=amd64 GOOS=windows CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/${BINARY_NAME}-windows cmd/data-pipelines/worker.go
 
 test: test-unit test-functional
 
@@ -39,8 +39,9 @@ start:
 	# go run -race cmd/data-pipelines/worker.go --http-api-port=8080
 
 build-rpm: build-linux
-	mkdir -p /tmp/rpm-build/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-	cp bin/${BINARY_NAME}-linux /tmp/rpm-build/SOURCES/
-	cp -r config /tmp/rpm-build/SOURCES/
+	mkdir -p ${HOME}/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+	cp bin/${BINARY_NAME}-linux ${HOME}/rpmbuild/SOURCES/
+	cp -r config ${HOME}/rpmbuild/SOURCES/
+	cp ./data-pipelines-worker.spec ${HOME}/rpmbuild/SPECS/
 
 	rpmbuild -ba $(RPM_SPEC_FILE)
