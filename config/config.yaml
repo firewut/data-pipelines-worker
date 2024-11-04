@@ -20,7 +20,7 @@ storage:
   local: 
     root_path: "/tmp"
   minio:
-    credentials_path: "./storage_credentials.json"
+    credentials_path: "./minio_storage_credentials.json"
 
 pipeline:
   pipeline_validation_schema_path: "./pipelines_validation_schema.json"
