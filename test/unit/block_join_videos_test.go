@@ -124,3 +124,65 @@ func (suite *UnitTestSuite) TestBlockJoinVideosProcessSuccess() {
 	suite.False(stop)
 	suite.Nil(err)
 }
+
+func (suite *UnitTestSuite) TestBlockJoinVideosProcessSuccessOneVideo() {
+	// Given
+	width := 10
+	height := 10
+
+	images := []bytes.Buffer{
+		factories.GetPNGImageBuffer(width, height),
+	}
+	videos := make([][]byte, len(images))
+	for i, image := range images {
+		videoBlock := blocks.NewBlockVideoFromImage()
+		_data := &dataclasses.BlockData{
+			Id:   "video_from_image",
+			Slug: "video-from-image",
+			Input: map[string]interface{}{
+				"image":  image.Bytes(),
+				"start":  0.0,
+				"end":    1.0,
+				"fps":    1,
+				"preset": "veryfast",
+				"crf":    23,
+			},
+		}
+		_data.SetBlock(videoBlock)
+		_result, _stop, _, _, _, err := videoBlock.Process(
+			suite.GetContextWithcancel(),
+			blocks.NewProcessorVideoFromImage(),
+			_data,
+		)
+
+		suite.NotNil(_result)
+		suite.False(_stop)
+		suite.Nil(err)
+
+		videos[i] = _result.Bytes()
+	}
+
+	block := blocks.NewBlockJoinVideos()
+	data := &dataclasses.BlockData{
+		Id:   "join_videos",
+		Slug: "video-from-list-of-videos",
+		Input: map[string]interface{}{
+			"videos": videos,
+		},
+	}
+	data.SetBlock(block)
+
+	// When
+	result, stop, _, _, _, err := block.Process(
+		suite.GetContextWithcancel(),
+		blocks.NewProcessorJoinVideos(),
+		data,
+	)
+
+	// Then
+	suite.NotNil(result)
+	suite.False(stop)
+	suite.Nil(err)
+
+	suite.Equal(videos[0], result.Bytes())
+}

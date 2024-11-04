@@ -66,24 +66,6 @@
                                 "parallel": {
                                     "type": "boolean",
                                     "default": false
-                                },
-                                "format_vars": {
-                                    "type": "object",
-                                    "patternProperties": {
-                                        "^.*$": {
-                                            "type": "object",
-                                            "properties": {
-                                                "origin": {
-                                                    "type": "string"
-                                                },
-                                                "xpath": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "additionalProperties": true,
-                                            "required": ["origin"]
-                                        }
-                                    }
                                 }
                             },
                             "additionalProperties": true,

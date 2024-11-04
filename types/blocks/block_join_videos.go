@@ -73,10 +73,10 @@ func (p *ProcessorJoinVideos) Process(
 		videos = append(videos, item.([]byte))
 	}
 
-	// videos, err := helpers.GetValue[[][]byte](_data, "videos")
-	// if err != nil {
-	// 	return nil, false, false, "", -1, err
-	// }
+	// No need to join if there is only one video
+	if len(videos) == 1 {
+		return bytes.NewBuffer(videos[0]), false, false, "", -1, nil
+	}
 
 	ffmpegBinary := blockConfig.FFMPEGBinary
 	if ffmpegBinary == "" {
@@ -214,7 +214,7 @@ func NewBlockJoinVideos() *BlockJoinVideos {
 									"type": "string",
 									"format": "file"
 								},
-								"minItems": 2
+								"minItems": 1
 							},
 							"re_encode": {
 								"description": "If true, re-encode the videos",
