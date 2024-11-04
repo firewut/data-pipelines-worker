@@ -6,7 +6,10 @@ After=network.target
 Type=simple
 ExecStart=/usr/local/bin/data-pipelines-worker
 WorkingDirectory=/etc/data-pipelines-worker
+Environment="CONFIG=/etc/data-pipelines-worker/config/config.yaml"
 Restart=on-failure
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target

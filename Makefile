@@ -39,9 +39,14 @@ start:
 	# go run -race cmd/data-pipelines/worker.go --http-api-port=8080
 
 build-rpm: build-linux
-	mkdir -p ${HOME}/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+	mkdir -p ${HOME}/rpmbuild/BUILD
+	mkdir -p ${HOME}/rpmbuild/RPMS
+	mkdir -p ${HOME}/rpmbuild/SOURCES
+	mkdir -p ${HOME}/rpmbuild/SPECS
+	mkdir -p ${HOME}/rpmbuild/SRPMS
 	cp bin/${BINARY_NAME}-linux ${HOME}/rpmbuild/SOURCES/
-	cp -r config ${HOME}/rpmbuild/SOURCES/
 	cp ./data-pipelines-worker.spec ${HOME}/rpmbuild/SPECS/
+	cp ./etc/systemd/system/data-pipelines-worker.service ${HOME}/rpmbuild/SOURCES/
+	cp -r config ${HOME}/rpmbuild/SOURCES/
 
 	rpmbuild -ba $(RPM_SPEC_FILE)
