@@ -26,5 +26,5 @@ echo "{"accessKey": "-","api": "s3v4","path": "auto","secretKey": "-","url": "lo
 /etc/data-pipelines-worker/config/minio_storage_credentials.json
 
 %changelog
-* $(shell date +"%a %b %d %Y") Your Name <andrey844@gmail.com> - 1.0.0-1
+* Mon Nov 04 2024 Andrei Chibisov <andrey844@gmail.com> - 0.0.1
 - Initial RPM release.

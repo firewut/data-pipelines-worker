@@ -10,23 +10,37 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+      
+      - name: Prepare env for go
+        run: |
+          HOME="/home/data-pipelines-worker"
+          GOPATH="/usr/local/go"
+          echo HOME=$HOME >> $GITHUB_ENV
+          echo GOPATH=$GOPATH >> $GITHUB_ENV
+
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.23
+          go-version: '1.23'
+          check-latest: true
+
       - name: Install dependencies
         run: go mod tidy
+
       - name: Build binaries
         run: make build-linux
+      
       - name: Prepare RPM build environment
         run: |
           mkdir -p /tmp/rpm-build/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
           cp bin/data-pipelines-worker-linux /tmp/rpm-build/SOURCES/
           cp -r config /tmp/rpm-build/SOURCES/
           cp ./data-pipelines-worker.spec /tmp/rpm-build/SPECS/
+
       - name: Build RPM
         run: make build-rpm
+
       - name: Upload RPM artifact
         uses: actions/upload-artifact@v4
         with:
