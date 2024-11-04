@@ -21,11 +21,19 @@ cp -r %{_sourcedir}/config/* %{buildroot}/etc/data-pipelines-worker/config/
 
 echo '{"accessKey": "-","api": "s3v4","path": "auto","secretKey": "-","url": "localhost:9000","bucket": "data-pipelines"}' > %{buildroot}/etc/data-pipelines-worker/config/minio_storage_credentials.json
 
+install -D -m 0644 %{_sourcedir}/systemd/data-pipelines-worker.service %{buildroot}/etc/systemd/system/data-pipelines-worker.service
+
+%post
+# Enable and start the service
+systemctl enable data-pipelines-worker.service
+systemctl start data-pipelines-worker.service
+
 %files
 /usr/local/bin/data-pipelines-worker
 /etc/data-pipelines-worker/config/*
 /etc/data-pipelines-worker/config/pipelines/*
 /etc/data-pipelines-worker/config/minio_storage_credentials.json
+/etc/systemd/system/data-pipelines-worker.service
 
 %changelog
 * Mon Nov 04 2024 Andrei Chibisov <andrey844@gmail.com> - 0.0.1

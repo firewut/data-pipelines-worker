@@ -1,0 +1,12 @@
+[Unit]
+Description=Data Pipelines Worker
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/data-pipelines-worker
+WorkingDirectory=/etc/data-pipelines-worker
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
