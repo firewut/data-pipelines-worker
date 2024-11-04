@@ -1,16 +1,21 @@
-.PHONY: build test clean start
+.PHONY: build-darwin build-linux build-windows test clean start build-rpm
 
 BINARY_NAME=data-pipelines-worker
 TEST_UNIT_PATH=./test/unit/...
 TEST_FUNCTIONAL_PATH=./test/functional/...
 CONFIG_FILE=${PWD}/config/config.yaml
 TEST_TIMEOUT=20s
+RPM_SPEC_FILE=data-pipelines-worker.spec
 
 export CONFIG_FILE
 
-build:
+build-darwin:
 	GOARCH=amd64 GOOS=darwin go build -ldflags="-s -w" -o bin/${BINARY_NAME}-darwin cmd/data-pipelines/worker.go
+	
+build-linux:
 	GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o bin/${BINARY_NAME}-linux cmd/data-pipelines/worker.go
+	
+build-windows:
 	GOARCH=amd64 GOOS=windows go build -ldflags="-s -w" -o bin/${BINARY_NAME}-windows cmd/data-pipelines/worker.go
 
 test: test-unit test-functional
@@ -32,3 +37,10 @@ clean:
 start:
 	go run -race cmd/data-pipelines/worker.go
 	# go run -race cmd/data-pipelines/worker.go --http-api-port=8080
+
+build-rpm: build-linux
+	mkdir -p /tmp/rpm-build/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+	cp bin/${BINARY_NAME}-linux /tmp/rpm-build/SOURCES/
+	cp -r config /tmp/rpm-build/SOURCES/
+
+	rpmbuild -ba $(RPM_SPEC_FILE)

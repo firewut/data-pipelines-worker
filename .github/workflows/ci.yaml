@@ -9,16 +9,26 @@ jobs:
   build:
     runs-on: self-hosted
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v2
-
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: '1.23.0'  # Specify your Go version here
-
-      - name: Build
-        run: make build  # This runs the build command defined in your Makefile
-
-      - name: Clean up
-        run: make clean  # Optional: Run the clean command defined in your Makefile
+          go-version: 1.23
+      - name: Install dependencies
+        run: go mod tidy
+      - name: Build binaries
+        run: make build-linux
+      - name: Prepare RPM build environment
+        run: |
+          mkdir -p /tmp/rpm-build/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+          cp bin/data-pipelines-worker-linux /tmp/rpm-build/SOURCES/
+          cp -r config /tmp/rpm-build/SOURCES/
+          cp ./data-pipelines-worker.spec /tmp/rpm-build/SPECS/
+      - name: Build RPM
+        run: make build-rpm
+      - name: Upload RPM artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: rpm-package
+          path: /tmp/rpm-build/RPMS/x86_64/*.rpm

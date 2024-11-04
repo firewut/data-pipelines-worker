@@ -27,5 +27,4 @@ yarn-error.log*
 .vscode/*
 
 .env
-config/storage_credentials.json
-
+config/minio_storage_credentials.json
