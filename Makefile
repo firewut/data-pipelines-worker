@@ -9,9 +9,9 @@ TEST_TIMEOUT=20s
 export CONFIG_FILE
 
 build:
-	GOARCH=amd64 GOOS=darwin go build -o bin/${BINARY_NAME}-darwin cmd/data-pipelines/worker.go
-	GOARCH=amd64 GOOS=linux go build -o bin/${BINARY_NAME}-linux cmd/data-pipelines/worker.go
-	GOARCH=amd64 GOOS=windows go build -o bin/${BINARY_NAME}-windows cmd/data-pipelines/worker.go
+	GOARCH=amd64 GOOS=darwin go build -ldflags="-s -w" -o bin/${BINARY_NAME}-darwin cmd/data-pipelines/worker.go
+	GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o bin/${BINARY_NAME}-linux cmd/data-pipelines/worker.go
+	GOARCH=amd64 GOOS=windows go build -ldflags="-s -w" -o bin/${BINARY_NAME}-windows cmd/data-pipelines/worker.go
 
 test: test-unit test-functional
 
