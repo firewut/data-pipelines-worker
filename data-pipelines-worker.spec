@@ -1,5 +1,5 @@
 Name:           data-pipelines-worker
-Version:        1.0.0
+Version:        1.0.1
 Release:        1%{?dist}
 Summary:        Data pipelines worker
 License:        Custom License
@@ -42,5 +42,7 @@ fi
 /etc/systemd/system/data-pipelines-worker.service
 
 %changelog
-* Mon Nov 04 2024 Andrei Chibisov <andrey844@gmail.com> - 0.0.1
+* Fri NOV 08 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.1
+- Added Swagger
+* Mon Nov 04 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.0
 - Initial RPM release.
