@@ -7,6 +7,8 @@ CONFIG_FILE=${PWD}/config/config.yaml
 TEST_TIMEOUT=20s
 RPM_SPEC_FILE=data-pipelines-worker.spec
 
+SWAG_BIN := $(shell go env GOPATH)/bin/swag
+
 export CONFIG_FILE
 
 build-darwin:
@@ -37,6 +39,9 @@ clean:
 start:
 	go run -race cmd/data-pipelines/worker.go
 	# go run -race cmd/data-pipelines/worker.go --http-api-port=8080
+
+swagger:
+	$(SWAG_BIN) init -g cmd/data-pipelines/worker.go
 
 build-rpm: build-linux
 	mkdir -p ${HOME}/rpmbuild/BUILD

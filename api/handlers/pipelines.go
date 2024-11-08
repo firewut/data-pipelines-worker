@@ -9,30 +9,29 @@ import (
 	"data-pipelines-worker/types/interfaces"
 )
 
-// PipelinesHandler returns an HTTP handler function that responds with a JSON
-// representation of all pipelines in the provided PipelineRegistry.
-//
-// Parameters:
-// - registry: A pointer to a PipelineRegistry instance containing the pipelines.
-//
-// Returns:
-//   - An echo.HandlerFunc that handles HTTP requests and responds with a JSON
-//     array of pipelines.
+// @Summary Get all pipelines
+// @Description Returns a JSON array of all pipelines in the registry.
+// @Tags pipelines
+// @Accept json
+// @Produce json
+// @Success 200 {array} dataclasses.PipelineData
+// @Router /pipelines [get]
 func PipelinesHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.JSON(http.StatusOK, registry.GetAll())
 	}
 }
 
-// PipelineStartHandler returns an HTTP handler function that responds with a JSON
-// representation of the pipeline that was started.
-//
-// Parameters:
-// - registry: A pointer to a PipelineRegistry instance containing the pipelines.
-//
-// Returns:
-//   - An echo.HandlerFunc that handles HTTP requests and responds with a JSON
-//     representation of the pipeline that was started.
+// @Summary Start a pipeline
+// @Description Starts the pipeline with the given input data and returns the processing ID.
+// @Tags pipelines
+// @Accept json
+// @Produce json
+// @Param slug path string true "Pipeline slug"
+// @Param input body schemas.PipelineStartInputSchema true "Input data to start the pipeline"
+// @Success 200 {object} schemas.PipelineStartOutputSchema
+// @Failure 400 {string} string "Bad request"
+// @Router /pipelines/{slug}/start [post]
 func PipelineStartHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var inputData schemas.PipelineStartInputSchema
@@ -57,15 +56,16 @@ func PipelineStartHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc
 	}
 }
 
-// PipelineResumeHandler returns an HTTP handler function that responds with a JSON
-// representation of the pipeline that was resumed.
-//
-// Parameters:
-// - registry: A pointer to a PipelineRegistry instance containing the pipelines.
-//
-// Returns:
-//   - An echo.HandlerFunc that handles HTTP requests and responds with a JSON
-//     representation of the pipeline that was resumed.
+// @Summary Resume a paused pipeline
+// @Description Resumes a paused pipeline with the given input data and returns the processing ID.
+// @Tags pipelines
+// @Accept json
+// @Produce json
+// @Param slug path string true "Pipeline slug"
+// @Param input body schemas.PipelineStartInputSchema true "Input data to resume the pipeline"
+// @Success 200 {object} schemas.PipelineResumeOutputSchema
+// @Failure 400 {string} string "Bad request"
+// @Router /pipelines/{slug}/resume [post]
 func PipelineResumeHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var inputData schemas.PipelineStartInputSchema

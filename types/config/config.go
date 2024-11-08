@@ -43,6 +43,7 @@ func GetConfig(forceNewInstance ...bool) Config {
 
 type Config struct {
 	Log           LogConfig       `yaml:"log" json:"-"`
+	Swagger       bool            `yaml:"swagger" json:"-"`
 	HTTPAPIServer HTTPAPIServer   `yaml:"http_api_server" json:"-"`
 	DNSSD         DNSSD           `yaml:"dns_sd" json:"-"`
 	Storage       StorageConfig   `yaml:"storage" json:"-"`

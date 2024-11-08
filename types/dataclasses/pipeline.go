@@ -16,15 +16,38 @@ import (
 	"data-pipelines-worker/types/validators"
 )
 
+// PipelineData represents the structure of a pipeline in the system.
+// It includes the pipeline's metadata, description, and associated blocks.
+//
+// swagger:model
 type PipelineData struct {
-	Id          uuid.UUID                         `json:"-"`
-	Slug        string                            `json:"slug"`
-	Title       string                            `json:"title"`
-	Description string                            `json:"description"`
-	Blocks      []interfaces.ProcessableBlockData `json:"blocks"`
+	// The unique identifier for the pipeline
+	// required: true
+	Id uuid.UUID `json:"-"`
 
+	// The unique slug identifier for the pipeline
+	// required: true
+	// example: "pipeline-abc123"
+	Slug string `json:"slug"`
+
+	// The title of the pipeline
+	// required: true
+	// example: "Example Pipeline"
+	Title string `json:"title"`
+
+	// The description of the pipeline
+	// example: "This pipeline processes data in a series of blocks."
+	Description string `json:"description"`
+
+	// A list of blocks that make up the pipeline
+	// required: true
+	Blocks []interfaces.ProcessableBlockData `json:"blocks"`
+
+	// internal field for storing the schema string
 	schemaString string
-	schemaPtr    *gojsonschema.Schema
+
+	// internal field for storing the parsed schema pointer
+	schemaPtr *gojsonschema.Schema
 }
 
 func (p *PipelineData) UnmarshalJSON(data []byte) error {

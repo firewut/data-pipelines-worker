@@ -1,0 +1,269 @@
+definitions:
+  dataclasses.PipelineData:
+    properties:
+      blocks:
+        description: |-
+          A list of blocks that make up the pipeline
+          required: true
+        items: {}
+        type: array
+      description:
+        description: |-
+          The description of the pipeline
+          example: "This pipeline processes data in a series of blocks."
+        type: string
+      slug:
+        description: |-
+          The unique slug identifier for the pipeline
+          required: true
+          example: "pipeline-abc123"
+        type: string
+      title:
+        description: |-
+          The title of the pipeline
+          required: true
+          example: "Example Pipeline"
+        type: string
+    type: object
+  dataclasses.Worker:
+    properties:
+      host:
+        description: |-
+          The hostname of the worker
+          example: "worker-hostname.local"
+        type: string
+      id:
+        description: |-
+          The unique identifier for the worker
+          example: "d9b2d63d-5f23-e4d7-6b7f-3f2f25d93a7a"
+        type: string
+      ipv4:
+        description: |-
+          The IPv4 address of the worker
+          example: "192.168.1.10"
+        type: string
+      ipv6:
+        description: |-
+          The IPv6 address of the worker
+          example: "fe80::a00:27ff:fe9e:3c28"
+        type: string
+      port:
+        description: |-
+          The port on which the worker is running
+          example: 8080
+        type: integer
+      status:
+        description: |-
+          The current status of the worker
+          example: {"load": 0.5, "available": true, "version": "1.0.0"}
+    type: object
+  schemas.BlockInputSchema:
+    properties:
+      destination_slug:
+        description: |-
+          The destination slug for the block (optional)
+          example: "destination-block"
+        type: string
+      input:
+        additionalProperties: true
+        description: |-
+          The input data for the block, represented as a map of key-value pairs
+          required: true
+          example: {"key1": "value1", "key2": 42}
+        type: object
+      slug:
+        description: |-
+          The slug of the block
+          required: true
+          example: "example-block"
+        type: string
+      target_index:
+        description: |-
+          The target index for the block (optional)
+          If omitted or empty, it defaults to -1
+          example: 5
+        example: "0"
+        type: string
+    type: object
+  schemas.PipelineInputSchema:
+    properties:
+      processing_id:
+        description: |-
+          The unique processing ID associated with this pipeline
+          required: true
+          example: "d9b2d63d5f23e4d76b7f3f2f25d93a7a"
+        type: string
+      slug:
+        description: |-
+          The slug of the pipeline
+          required: true
+          example: "example-slug"
+        type: string
+    type: object
+  schemas.PipelineResumeOutputSchema:
+    properties:
+      processing_id:
+        description: |-
+          The unique processing ID for the resumed pipeline
+          required: true
+          example: "d9b2d63d-5f23-e4d7-6b7f-3f2f25d93a7a"
+        type: string
+    type: object
+  schemas.PipelineStartInputSchema:
+    properties:
+      block:
+        allOf:
+        - $ref: '#/definitions/schemas.BlockInputSchema'
+        description: |-
+          The block information, represented by the BlockInputSchema model
+          required: true
+      pipeline:
+        allOf:
+        - $ref: '#/definitions/schemas.PipelineInputSchema'
+        description: |-
+          The pipeline information, represented by the PipelineInputSchema model
+          required: true
+    type: object
+  schemas.PipelineStartOutputSchema:
+    properties:
+      processing_id:
+        description: |-
+          The unique processing ID for the pipeline
+          required: true
+          example: "d9b2d63d-5f23-e4d7-6b7f-3f2f25d93a7a"
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /blocks:
+    get:
+      consumes:
+      - application/json
+      description: Returns a JSON array of all blocks in the registry.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items: {}
+            type: array
+      summary: Get all blocks
+      tags:
+      - blocks
+  /health:
+    get:
+      consumes:
+      - text/plain
+      description: Responds with a simple "OK" message to indicate that the service
+        is healthy.
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Check service health
+      tags:
+      - health
+  /pipelines:
+    get:
+      consumes:
+      - application/json
+      description: Returns a JSON array of all pipelines in the registry.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dataclasses.PipelineData'
+            type: array
+      summary: Get all pipelines
+      tags:
+      - pipelines
+  /pipelines/{slug}/resume:
+    post:
+      consumes:
+      - application/json
+      description: Resumes a paused pipeline with the given input data and returns
+        the processing ID.
+      parameters:
+      - description: Pipeline slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Input data to resume the pipeline
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.PipelineStartInputSchema'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.PipelineResumeOutputSchema'
+        "400":
+          description: Bad request
+          schema:
+            type: string
+      summary: Resume a paused pipeline
+      tags:
+      - pipelines
+  /pipelines/{slug}/start:
+    post:
+      consumes:
+      - application/json
+      description: Starts the pipeline with the given input data and returns the processing
+        ID.
+      parameters:
+      - description: Pipeline slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Input data to start the pipeline
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.PipelineStartInputSchema'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.PipelineStartOutputSchema'
+        "400":
+          description: Bad request
+          schema:
+            type: string
+      summary: Start a pipeline
+      tags:
+      - pipelines
+  /workers:
+    get:
+      consumes:
+      - application/json
+      description: Returns a JSON array of all discovered workers in the mDNS instance.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dataclasses.Worker'
+            type: array
+      summary: Get all discovered workers
+      tags:
+      - workers
+swagger: "2.0"

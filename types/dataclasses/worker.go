@@ -12,12 +12,33 @@ import (
 	"data-pipelines-worker/types/interfaces"
 )
 
-type Worker struct {
-	Id     uuid.UUID               `json:"id"`
-	Host   string                  `json:"host"`
-	IpV4   string                  `json:"ipv4"`
-	IpV6   string                  `json:"ipv6"`
-	Port   int                     `json:"port"`
+// Worker represents the structure of a worker in the system. It includes
+// details like the worker's host, IP addresses, port, and status information.
+//
+// swagger:model
+type Worker struct { //in `dataclasses` package
+	// The unique identifier for the worker
+	// example: "d9b2d63d-5f23-e4d7-6b7f-3f2f25d93a7a"
+	Id uuid.UUID `json:"id"`
+
+	// The hostname of the worker
+	// example: "worker-hostname.local"
+	Host string `json:"host"`
+
+	// The IPv4 address of the worker
+	// example: "192.168.1.10"
+	IpV4 string `json:"ipv4"`
+
+	// The IPv6 address of the worker
+	// example: "fe80::a00:27ff:fe9e:3c28"
+	IpV6 string `json:"ipv6"`
+
+	// The port on which the worker is running
+	// example: 8080
+	Port int `json:"port"`
+
+	// The current status of the worker
+	// example: {"load": 0.5, "available": true, "version": "1.0.0"}
 	Status interfaces.WorkerStatus `json:"status"`
 }
 
@@ -60,10 +81,22 @@ func (w *Worker) GetAPIEndpoint() string {
 	)
 }
 
+// WorkerStatus represents the status information of a worker. It includes
+// the worker's load, availability, and version information.
+//
+// swagger:model
 type WorkerStatus struct {
-	Load      float32 `json:"load"`
-	Available bool    `json:"available"`
-	Version   string  `json:"version"`
+	// The load on the worker, as a floating-point value
+	// example: 0.75
+	Load float32 `json:"load"`
+
+	// Whether the worker is available or not
+	// example: true
+	Available bool `json:"available"`
+
+	// The version of the worker's software
+	// example: "v1.2.3"
+	Version string `json:"version"`
 }
 
 func (ws *WorkerStatus) GetLoad() float32 {

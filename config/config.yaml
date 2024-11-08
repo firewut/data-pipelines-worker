@@ -1,6 +1,8 @@
 log:
   level: "info"
 
+swagger: true
+
 # TODO: Mutual TSL for Inter Worker Comminucation
 
 http_api_server:

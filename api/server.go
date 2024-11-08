@@ -12,9 +12,11 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	echoSwagger "github.com/swaggo/echo-swagger"
 
 	"data-pipelines-worker/api/handlers"
 	workerMiddleware "data-pipelines-worker/api/middleware"
+	_ "data-pipelines-worker/docs"
 	"data-pipelines-worker/types"
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/dataclasses"
@@ -279,4 +281,11 @@ func (s *Server) SetAPIHandlers() {
 			s.GetPipelineRegistry(),
 		),
 	)
+
+	if s.GetConfig().Swagger {
+		s.AddHTTPAPIRoute(
+			"GET", "/swagger/*",
+			echoSwagger.WrapHandler,
+		)
+	}
 }
