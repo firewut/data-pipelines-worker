@@ -251,3 +251,42 @@ blocks:
     parallel_available: true
     config:
       template: ""
+  
+  audio_from_video:
+    detector:
+      check_interval: 60m
+      conditions:
+    reliability:
+      policy: "none"
+    parallel_available: false
+    config:
+      ffmpeg_binary: ""
+      start: -1
+      end: -1
+      format: "mp3"
+
+  subtitles_from_transcription:
+    detector:
+      check_interval: 60m
+      conditions:
+    reliability:
+      policy: "none"
+    parallel_available: true
+    config:
+      input_format: "openai_verbose_json"
+      output_format: "ass"
+      name: "Default"
+      font_name: "Arial"
+      font_size: 30
+      primary_colour: "&H00FFFFFF"
+      secondary_colour: "&H00000000"
+      back_colour: "&H00000000"
+      bold: -1
+      italic: 0
+      border_style: 1
+      outline: 1.0
+      shadow: 0.0
+      alignment: 2
+      margin_l: 10
+      margin_r: 10
+      margin_v: 10

@@ -1,0 +1,42 @@
+{
+    "slug": "openai-subtitles-from-video",
+    "title": "Add subtitles to video",
+    "description": "Generates subtitles for video using OpenAI API",
+    "blocks": [
+        {
+            "id": "audio_from_video",
+            "slug": "get-audio-from-video",
+            "description": "Extract audio from video",
+            "input": {
+            }
+        },
+        {
+            "id": "openai_transcription_request",
+            "slug": "get-audio-transcription",
+            "description": "Make a request to OpenAI TTS API to convert audio to transcription",
+            "input_config": {
+                "property": {
+                    "audio_file": {
+                        "origin": "get-audio-from-video"
+                    }
+                }
+            }
+        },
+        {
+            "id": "subtitles_from_transcription",
+            "slug": "make-video-subtitle-file",
+            "description": "Create a subtitle file from the transcription",
+            "input_config": {
+                "property": {
+                    "transcription": {
+                        "origin": "get-audio-transcription"
+                    }
+                }
+            },
+            "input": {
+                "input_format": "openai_verbose_json",
+                "output_format": "ass"
+            }
+        }
+    ]
+}

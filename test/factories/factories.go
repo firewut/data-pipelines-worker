@@ -159,6 +159,59 @@ func NewTelegramClient(url string) (*tgbotapi.BotAPI, error) {
 	return tgbotapi.NewBotAPIWithAPIEndpoint("TOKEN", apiEndpoint)
 }
 
+func GetShortVideoBuffer(width, height, durationSeconds int) bytes.Buffer {
+	buf := new(bytes.Buffer)
+
+	ffmpegBinary, err := config.GetFFmpegBinary()
+	if err != nil {
+		panic(err)
+	}
+
+	tempOutputFile, err := os.CreateTemp("", "output-*.mp4")
+	if err != nil {
+		panic(err)
+	}
+	defer os.Remove(tempOutputFile.Name())
+
+	args := []string{
+		"-y",
+		"-f", "lavfi",
+		"-i", fmt.Sprintf("color=c=blue:s=%dx%d:d=%d", width, height, durationSeconds),
+		"-f", "lavfi",
+		"-i", fmt.Sprintf("sine=frequency=1000:duration=%d", durationSeconds),
+		"-c:v", "libx264",
+		"-preset", "ultrafast",
+		"-c:a", "aac",
+		"-b:a", "128k",
+		"-ar", "44100",
+		"-ac", "2",
+		"-shortest",
+	}
+
+	args = append(args, tempOutputFile.Name())
+
+	var stderr bytes.Buffer
+	cmd := exec.Command(ffmpegBinary, args...)
+	cmd.Stderr = &stderr
+
+	err = cmd.Run()
+	if err != nil {
+		fmt.Printf("FFmpeg error: %v\n", err)
+		fmt.Printf("FFmpeg stderr: %s\n", stderr.String())
+		panic(err)
+	}
+
+	// Read the resulting video into a buffer
+	videoBuffer, err := os.ReadFile(tempOutputFile.Name())
+	if err != nil {
+		panic(err)
+	}
+
+	buf.Write(videoBuffer)
+
+	return *buf
+}
+
 func GetShortAudioBuffer(durationSeconds int) bytes.Buffer {
 	buf := new(bytes.Buffer)
 

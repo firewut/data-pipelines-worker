@@ -1,5 +1,5 @@
 Name:           data-pipelines-worker
-Version:        1.0.1
+Version:        1.0.2
 Release:        1%{?dist}
 Summary:        Data pipelines worker
 License:        Custom License
@@ -42,7 +42,11 @@ fi
 /etc/systemd/system/data-pipelines-worker.service
 
 %changelog
-* Fri NOV 08 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.1
+* Mon Nov 11 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.2
+- Added block `audio_from_video`
+- Added block `subtitles_from_transcription`
+- Added pipeline to add generated subtitles file to uploaded video
+* Fri Nov 08 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.1
 - Added Swagger
 * Mon Nov 04 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.0
 - Initial RPM release.
