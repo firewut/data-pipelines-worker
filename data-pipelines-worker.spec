@@ -43,6 +43,7 @@ fi
 
 %changelog
 * Mon Nov 11 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.2
+- Added multipart/form-data API Interface
 - Added block `audio_from_video`
 - Added block `subtitles_from_transcription`
 - Added pipeline to add generated subtitles file to uploaded video

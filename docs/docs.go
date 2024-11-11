@@ -92,7 +92,8 @@ const docTemplate = `{
             "post": {
                 "description": "Resumes a paused pipeline with the given input data and returns the processing ID.",
                 "consumes": [
-                    "application/json"
+                    "application/json",
+                    " multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -139,7 +140,8 @@ const docTemplate = `{
             "post": {
                 "description": "Starts the pipeline with the given input data and returns the processing ID.",
                 "consumes": [
-                    "application/json"
+                    "application/json",
+                    " multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -287,7 +289,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "processing_id": {
-                    "description": "The unique processing ID associated with this pipeline\nrequired: true\nexample: \"d9b2d63d5f23e4d76b7f3f2f25d93a7a\"",
+                    "description": "The unique processing ID associated with this pipeline\nexample: \"d9b2d63d5f23e4d76b7f3f2f25d93a7a\"",
                     "type": "string"
                 },
                 "slug": {

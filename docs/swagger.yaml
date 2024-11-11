@@ -90,7 +90,6 @@ definitions:
       processing_id:
         description: |-
           The unique processing ID associated with this pipeline
-          required: true
           example: "d9b2d63d5f23e4d76b7f3f2f25d93a7a"
         type: string
       slug:
@@ -189,6 +188,7 @@ paths:
     post:
       consumes:
       - application/json
+      - ' multipart/form-data'
       description: Resumes a paused pipeline with the given input data and returns
         the processing ID.
       parameters:
@@ -221,6 +221,7 @@ paths:
     post:
       consumes:
       - application/json
+      - ' multipart/form-data'
       description: Starts the pipeline with the given input data and returns the processing
         ID.
       parameters:

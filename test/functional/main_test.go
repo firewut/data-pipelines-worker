@@ -9,6 +9,7 @@ import (
 	"image/color"
 	"image/png"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -294,6 +295,90 @@ func (suite *FunctionalTestSuite) GetMockServerHandlersResponse(
 	mockedResponses["/blocks"] = string(blocksResponse)
 
 	return mockedResponses
+}
+
+func (suite *FunctionalTestSuite) SendProcessingStartRequestMultipart(
+	server *api.Server,
+	input schemas.PipelineStartInputSchema,
+	httpClient *http.Client,
+) (schemas.PipelineResumeOutputSchema, int, string, error) {
+	var result schemas.PipelineResumeOutputSchema
+
+	// Create a buffer for the multipart form data
+	var requestBody bytes.Buffer
+	multipartWriter := multipart.NewWriter(&requestBody)
+
+	err := multipartWriter.WriteField("pipeline.slug", input.Pipeline.Slug)
+	suite.Nil(err)
+
+	if input.Pipeline.ProcessingID != uuid.Nil {
+		err = multipartWriter.WriteField("pipeline.processing_id", input.Pipeline.ProcessingID.String())
+		suite.Nil(err)
+	}
+
+	err = multipartWriter.WriteField("block.slug", input.Block.Slug)
+	suite.Nil(err)
+
+	if input.Block.DestinationSlug != "" {
+		_ = multipartWriter.WriteField("block.destination_slug", input.Block.DestinationSlug)
+	}
+
+	if input.Block.TargetIndex != -1 {
+		err = multipartWriter.WriteField("block.target_index", fmt.Sprintf("%d", input.Block.TargetIndex))
+		suite.Nil(err)
+	}
+
+	// Iterate through the Block.Input map to add each field and handle files
+	for key, value := range input.Block.Input {
+		switch v := value.(type) {
+		case []byte: // File content or raw byte data
+			ext, err := types.DetectMimeTypeFromBuffer(*bytes.NewBuffer(v))
+			suite.Nil(err)
+
+			fileField, err := multipartWriter.CreateFormFile(
+				fmt.Sprintf("block.input.%s", key),
+				fmt.Sprintf("%s.%s", key, ext),
+			)
+			suite.Nil(err)
+			_, err = fileField.Write(v)
+			suite.Nil(err)
+		case string: // Regular form field
+			err = multipartWriter.WriteField(fmt.Sprintf("block.input.%s", key), v)
+			suite.Nil(err)
+		case int, int32, int64, float32, float64: // Numbers as string
+			err = multipartWriter.WriteField(fmt.Sprintf("block.input.%s", key), fmt.Sprintf("%v", v))
+			suite.Nil(err)
+		case bool: // Booleans as string
+			err = multipartWriter.WriteField(fmt.Sprintf("block.input.%s", key), fmt.Sprintf("%t", v))
+			suite.Nil(err)
+		default:
+		}
+	}
+
+	// Close the multipart writer to complete the form data
+	err = multipartWriter.Close()
+	suite.Nil(err)
+
+	// Set up the HTTP client if not provided
+	if httpClient == nil {
+		httpClient = &http.Client{}
+	}
+
+	// Send the HTTP request
+	response, err := httpClient.Post(
+		fmt.Sprintf("%s/pipelines/%s/start", server.GetAPIAddress(), input.Pipeline.Slug),
+		multipartWriter.FormDataContentType(),
+		&requestBody,
+	)
+	suite.Nil(err)
+	defer response.Body.Close()
+
+	responseBodyBytes, _ := io.ReadAll(response.Body)
+	if err := json.Unmarshal(responseBodyBytes, &result); err != nil {
+		return result, response.StatusCode, string(responseBodyBytes), err
+	}
+
+	return result, response.StatusCode, "", err
 }
 
 func (suite *FunctionalTestSuite) SendProcessingStartRequest(

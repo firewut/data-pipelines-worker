@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 
@@ -25,7 +27,7 @@ func PipelinesHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
 // @Summary Start a pipeline
 // @Description Starts the pipeline with the given input data and returns the processing ID.
 // @Tags pipelines
-// @Accept json
+// @Accept json, multipart/form-data
 // @Produce json
 // @Param slug path string true "Pipeline slug"
 // @Param input body schemas.PipelineStartInputSchema true "Input data to start the pipeline"
@@ -35,8 +37,28 @@ func PipelinesHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
 func PipelineStartHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var inputData schemas.PipelineStartInputSchema
-		if err := c.Bind(&inputData); err != nil {
-			return c.JSON(http.StatusBadRequest, err.Error())
+
+		// Check the Content-Type to determine how to bind the request
+		contentType := c.Request().Header.Get("Content-Type")
+		switch {
+		case contentType == "application/json":
+			// Bind JSON payload directly
+			if err := c.Bind(&inputData); err != nil {
+				return c.JSON(http.StatusBadRequest, err.Error())
+			}
+		case strings.HasPrefix(contentType, "multipart/form-data"):
+			// For multipart/form-data, parse the form data
+			if err := c.Request().ParseMultipartForm(10 << 20); err != nil {
+				return c.JSON(http.StatusBadRequest, "Unable to parse multipart form")
+			}
+
+			// Parse the form data and files into the `inputData` struct
+			if err := inputData.ParseForm(c.Request()); err != nil {
+				return c.JSON(http.StatusBadRequest, fmt.Sprintf("Error parsing pipeline data: %v", err))
+			}
+		default:
+			// Unsupported content type
+			return c.JSON(http.StatusBadRequest, "Unsupported Content-Type")
 		}
 
 		// Update request pipeline slug from url
@@ -59,7 +81,7 @@ func PipelineStartHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc
 // @Summary Resume a paused pipeline
 // @Description Resumes a paused pipeline with the given input data and returns the processing ID.
 // @Tags pipelines
-// @Accept json
+// @Accept json, multipart/form-data
 // @Produce json
 // @Param slug path string true "Pipeline slug"
 // @Param input body schemas.PipelineStartInputSchema true "Input data to resume the pipeline"
@@ -69,8 +91,27 @@ func PipelineStartHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc
 func PipelineResumeHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var inputData schemas.PipelineStartInputSchema
-		if err := c.Bind(&inputData); err != nil {
-			return c.JSON(http.StatusBadRequest, err.Error())
+
+		// Check the Content-Type to determine how to bind the request
+		contentType := c.Request().Header.Get("Content-Type")
+		switch {
+		case contentType == "application/json":
+			// Bind JSON payload directly
+			if err := c.Bind(&inputData); err != nil {
+				return c.JSON(http.StatusBadRequest, err.Error())
+			}
+		case strings.HasPrefix(contentType, "multipart/form-data"):
+			// For multipart/form-data, parse the form data
+			if err := c.Request().ParseMultipartForm(10 << 20); err != nil {
+				return c.JSON(http.StatusBadRequest, "Unable to parse multipart form")
+			}
+
+			if err := inputData.ParseForm(c.Request()); err != nil {
+				return c.JSON(http.StatusBadRequest, fmt.Sprintf("Error parsing pipeline data: %v", err))
+			}
+		default:
+			// Unsupported content type
+			return c.JSON(http.StatusBadRequest, "Unsupported Content-Type")
 		}
 
 		// Update request pipeline slug from url

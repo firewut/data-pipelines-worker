@@ -28,3 +28,18 @@ curl -X POST -H "Content-Type: application/json" -d '{"pipeline":{"slug":"openai
 curl -X POST -H "Content-Type: application/json" -d '{"pipeline":{"slug":"openai-test", "processing_id":"99e4d0d9-eaf0-4dea-89dd-15b5cbb5ce1f"},"block":{"slug":"send-event-images-moderation-to-telegram" }}' "http://192.168.1.116:8080/pipelines/openai-test/resume"
 
 curl -X POST -H "Content-Type: application/json" -d '{"pipeline":{"slug":"openai-test", "processing_id":"14c9f824-2211-45f2-9378-c875b3e1e34c"},"block":{"slug":"get-event-images", "target_index": 1}}' "http://192.168.1.116:8080/pipelines/openai-test/resume"
+
+
+curl -X POST "http://192.168.1.116:8080/pipelines/openai-test/resume" \
+  -H "Content-Type: multipart/form-data" \
+  -F "pipeline.slug=openai-test" \
+  -F "pipeline.processing_id=14c9f824-2211-45f2-9378-c875b3e1e34c" \
+  -F "block.slug=get-event-images" \
+  -F "block.target_index=1" \
+  -F "block.input.video=@/path/to/video.mp4"
+
+For arrays use:
+```
+-F "block.input.items[]=3" \
+-F "block.input.items[]=2" \
+```
