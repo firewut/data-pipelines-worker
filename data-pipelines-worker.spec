@@ -38,7 +38,9 @@ fi
 /usr/local/bin/data-pipelines-worker
 /etc/data-pipelines-worker/config/*
 /etc/data-pipelines-worker/config/pipelines/*
-/etc/data-pipelines-worker/config/minio_storage_credentials.json
+%config(noreplace) /etc/data-pipelines-worker/config/minio_storage_credentials.json
+%config(noreplace) /etc/data-pipelines-worker/config/openai_credentials.json
+%config(noreplace) /etc/data-pipelines-worker/config/telegram_credentials.json
 /etc/systemd/system/data-pipelines-worker.service
 
 %changelog
