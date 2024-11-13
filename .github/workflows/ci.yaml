@@ -35,4 +35,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: rpm-package
-          path: /tmp/rpm-build/RPMS/x86_64/*.rpm
+          path: $HOME/rpm-build/RPMS/x86_64/*.rpm
