@@ -269,7 +269,7 @@ type BlockSendModerationToTelegramConfig struct {
 }
 
 type BlockSendModerationToTelegram struct {
-	generics.ConfigurableBlock[BlockSendModerationToTelegramConfig]
+	generics.ConfigurableBlock[BlockSendModerationToTelegramConfig] `json:"-" yaml:"-"`
 	BlockParent
 }
 

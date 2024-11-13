@@ -122,8 +122,7 @@ type BlockHTTPConfig struct {
 }
 
 type BlockHTTP struct {
-	generics.ConfigurableBlock[BlockHTTPConfig]
-
+	generics.ConfigurableBlock[BlockHTTPConfig] `json:"-" yaml:"-"`
 	BlockParent
 }
 

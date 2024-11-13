@@ -87,7 +87,7 @@ type BlockTextReplaceConfig struct {
 }
 
 type BlockTextReplace struct {
-	generics.ConfigurableBlock[BlockTextReplaceConfig]
+	generics.ConfigurableBlock[BlockTextReplaceConfig] `json:"-" yaml:"-"`
 	BlockParent
 }
 

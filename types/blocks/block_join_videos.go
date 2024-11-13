@@ -178,7 +178,7 @@ type BlockJoinVideosConfig struct {
 }
 
 type BlockJoinVideos struct {
-	generics.ConfigurableBlock[BlockJoinVideosConfig]
+	generics.ConfigurableBlock[BlockJoinVideosConfig] `json:"-" yaml:"-"`
 	BlockParent
 }
 

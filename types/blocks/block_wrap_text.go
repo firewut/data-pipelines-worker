@@ -80,7 +80,7 @@ type BlockTextAddPrefixOrSuffixConfig struct {
 }
 
 type BlockTextAddPrefixOrSuffix struct {
-	generics.ConfigurableBlock[BlockTextAddPrefixOrSuffixConfig]
+	generics.ConfigurableBlock[BlockTextAddPrefixOrSuffixConfig] `json:"-" yaml:"-"`
 	BlockParent
 }
 

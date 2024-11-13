@@ -168,7 +168,7 @@ type BlockVideoAddAudioConfig struct {
 }
 
 type BlockVideoAddAudio struct {
-	generics.ConfigurableBlock[BlockVideoAddAudioConfig]
+	generics.ConfigurableBlock[BlockVideoAddAudioConfig] `json:"-" yaml:"-"`
 	BlockParent
 }
 

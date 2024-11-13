@@ -94,7 +94,7 @@ type BlockImageResizeConfig struct {
 }
 
 type BlockImageResize struct {
-	generics.ConfigurableBlock[BlockImageResizeConfig]
+	generics.ConfigurableBlock[BlockImageResizeConfig] `json:"-" yaml:"-"`
 	BlockParent
 }
 

@@ -121,7 +121,7 @@ type BlockOpenAIRequestCompletionConfig struct {
 }
 
 type BlockOpenAIRequestCompletion struct {
-	generics.ConfigurableBlock[BlockOpenAIRequestCompletionConfig]
+	generics.ConfigurableBlock[BlockOpenAIRequestCompletionConfig] `json:"-" yaml:"-"`
 	BlockParent
 }
 

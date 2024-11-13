@@ -89,7 +89,7 @@ type BlockOpenAIRequestTranscriptionConfig struct {
 }
 
 type BlockOpenAIRequestTranscription struct {
-	generics.ConfigurableBlock[BlockOpenAIRequestTranscriptionConfig]
+	generics.ConfigurableBlock[BlockOpenAIRequestTranscriptionConfig] `json:"-" yaml:"-"`
 	BlockParent
 }
 

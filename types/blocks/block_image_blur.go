@@ -92,7 +92,7 @@ type BlockImageBlurConfig struct {
 }
 
 type BlockImageBlur struct {
-	generics.ConfigurableBlock[BlockImageBlurConfig]
+	generics.ConfigurableBlock[BlockImageBlurConfig] `json:"-" yaml:"-"`
 	BlockParent
 }
 

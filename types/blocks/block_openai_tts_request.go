@@ -84,7 +84,7 @@ type BlockOpenAIRequestTTSConfig struct {
 }
 
 type BlockOpenAIRequestTTS struct {
-	generics.ConfigurableBlock[BlockOpenAIRequestTTSConfig]
+	generics.ConfigurableBlock[BlockOpenAIRequestTTSConfig] `json:"-" yaml:"-"`
 	BlockParent
 }
 

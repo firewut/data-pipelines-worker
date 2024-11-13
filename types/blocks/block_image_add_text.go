@@ -266,7 +266,7 @@ func drawTextWithBackground(
 }
 
 type BlockImageAddText struct {
-	generics.ConfigurableBlock[BlockImageAddTextConfig]
+	generics.ConfigurableBlock[BlockImageAddTextConfig] `json:"-" yaml:"-"`
 	BlockParent
 }
 

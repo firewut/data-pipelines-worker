@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"data-pipelines-worker/types/config"
+	"data-pipelines-worker/types/generics"
 	"data-pipelines-worker/types/helpers"
 	"data-pipelines-worker/types/interfaces"
 )
@@ -73,8 +74,8 @@ type BlockStopPipelineConfig struct {
 }
 
 type BlockStopPipeline struct {
+	generics.ConfigurableBlock[BlockStopPipelineConfig] `json:"-" yaml:"-"`
 	BlockParent
-	Config *BlockStopPipelineConfig
 }
 
 var _ interfaces.Block = (*BlockStopPipeline)(nil)

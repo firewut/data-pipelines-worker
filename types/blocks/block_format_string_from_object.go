@@ -132,7 +132,7 @@ type BlockFormatStringFromObjectConfig struct {
 }
 
 type BlockFormatStringFromObject struct {
-	generics.ConfigurableBlock[BlockFormatStringFromObjectConfig]
+	generics.ConfigurableBlock[BlockFormatStringFromObjectConfig] `json:"-" yaml:"-"`
 	BlockParent
 }
 

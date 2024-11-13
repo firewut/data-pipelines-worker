@@ -280,7 +280,7 @@ func NewModerationDecision(processingID uuid.UUID) *ModerationDecision {
 }
 
 type BlockFetchModerationFromTelegram struct {
-	generics.ConfigurableBlock[BlockFetchModerationFromTelegramConfig]
+	generics.ConfigurableBlock[BlockFetchModerationFromTelegramConfig] `json:"-" yaml:"-"`
 	BlockParent
 }
 

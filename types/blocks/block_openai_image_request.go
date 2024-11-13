@@ -85,7 +85,7 @@ type BlockOpenAIRequestImageConfig struct {
 }
 
 type BlockOpenAIRequestImage struct {
-	generics.ConfigurableBlock[BlockOpenAIRequestImageConfig]
+	generics.ConfigurableBlock[BlockOpenAIRequestImageConfig] `json:"-" yaml:"-"`
 	BlockParent
 }
 

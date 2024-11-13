@@ -264,7 +264,7 @@ type BlockSubtitlesFromTranscriptionConfig struct {
 }
 
 type BlockSubtitlesFromTranscription struct {
-	generics.ConfigurableBlock[BlockSubtitlesFromTranscriptionConfig]
+	generics.ConfigurableBlock[BlockSubtitlesFromTranscriptionConfig] `json:"-" yaml:"-"`
 	BlockParent
 }
 

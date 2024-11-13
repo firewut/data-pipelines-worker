@@ -148,7 +148,7 @@ type BlockSendMessageToTelegramConfig struct {
 }
 
 type BlockSendMessageToTelegram struct {
-	generics.ConfigurableBlock[BlockSendMessageToTelegramConfig]
+	generics.ConfigurableBlock[BlockSendMessageToTelegramConfig] `json:"-" yaml:"-"`
 	BlockParent
 }
 

@@ -149,7 +149,7 @@ type BlockVideoFromImageConfig struct {
 }
 
 type BlockVideoFromImage struct {
-	generics.ConfigurableBlock[BlockVideoFromImageConfig]
+	generics.ConfigurableBlock[BlockVideoFromImageConfig] `json:"-" yaml:"-"`
 	BlockParent
 }
 
