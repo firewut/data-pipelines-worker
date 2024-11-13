@@ -24,6 +24,26 @@ func PipelinesHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
 	}
 }
 
+// @Summary Get a pipeline
+// @Description Returns a JSON object of the pipeline with the given slug.
+// @Tags pipelines
+// @Accept json
+// @Produce json
+// @Param slug path string true "Pipeline slug"
+// @Success 200 {object} dataclasses.PipelineData
+// @Failure 404 {string} string "Pipeline not found"
+// @Router /pipelines/{slug} [get]
+func PipelineHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		pipeline := registry.Get(c.Param("slug"))
+		if pipeline == nil {
+			return c.JSON(http.StatusNotFound, "Pipeline not found")
+		}
+
+		return c.JSON(http.StatusOK, pipeline)
+	}
+}
+
 // @Summary Start a pipeline
 // @Description Starts the pipeline with the given input data and returns the processing ID.
 // @Tags pipelines

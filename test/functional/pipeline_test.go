@@ -22,6 +22,30 @@ import (
 	"data-pipelines-worker/types/registries"
 )
 
+func (suite *FunctionalTestSuite) TestPipelineGetHandler() {
+	// Given
+	server, _, err := suite.NewWorkerServerWithHandlers(true, suite._config)
+	suite.Nil(err)
+
+	api_path := "/pipelines"
+	pipelineSlug := "openai-yt-short-generation"
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/%s/%s/", api_path, pipelineSlug), nil)
+
+	c := server.GetEcho().NewContext(req, rec)
+	c.SetParamNames("slug")
+	c.SetParamValues(pipelineSlug)
+
+	// When
+	handlers.PipelineHandler(server.GetPipelineRegistry())(c)
+
+	// Then
+	suite.Equal(http.StatusOK, rec.Code)
+	suite.NotNil(rec.Body.String())
+	suite.Contains(rec.Body.String(), pipelineSlug)
+}
+
 func (suite *FunctionalTestSuite) TestPipelineStartHandler() {
 	// Given
 	server, _, err := suite.NewWorkerServerWithHandlers(true, suite._config)

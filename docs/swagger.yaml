@@ -184,6 +184,31 @@ paths:
       summary: Get all pipelines
       tags:
       - pipelines
+  /pipelines/{slug}:
+    get:
+      consumes:
+      - application/json
+      description: Returns a JSON object of the pipeline with the given slug.
+      parameters:
+      - description: Pipeline slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dataclasses.PipelineData'
+        "404":
+          description: Pipeline not found
+          schema:
+            type: string
+      summary: Get a pipeline
+      tags:
+      - pipelines
   /pipelines/{slug}/resume:
     post:
       consumes:

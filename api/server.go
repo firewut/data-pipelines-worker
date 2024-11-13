@@ -269,6 +269,9 @@ func (s *Server) SetAPIHandlers() {
 	s.AddHTTPAPIRoute("GET", "/pipelines", handlers.PipelinesHandler(
 		s.GetPipelineRegistry(),
 	))
+	s.AddHTTPAPIRoute("GET", "/pipelines/:slug/", handlers.PipelineHandler(
+		s.GetPipelineRegistry(),
+	))
 	s.AddHTTPAPIRoute(
 		"POST", "/pipelines/:slug/start",
 		handlers.PipelineStartHandler(

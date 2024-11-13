@@ -88,6 +88,44 @@ const docTemplate = `{
                 }
             }
         },
+        "/pipelines/{slug}": {
+            "get": {
+                "description": "Returns a JSON object of the pipeline with the given slug.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pipelines"
+                ],
+                "summary": "Get a pipeline",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Pipeline slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dataclasses.PipelineData"
+                        }
+                    },
+                    "404": {
+                        "description": "Pipeline not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/pipelines/{slug}/resume": {
             "post": {
                 "description": "Resumes a paused pipeline with the given input data and returns the processing ID.",
