@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"path"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 
+	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/interfaces"
 )
 
@@ -197,6 +199,32 @@ func (r *PipelineBlockDataRegistry) LoadOutput(blockSlug string) []*bytes.Buffer
 	}
 
 	return r.Get(blockSlug)
+}
+
+// SavePipelineLog saves the Pipeline Execution Log
+func (r *PipelineBlockDataRegistry) SavePipelineLog(logBuffer *bytes.Buffer) {
+	logger := config.GetLogger()
+	filePath := fmt.Sprintf(
+		"%s/%s",
+		r.pipelineSlug,
+		r.processingId,
+	)
+
+	// convert current date to timestamp
+	logIndex := time.Now().Unix()
+	for _, storage := range r.storages {
+		dataCopy := bytes.NewBuffer(logBuffer.Bytes())
+
+		logStorageLocation := storage.NewStorageLocation(
+			path.Join(
+				filePath,
+				fmt.Sprintf("log_%d", logIndex),
+			),
+		)
+		if _, err := storage.PutObjectBytes(logStorageLocation, dataCopy); err != nil {
+			logger.Error(err)
+		}
+	}
 }
 
 // SaveOutput saves the output to all storages

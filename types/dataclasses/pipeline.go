@@ -146,8 +146,8 @@ func (p *PipelineData) Process(
 	inputData schemas.PipelineStartInputSchema,
 	resultStorages []interfaces.Storage,
 ) (uuid.UUID, error) {
-	logger := config.GetLogger()
 	processingId := inputData.GetProcessingID()
+	logger, loggerBuffer := config.GetLoggerForEntity("pipeline", processingId)
 
 	// Check if the block exists in the pipeline
 	pipelineBlocks := p.GetBlocks()
@@ -200,6 +200,11 @@ func (p *PipelineData) Process(
 	go func() {
 		blockInputsData := make(map[string][]map[string]interface{}, 0)
 
+		// Save result of Pipeline execution in any case
+		defer func() {
+			pipelineBlockDataRegistry.SavePipelineLog(loggerBuffer)
+		}()
+
 		// Loop through each block
 		for blockRelativeIndex, blockData := range processBlocks {
 			blockIndex := blockRelativeIndex + len(processedBlocks)
@@ -243,10 +248,9 @@ func (p *PipelineData) Process(
 					tmpProcessing.Stop(
 						interfaces.ProcessingStatusFailed,
 						fmt.Errorf(
-							"error getting input config data for block %s [%s:%s]. Error: %s",
-							block.GetId(),
+							"error getting input config data for block [%s:%s]. Error: %s",
 							blockData.GetSlug(),
-							processingId,
+							block.GetId(),
 							err,
 						),
 					)
@@ -315,9 +319,9 @@ func (p *PipelineData) Process(
 			}
 
 			logger.Infof(
-				"Starting processing data for block %s [%s]",
-				block.GetId(),
+				"Starting processing data for block [%s:%s]",
 				blockData.GetSlug(),
+				block.GetId(),
 			)
 
 			type blockInputProcessingResult struct {
@@ -344,9 +348,9 @@ func (p *PipelineData) Process(
 							}
 
 							logger.Infof(
-								"Skipping processing data for block %s [%s] with index %d",
-								block.GetId(),
+								"Skipping processing data for block [%s:%s] with index %d",
 								blockData.GetSlug(),
+								block.GetId(),
 								blockInputIndex,
 							)
 							continue
@@ -355,9 +359,9 @@ func (p *PipelineData) Process(
 				}
 
 				logger.Infof(
-					"Processing data for block %s [%s] with index %d",
-					block.GetId(),
+					"Processing data for block [%s:%s] with index %d",
 					blockData.GetSlug(),
+					block.GetId(),
 					blockInputIndex,
 				)
 
@@ -394,10 +398,9 @@ func (p *PipelineData) Process(
 
 					if processingOutput.GetError() != nil {
 						_err := fmt.Errorf(
-							"error processing data for block %s [%s:%s] with index %d. Error: %s",
-							block.GetId(),
+							"error processing data for block [%s:%s] with index %d. Error: %s",
 							_blockData.GetSlug(),
-							_processing.GetId(),
+							block.GetId(),
 							blockInputIndex,
 							processingOutput.GetError(),
 						)
@@ -408,10 +411,9 @@ func (p *PipelineData) Process(
 					}
 
 					logger.Infof(
-						"Processing data for block %s [%s:%s] with index %d completed",
-						block.GetId(),
+						"Processing data for block [%s:%s] with index %d completed",
 						_blockData.GetSlug(),
-						_processing.GetId(),
+						block.GetId(),
 						blockInputIndex,
 					)
 
@@ -426,10 +428,9 @@ func (p *PipelineData) Process(
 						if targetBlockSlug != "" &&
 							targetBlockInputIndex >= 0 {
 							logger.Warnf(
-								"Pipeline stopped by block %s [%s:%s] with index %d. Regenerating block %s with index %d",
-								block.GetId(),
+								"Pipeline stopped by block [%s:%s] with index %d. Regenerating block %s with index %d",
 								_blockData.GetSlug(),
-								_processing.GetId(),
+								block.GetId(),
 								blockInputIndex,
 								targetBlockSlug,
 								targetBlockInputIndex,
@@ -485,20 +486,18 @@ func (p *PipelineData) Process(
 							)
 						} else {
 							logger.Infof(
-								"Pipeline stopped by block %s [%s:%s]",
-								block.GetId(),
+								"Pipeline stopped by block [%s:%s]",
 								_blockData.GetSlug(),
-								_processing.GetId(),
+								block.GetId(),
 							)
 						}
 						return processingOutput, nil
 					}
 
 					logger.Infof(
-						"Saving output for block %s [%s:%s] with index %d",
-						block.GetId(),
+						"Saving output for block [%s:%s] with index %d",
 						_blockData.GetSlug(),
-						_processing.GetId(),
+						block.GetId(),
 						blockInputIndex,
 					)
 
@@ -518,19 +517,17 @@ func (p *PipelineData) Process(
 					for _, saveOutputResult := range saveOutputResults {
 						if saveOutputResult.Error != nil {
 							logger.Errorf(
-								"Error saving output for block %s [%s] processing %s to storage %s: %s",
-								block.GetId(),
+								"Error saving output for block [%s:%s] to storage %s: %s",
 								_blockData.GetSlug(),
-								_processing.GetData().GetId(),
+								block.GetId(),
 								saveOutputResult.StorageLocation.GetStorageName(),
 								saveOutputResult.Error,
 							)
 						} else {
 							logger.Infof(
-								"Saved output for block %s [%s] processing %s to storage %s",
-								block.GetId(),
+								"Saved output for block [%s:%s] to storage %s",
 								_blockData.GetSlug(),
-								_processing.GetData().GetId(),
+								block.GetId(),
 								saveOutputResult.StorageLocation.GetStorageName(),
 							)
 						}
@@ -569,11 +566,7 @@ func (p *PipelineData) Process(
 			}
 		}
 
-		logger.Infof(
-			"Processing Pipeline %s [%s] completed",
-			p.GetSlug(),
-			processingId,
-		)
+		logger.Infof("Processing Pipeline %s completed", p.GetSlug())
 	}()
 
 	return processingId, nil

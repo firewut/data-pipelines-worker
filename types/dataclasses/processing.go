@@ -163,7 +163,7 @@ func (p *Processing) SetRegistryNotificationChannel(channel chan interfaces.Proc
 }
 
 func (p *Processing) Start() interfaces.ProcessingOutput {
-	logger := config.GetLogger()
+	logger, _ := config.GetLoggerForEntity("pipeline", p.GetId())
 
 	processingOutput := p.GetOutput()
 

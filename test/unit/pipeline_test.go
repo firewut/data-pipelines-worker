@@ -79,7 +79,7 @@ func (suite *UnitTestSuite) TestPipelineProcess() {
 		"test-block-slug",
 		nil,
 	)
-	mockStorage := suite.NewMockLocalStorage(1)
+	mockStorage := suite.NewMockLocalStorage(2)
 	pipelineRegistry.SetPipelineResultStorages(
 		[]interfaces.Storage{
 			mockStorage,
@@ -111,102 +111,15 @@ func (suite *UnitTestSuite) TestPipelineProcess() {
 	processingOutput := processing.GetOutput()
 	suite.NotNil(processingOutput)
 	suite.Equal(mockedResponse, processingOutput.GetValue().String())
+
+	<-mockStorage.GetCreatedFilesChan()
+	pipelineLogFile := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineLogFile)
 }
 
 func (suite *UnitTestSuite) TestPipelineProcessStopPipelineTrue() {
 	// Given
 	mockedResponse := `{"action": "declined"}`
-	successUrl := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK, 0)
-
-	pipeline := suite.GetTestPipeline(
-		fmt.Sprintf(
-			`{
-				"slug": "test-pipeline-slug-two-blocks",
-				"title": "Test Pipeline",
-				"description": "Test Pipeline Description",
-				"blocks": [
-					{
-						"id": "http_request",
-						"slug": "test-block-first-slug",
-						"description": "Request Local Resourse",
-						"input": {
-							"url": "%s"
-						}
-					},
-					{
-						"id": "stop_pipeline",
-						"slug": "stop-pipeline-if-declined",
-						"description": "Stop Pipeline if Declined",
-						"input_config": {
-							"property": {
-								"data": {
-									"origin": "test-block-first-slug",
-									"json_path": "$.action"
-								}
-							}
-						},
-						"input": {
-							"condition": "==",
-							"value": "declined"
-						}
-					}
-				]
-			}`,
-			successUrl,
-		),
-	)
-	pipeline, processingData, pipelineRegistry := suite.RegisterTestPipelineAndInputForProcessing(
-		pipeline,
-		"test-pipeline-slug-two-blocks",
-		"test-block-first-slug",
-		nil,
-	)
-	mockStorage := suite.NewMockLocalStorage(1)
-	pipelineRegistry.SetPipelineResultStorages(
-		[]interfaces.Storage{
-			mockStorage,
-		},
-	)
-	notificationChannel := make(chan interfaces.Processing)
-	processingRegistry := suite.GetProcessingRegistry(true)
-	processingRegistry.SetNotificationChannel(notificationChannel)
-
-	// When
-	processingId, err := pipeline.Process(
-		suite.GetWorkerRegistry(true),
-		suite.GetBlockRegistry(),
-		processingRegistry,
-		processingData,
-		pipelineRegistry.GetPipelineResultStorages(),
-	)
-
-	// Then
-	suite.Nil(err)
-	suite.NotEmpty(processingId)
-
-	// Wait for Notifications
-	processing1 := <-notificationChannel
-	suite.NotNil(processing1)
-	suite.Equal(processingId, processing1.GetId())
-	suite.Equal(interfaces.ProcessingStatusCompleted, processing1.GetStatus())
-
-	processing1Output := processing1.GetOutput()
-	suite.NotNil(processing1Output)
-	suite.Equal(mockedResponse, processing1Output.GetValue().String())
-
-	processing2 := <-notificationChannel
-	suite.NotNil(processing2)
-	suite.Equal(processingId, processing2.GetId())
-	suite.Equal(interfaces.ProcessingStatusStopped, processing2.GetStatus())
-
-	processing2Output := processing2.GetOutput()
-	suite.NotNil(processing2Output)
-	suite.True(processing2Output.GetStop())
-}
-
-func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalse() {
-	// Given
-	mockedResponse := `{"action": "accepted"}`
 	successUrl := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK, 0)
 
 	pipeline := suite.GetTestPipeline(
@@ -288,11 +201,111 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalse() {
 	processing2 := <-notificationChannel
 	suite.NotNil(processing2)
 	suite.Equal(processingId, processing2.GetId())
+	suite.Equal(interfaces.ProcessingStatusStopped, processing2.GetStatus())
+
+	processing2Output := processing2.GetOutput()
+	suite.NotNil(processing2Output)
+	suite.True(processing2Output.GetStop())
+
+	<-mockStorage.GetCreatedFilesChan()
+	pipelineLogFile := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineLogFile)
+}
+
+func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalse() {
+	// Given
+	mockedResponse := `{"action": "accepted"}`
+	successUrl := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK, 0)
+
+	pipeline := suite.GetTestPipeline(
+		fmt.Sprintf(
+			`{
+				"slug": "test-pipeline-slug-two-blocks",
+				"title": "Test Pipeline",
+				"description": "Test Pipeline Description",
+				"blocks": [
+					{
+						"id": "http_request",
+						"slug": "test-block-first-slug",
+						"description": "Request Local Resourse",
+						"input": {
+							"url": "%s"
+						}
+					},
+					{
+						"id": "stop_pipeline",
+						"slug": "stop-pipeline-if-declined",
+						"description": "Stop Pipeline if Declined",
+						"input_config": {
+							"property": {
+								"data": {
+									"origin": "test-block-first-slug",
+									"json_path": "$.action"
+								}
+							}
+						},
+						"input": {
+							"condition": "==",
+							"value": "declined"
+						}
+					}
+				]
+			}`,
+			successUrl,
+		),
+	)
+	pipeline, processingData, pipelineRegistry := suite.RegisterTestPipelineAndInputForProcessing(
+		pipeline,
+		"test-pipeline-slug-two-blocks",
+		"test-block-first-slug",
+		nil,
+	)
+	mockStorage := suite.NewMockLocalStorage(3)
+	pipelineRegistry.SetPipelineResultStorages(
+		[]interfaces.Storage{
+			mockStorage,
+		},
+	)
+	notificationChannel := make(chan interfaces.Processing)
+	processingRegistry := suite.GetProcessingRegistry(true)
+	processingRegistry.SetNotificationChannel(notificationChannel)
+
+	// When
+	processingId, err := pipeline.Process(
+		suite.GetWorkerRegistry(true),
+		suite.GetBlockRegistry(),
+		processingRegistry,
+		processingData,
+		pipelineRegistry.GetPipelineResultStorages(),
+	)
+
+	// Then
+	suite.Nil(err)
+	suite.NotEmpty(processingId)
+
+	// Wait for Notifications
+	processing1 := <-notificationChannel
+	suite.NotNil(processing1)
+	suite.Equal(processingId, processing1.GetId())
+	suite.Equal(interfaces.ProcessingStatusCompleted, processing1.GetStatus())
+
+	processing1Output := processing1.GetOutput()
+	suite.NotNil(processing1Output)
+	suite.Equal(mockedResponse, processing1Output.GetValue().String())
+
+	processing2 := <-notificationChannel
+	suite.NotNil(processing2)
+	suite.Equal(processingId, processing2.GetId())
 	suite.Equal(interfaces.ProcessingStatusCompleted, processing2.GetStatus())
 
 	processing2Output := processing2.GetOutput()
 	suite.NotNil(processing2Output)
 	suite.False(processing2Output.GetStop())
+
+	<-mockStorage.GetCreatedFilesChan()
+	<-mockStorage.GetCreatedFilesChan()
+	pipelineLogFile := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineLogFile)
 }
 
 func (suite *UnitTestSuite) TestPipelineProcessStopPipelineTrueThreeBlocks() {
@@ -357,7 +370,7 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineTrueThreeBlocks() {
 		"test-block-first-slug",
 		nil,
 	)
-	mockStorage := suite.NewMockLocalStorage(3)
+	mockStorage := suite.NewMockLocalStorage(4)
 	pipelineRegistry.SetPipelineResultStorages(
 		[]interfaces.Storage{
 			mockStorage,
@@ -398,6 +411,10 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineTrueThreeBlocks() {
 	processing2Output := processing2.GetOutput()
 	suite.NotNil(processing2Output)
 	suite.True(processing2Output.GetStop())
+
+	<-mockStorage.GetCreatedFilesChan()
+	pipelineLogFile := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineLogFile)
 
 	// Third block must not be processed
 	select {
@@ -473,7 +490,7 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalseThreeBlocks() {
 		"test-block-first-slug",
 		nil,
 	)
-	mockStorage := suite.NewMockLocalStorage(3)
+	mockStorage := suite.NewMockLocalStorage(4)
 	pipelineRegistry.SetPipelineResultStorages(
 		[]interfaces.Storage{
 			mockStorage,
@@ -523,6 +540,12 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalseThreeBlocks() {
 	processing3Output := processing3.GetOutput()
 	suite.NotNil(processing3Output)
 	suite.Equal(thirdBlockInput, processing1Output.GetValue().String())
+
+	<-mockStorage.GetCreatedFilesChan()
+	<-mockStorage.GetCreatedFilesChan()
+	<-mockStorage.GetCreatedFilesChan()
+	pipelineLogFile := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineLogFile)
 }
 
 func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
@@ -547,7 +570,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
 		},
 	)
 
-	mockStorage := suite.NewMockLocalStorage(2)
+	mockStorage := suite.NewMockLocalStorage(3)
 	registry.SetPipelineResultStorages(
 		[]interfaces.Storage{
 			mockStorage,
@@ -585,6 +608,11 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
 	secondBlockProcessingOutput := secondBlockProcessing.GetOutput()
 	suite.NotNil(secondBlockProcessingOutput)
 	suite.Equal(mockedSecondBlockResponse, secondBlockProcessingOutput.GetValue().String())
+
+	<-mockStorage.GetCreatedFilesChan()
+	<-mockStorage.GetCreatedFilesChan()
+	pipelineLogFile := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineLogFile)
 }
 
 func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcessNStorages() {
@@ -608,8 +636,8 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcessNStorages() {
 			"url": firstBlockInput,
 		},
 	)
-	mockStorage1 := suite.NewMockLocalStorage(2)
-	mockStorage2 := suite.NewMockLocalStorage(2)
+	mockStorage1 := suite.NewMockLocalStorage(3)
+	mockStorage2 := suite.NewMockLocalStorage(3)
 	storages := []interfaces.Storage{
 		types.NewLocalStorage(""),
 		mockStorage1,
@@ -665,6 +693,12 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcessNStorages() {
 	createdFileBlock2 = <-mockStorage2.createdFilesChan
 	suite.NotEmpty(createdFileBlock2)
 	suite.Equal(mockedSecondBlockResponse, createdFileBlock2.data.String())
+
+	pipelineLogFile1 := <-mockStorage1.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineLogFile1)
+
+	pipelineLogFile2 := <-mockStorage2.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineLogFile2)
 }
 
 func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlockInputPassed() {
@@ -690,7 +724,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 	)
 	processingData.Pipeline.ProcessingID = processingId
 
-	mockStorage := suite.NewMockLocalStorage(2)
+	mockStorage := suite.NewMockLocalStorage(3)
 	mockStorage.AddFile(
 		mockStorage.NewStorageLocation(
 			fmt.Sprintf(
@@ -738,6 +772,9 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 	createdFileBlock1 := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(createdFileBlock1)
 	suite.Equal(mockedSecondBlockResponse, createdFileBlock1.data.String())
+
+	pipelineLogFile := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineLogFile)
 }
 
 func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlockInputMissing() {
@@ -761,7 +798,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 	)
 	processingData.Pipeline.ProcessingID = processingId
 
-	mockStorage := suite.NewMockLocalStorage(2)
+	mockStorage := suite.NewMockLocalStorage(3)
 	mockStorage.AddFile(
 		mockStorage.NewStorageLocation(
 			fmt.Sprintf(
@@ -807,4 +844,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 	createdFileBlock1 := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(createdFileBlock1)
 	suite.Equal(mockedSecondBlockResponse, createdFileBlock1.data.String())
+
+	pipelineLogFile := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineLogFile)
 }

@@ -1,5 +1,5 @@
 Name:           data-pipelines-worker
-Version:        1.0.3
+Version:        1.0.4
 Release:        1%{?dist}
 Summary:        Data pipelines worker
 License:        Custom License
@@ -44,7 +44,9 @@ fi
 /etc/systemd/system/data-pipelines-worker.service
 
 %changelog
-* Mon Nov 13 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.3
+* Thu Nov 14 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.4
+- Added Pipeline Log to Storage dump
+* Tue Nov 13 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.3
 - Added HTTP Handler to GET specific Pipeline
 * Mon Nov 11 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.2
 - Added multipart/form-data API Interface
