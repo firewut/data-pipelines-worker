@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"regexp"
 	"sync"
 	"time"
 
@@ -12,6 +13,18 @@ import (
 
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/interfaces"
+)
+
+const (
+	OUTPUT_FILE_TEMPLATE       = "output_%d"
+	OUTPUT_FILE_TEMPLATE_REGEX = "output_\\d+"
+	LOG_FILE_TEMPLATE          = "log_%d"
+	LOG_FILE_TEMPLATE_REGEX    = "log_\\d+"
+)
+
+var (
+	OUTPUT_FILE_REGEX = regexp.MustCompile(OUTPUT_FILE_TEMPLATE_REGEX)
+	LOG_FILE_REGEX    = regexp.MustCompile(LOG_FILE_TEMPLATE_REGEX)
 )
 
 type PipelineBlockDataRegistry struct {
@@ -203,22 +216,26 @@ func (r *PipelineBlockDataRegistry) LoadOutput(blockSlug string) []*bytes.Buffer
 
 // SavePipelineLog saves the Pipeline Execution Log
 func (r *PipelineBlockDataRegistry) SavePipelineLog(logBuffer *bytes.Buffer) {
+	r.Lock()
+	defer r.Unlock()
+
 	logger := config.GetLogger()
 	filePath := fmt.Sprintf(
 		"%s/%s",
 		r.pipelineSlug,
 		r.processingId,
 	)
+	logBytes := logBuffer.Bytes()
 
 	// convert current date to timestamp
 	logIndex := time.Now().Unix()
 	for _, storage := range r.storages {
-		dataCopy := bytes.NewBuffer(logBuffer.Bytes())
+		dataCopy := bytes.NewBuffer(logBytes)
 
 		logStorageLocation := storage.NewStorageLocation(
 			path.Join(
 				filePath,
-				fmt.Sprintf("log_%d", logIndex),
+				fmt.Sprintf(LOG_FILE_TEMPLATE, logIndex),
 			),
 		)
 		if _, err := storage.PutObjectBytes(logStorageLocation, dataCopy); err != nil {
@@ -252,7 +269,7 @@ func (r *PipelineBlockDataRegistry) SaveOutput(
 			storage.NewStorageLocation(
 				path.Join(
 					filePath,
-					fmt.Sprintf("output_%d", outputIndex),
+					fmt.Sprintf(OUTPUT_FILE_TEMPLATE, outputIndex),
 				),
 			),
 			dataCopy,

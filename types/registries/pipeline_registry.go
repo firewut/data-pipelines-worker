@@ -138,6 +138,12 @@ func (pr *PipelineRegistry) Shutdown(ctx context.Context) error {
 	return nil
 }
 
+func (pr *PipelineRegistry) GetProcessingsInfo(p interfaces.Pipeline) map[uuid.UUID][]interfaces.PipelineProcessingInfo {
+	return p.GetProcessingsInfo(
+		pr.GetPipelineResultStorages(),
+	)
+}
+
 func (pr *PipelineRegistry) StartPipeline(
 	data schemas.PipelineStartInputSchema,
 ) (uuid.UUID, error) {

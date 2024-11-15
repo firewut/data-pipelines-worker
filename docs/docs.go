@@ -272,6 +272,20 @@ const docTemplate = `{
                 }
             }
         },
+        "dataclasses.PipelineProcessingInfoData": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "is_log": {
+                    "type": "boolean"
+                },
+                "log": {
+                    "type": "string"
+                }
+            }
+        },
         "dataclasses.Worker": {
             "type": "object",
             "properties": {

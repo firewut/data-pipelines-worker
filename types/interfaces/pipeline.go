@@ -7,6 +7,14 @@ import (
 	"data-pipelines-worker/api/schemas"
 )
 
+type PipelineProcessingInfo interface {
+	GetId() uuid.UUID
+	GetStorage() Storage
+
+	SetLogData([]byte)
+	SetBlockData([]byte)
+}
+
 type Pipeline interface {
 	GetId() string
 	GetSlug() string
@@ -23,6 +31,8 @@ type Pipeline interface {
 		schemas.PipelineStartInputSchema,
 		[]Storage,
 	) (uuid.UUID, error)
+
+	GetProcessingsInfo([]Storage) map[uuid.UUID][]PipelineProcessingInfo
 }
 
 type PipelineCatalogueLoader interface {

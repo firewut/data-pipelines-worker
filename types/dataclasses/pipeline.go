@@ -1,9 +1,13 @@
 package dataclasses
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
+	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/google/uuid"
@@ -570,4 +574,160 @@ func (p *PipelineData) Process(
 	}()
 
 	return processingId, nil
+}
+
+func (p *PipelineData) GetProcessingsInfo(resultStorages []interfaces.Storage) map[uuid.UUID][]interfaces.PipelineProcessingInfo {
+	pipelineProcessingsPath := fmt.Sprintf(
+		"%s", p.GetSlug(),
+	)
+
+	processingDirectoryRegexp := regexp.MustCompile(
+		fmt.Sprintf(
+			"%s\\/%s",
+			pipelineProcessingsPath,
+			"([a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12})",
+		),
+	)
+
+	processings := make(map[uuid.UUID][]interfaces.PipelineProcessingInfo)
+	for _, storage := range resultStorages {
+		// List all processings in pipelineProcessingsPath
+		objects, err := storage.ListObjects(
+			storage.NewStorageLocation(
+				pipelineProcessingsPath,
+			),
+		)
+		if err != nil {
+			continue
+		}
+
+		for _, object := range objects {
+			matches := processingDirectoryRegexp.FindStringSubmatch(object.GetFilePath())
+			if len(matches) == 2 {
+				processingId := uuid.MustParse(matches[1])
+				if _, ok := processings[processingId]; !ok {
+					processings[processingId] = make(
+						[]interfaces.PipelineProcessingInfo,
+						0,
+					)
+				}
+
+				processings[processingId] = append(
+					processings[processingId],
+					NewPipelineProcessingInfoData(
+						processingId,
+						object,
+					),
+				)
+			}
+		}
+	}
+
+	return processings
+}
+
+// PipelineProcessingInfoData represents the structure of a pipeline processing in the system.
+// It includes the processing's metadata, log, and block data.
+//
+// swagger:model
+type PipelineProcessingInfoData struct {
+	sync.Mutex `json:"-"`
+
+	Id          uuid.UUID          `json:"id"`
+	Storage     interfaces.Storage `json:"-"`
+	IsBlockData bool               `json:"-"`
+	BlockData   bytes.Buffer       `json:"-"`
+	BlockSlug   string             `json:"-"`
+	OutputName  string             `json:"-"`
+	IsLogData   bool               `json:"is_log"`
+	LogData     string             `json:"log"`
+}
+
+func (p *PipelineProcessingInfoData) MarshalJSON() ([]byte, error) {
+	customRepresentation := struct {
+		Id          uuid.UUID `json:"id"`
+		StorageName string    `json:"storage_name"`
+		IsLogData   bool      `json:"is_log"`
+		LogData     string    `json:"log,omitempty"`
+		BlockSlug   string    `json:"block_slug,omitempty"`
+		OutputName  string    `json:"output_name,omitempty"`
+	}{
+		Id:          p.Id,
+		StorageName: p.Storage.GetStorageName(),
+		IsLogData:   p.IsLogData,
+		LogData:     p.LogData,
+		BlockSlug:   p.BlockSlug,
+		OutputName:  p.OutputName,
+	}
+
+	// Use the standard JSON marshaller for the custom structure
+	return json.Marshal(customRepresentation)
+}
+
+func NewPipelineProcessingInfoData(id uuid.UUID, location interfaces.StorageLocation) *PipelineProcessingInfoData {
+	fileName := filepath.Base(location.GetFileName())
+
+	isBlockData := false
+	isLogData := false
+	logData := ""
+	blockslug := ""
+
+	if registries.LOG_FILE_REGEX.MatchString(fileName) {
+		isLogData = true
+		if logDataBuffer, err := location.GetObjectBytes(); err == nil {
+			logData = logDataBuffer.String()
+		}
+	} else if registries.OUTPUT_FILE_REGEX.MatchString(fileName) {
+		isBlockData = true
+		segments := strings.Split(location.GetFilePath(), "/")
+		for i, segment := range segments {
+			if segment == id.String() {
+				if i+1 < len(segments) {
+					blockslug = segments[i+1]
+				}
+				break
+			}
+		}
+	}
+
+	return &PipelineProcessingInfoData{
+		Id:          id,
+		Storage:     location.GetStorage(),
+		IsLogData:   isLogData,
+		LogData:     logData,
+		IsBlockData: isBlockData,
+		BlockData:   *bytes.NewBufferString(""),
+		BlockSlug:   blockslug,
+		OutputName:  fileName,
+	}
+}
+
+func (p *PipelineProcessingInfoData) GetStorage() interfaces.Storage {
+	p.Lock()
+	defer p.Unlock()
+
+	return p.Storage
+}
+
+func (p *PipelineProcessingInfoData) GetId() uuid.UUID {
+	p.Lock()
+	defer p.Unlock()
+
+	return p.Id
+}
+
+func (p *PipelineProcessingInfoData) SetLogData(data []byte) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.IsLogData = true
+	p.LogData = string(data)
+}
+
+func (p *PipelineProcessingInfoData) SetBlockData(data []byte) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.IsBlockData = true
+	p.BlockData.Write(data)
 }

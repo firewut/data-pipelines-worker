@@ -25,6 +25,15 @@ definitions:
           example: "Example Pipeline"
         type: string
     type: object
+  dataclasses.PipelineProcessingInfoData:
+    properties:
+      id:
+        type: string
+      is_log:
+        type: boolean
+      log:
+        type: string
+    type: object
   dataclasses.Worker:
     properties:
       host:

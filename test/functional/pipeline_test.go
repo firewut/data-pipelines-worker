@@ -46,6 +46,28 @@ func (suite *FunctionalTestSuite) TestPipelineGetHandler() {
 	suite.Contains(rec.Body.String(), pipelineSlug)
 }
 
+func (suite *FunctionalTestSuite) TestPipelineGetInfoHandler() {
+	// Given
+	server, _, err := suite.NewWorkerServerWithHandlers(true, suite._config)
+	suite.Nil(err)
+
+	api_path := "/pipelines"
+	pipelineSlug := "openai-yt-short-generation"
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/%s/%s/", api_path, pipelineSlug), nil)
+
+	c := server.GetEcho().NewContext(req, rec)
+	c.SetParamNames("slug")
+	c.SetParamValues(pipelineSlug)
+
+	// When
+	handlers.PipelineProcessingInfoHandler(server.GetPipelineRegistry())(c)
+
+	// Then
+	suite.Equal(http.StatusOK, rec.Code)
+}
+
 func (suite *FunctionalTestSuite) TestPipelineStartHandler() {
 	// Given
 	server, _, err := suite.NewWorkerServerWithHandlers(true, suite._config)

@@ -43,6 +43,8 @@ type PipelineRegistry interface {
 	GetWorkerRegistry() WorkerRegistry
 	GetBlockRegistry() BlockRegistry
 	GetProcessingRegistry() ProcessingRegistry
+
+	GetProcessingsInfo(Pipeline) map[uuid.UUID][]PipelineProcessingInfo
 }
 
 type BlockRegistry interface {
