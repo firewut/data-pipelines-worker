@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -58,34 +57,37 @@ func (s *LocalStorage) NewStorageLocation(fileName string) interfaces.StorageLoc
 }
 
 func (s *LocalStorage) ListObjects(location interfaces.StorageLocation) ([]interfaces.StorageLocation, error) {
+	logger := config.GetLogger()
 	objects := make([]interfaces.StorageLocation, 0)
 
 	var locationDirectory string
-	if location.GetFilePath() != location.GetLocalDirectory() {
-		info, err := os.Stat(location.GetFilePath())
+	filePath := location.GetFilePath()
+	localDirectory := location.GetLocalDirectory()
+
+	if filePath != localDirectory {
+		info, err := os.Stat(filePath)
+		if err == nil {
+			// Ensure it is a directory
+			if !info.IsDir() {
+				locationDirectory = filepath.Dir(filePath)
+			} else {
+				locationDirectory = filePath
+			}
+		}
 		if os.IsNotExist(err) {
-			return s.ListObjects(
-				s.NewStorageLocation(
-					filepath.Dir(location.GetFilePath()),
-				),
-			)
+			locationDirectory = localDirectory
 		} else if err != nil {
 			return objects, err
 		}
 
-		// Ensure it is a directory
-		if !info.IsDir() {
-			locationDirectory = filepath.Dir(location.GetFilePath())
-		} else {
-			locationDirectory = location.GetFilePath()
-		}
 	} else {
-		locationDirectory = location.GetLocalDirectory()
+		locationDirectory = localDirectory
 	}
 
 	files, err := os.ReadDir(locationDirectory)
 	if err != nil {
-		log.Fatal(err)
+		logger.Error(err)
+		return objects, err
 	}
 
 	for _, file := range files {

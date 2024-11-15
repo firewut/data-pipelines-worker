@@ -597,7 +597,7 @@ func (p *PipelineData) GetProcessingsInfo(resultStorages []interfaces.Storage) m
 				pipelineProcessingsPath,
 			),
 		)
-		if err != nil {
+		if err != nil || len(objects) == 0 {
 			continue
 		}
 

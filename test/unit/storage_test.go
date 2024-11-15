@@ -35,6 +35,56 @@ func (suite *UnitTestSuite) TestDetectMimeTypeFromBuffer() {
 	}
 }
 
+func (suite *UnitTestSuite) TestLocalStorageListObjectsNoDirectory() {
+	// Given
+	storage := types.NewLocalStorage("")
+
+	tempDir, err := os.MkdirTemp(
+		"",
+		"test-nested-directory-*",
+	)
+	suite.Nil(err)
+	suite.NotNil(tempDir)
+	defer os.RemoveAll(tempDir)
+
+	tempDir = filepath.Join(tempDir, "absent-directory")
+
+	localLocation := storage.NewStorageLocation("")
+	localLocation.SetLocalDirectory(tempDir)
+
+	// When
+	objects, err := storage.ListObjects(localLocation)
+
+	// Then
+	suite.NotNil(err)
+	suite.Empty(objects)
+}
+
+func (suite *UnitTestSuite) TestLocalStorageListObjectsNoDirectoryDifferentLocalDirectory() {
+	// Given
+	storage := types.NewLocalStorage("")
+
+	tempDir, err := os.MkdirTemp(
+		"",
+		"test-nested-directory-*",
+	)
+	suite.Nil(err)
+	suite.NotNil(tempDir)
+	defer os.RemoveAll(tempDir)
+
+	tempDir = filepath.Join(tempDir, "absent-directory")
+
+	localLocation := storage.NewStorageLocation("hewwo.txt")
+	localLocation.SetLocalDirectory(tempDir)
+
+	// When
+	objects, err := storage.ListObjects(localLocation)
+
+	// Then
+	suite.NotNil(err)
+	suite.Empty(objects)
+}
+
 func (suite *UnitTestSuite) TestLocalStorageListObjectsViaDirectory() {
 	// Given
 	storage := types.NewLocalStorage("")
