@@ -62,7 +62,7 @@ func (suite *FunctionalTestSuite) TestPipelineGetInfoHandler() {
 	c.SetParamValues(pipelineSlug)
 
 	// When
-	handlers.PipelineProcessingInfoHandler(server.GetPipelineRegistry())(c)
+	handlers.PipelineProcessingsInfoHandler(server.GetPipelineRegistry())(c)
 
 	// Then
 	suite.Equal(http.StatusOK, rec.Code)
