@@ -35,13 +35,12 @@ definitions:
         type: boolean
       is_error:
         type: boolean
-      is_log:
-        type: boolean
       is_stopped:
         type: boolean
       log_data:
         items:
-          type: string
+          additionalProperties: true
+          type: object
         type: array
       pipeline_slug:
         type: string
@@ -247,6 +246,67 @@ paths:
           schema:
             type: string
       summary: Get a pipeline
+      tags:
+      - pipelines
+  /pipelines/{slug}/processings/:
+    get:
+      consumes:
+      - application/json
+      description: Returns a JSON object of the pipeline Processings.
+      parameters:
+      - description: Pipeline slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/dataclasses.PipelineProcessingStatus'
+              type: array
+            type: object
+        "404":
+          description: Pipeline not found
+          schema:
+            type: string
+      summary: Get pipeline Processings info
+      tags:
+      - pipelines
+  /pipelines/{slug}/processings/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Returns a JSON object of the pipeline Processing Details.
+      parameters:
+      - description: Pipeline slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Processing ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dataclasses.PipelineProcessingDetails'
+            type: array
+        "404":
+          description: Pipeline not found
+          schema:
+            type: string
+      summary: Get pipeline Processing Details
       tags:
       - pipelines
   /pipelines/{slug}/resume:

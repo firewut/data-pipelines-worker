@@ -126,6 +126,98 @@ const docTemplate = `{
                 }
             }
         },
+        "/pipelines/{slug}/processings/": {
+            "get": {
+                "description": "Returns a JSON object of the pipeline Processings.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pipelines"
+                ],
+                "summary": "Get pipeline Processings info",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Pipeline slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/dataclasses.PipelineProcessingStatus"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Pipeline not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/pipelines/{slug}/processings/{id}": {
+            "get": {
+                "description": "Returns a JSON object of the pipeline Processing Details.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pipelines"
+                ],
+                "summary": "Get pipeline Processing Details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Pipeline slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Processing ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dataclasses.PipelineProcessingDetails"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Pipeline not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/pipelines/{slug}/resume": {
             "post": {
                 "description": "Resumes a paused pipeline with the given input data and returns the processing ID.",
@@ -287,16 +379,14 @@ const docTemplate = `{
                 "is_error": {
                     "type": "boolean"
                 },
-                "is_log": {
-                    "type": "boolean"
-                },
                 "is_stopped": {
                     "type": "boolean"
                 },
                 "log_data": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "type": "object",
+                        "additionalProperties": true
                     }
                 },
                 "pipeline_slug": {

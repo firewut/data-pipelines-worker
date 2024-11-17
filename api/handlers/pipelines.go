@@ -53,6 +53,7 @@ func PipelineHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
 // @Param slug path string true "Pipeline slug"
 // @Success 200 {object} map[uuid.UUID][]dataclasses.PipelineProcessingStatus
 // @Failure 404 {string} string "Pipeline not found"
+// @Router /pipelines/{slug}/processings/ [get]
 func PipelineProcessingsStatusHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		pipeline := registry.Get(c.Param("slug"))
@@ -64,14 +65,16 @@ func PipelineProcessingsStatusHandler(registry interfaces.PipelineRegistry) echo
 	}
 }
 
-// @Summary Get pipeline Processing info
-// @Description Returns a JSON object of the pipeline Processing.
+// @Summary Get pipeline Processing Details
+// @Description Returns a JSON object of the pipeline Processing Details.
 // @Tags pipelines
 // @Accept json
 // @Produce json
 // @Param slug path string true "Pipeline slug"
+// @Param id path string true "Processing ID"
 // @Success 200 {object} []dataclasses.PipelineProcessingDetails
 // @Failure 404 {string} string "Pipeline not found"
+// @Router /pipelines/{slug}/processings/{id} [get]
 func PipelineProcessingDetailsHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		pipeline := registry.Get(c.Param("slug"))
