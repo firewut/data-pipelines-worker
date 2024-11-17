@@ -3,6 +3,7 @@ package registries
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"path"
 	"regexp"
@@ -20,11 +21,14 @@ const (
 	OUTPUT_FILE_TEMPLATE_REGEX = "output_\\d+"
 	LOG_FILE_TEMPLATE          = "log_%d"
 	LOG_FILE_TEMPLATE_REGEX    = "log_\\d+"
+	STATUS_FILE_TEMPLATE       = "status_%d"
+	STATUS_FILE_TEMPLATE_REGEX = "status_\\d+"
 )
 
 var (
 	OUTPUT_FILE_REGEX = regexp.MustCompile(OUTPUT_FILE_TEMPLATE_REGEX)
 	LOG_FILE_REGEX    = regexp.MustCompile(LOG_FILE_TEMPLATE_REGEX)
+	STATUS_FILE_REGEX = regexp.MustCompile(STATUS_FILE_TEMPLATE_REGEX)
 )
 
 type PipelineBlockDataRegistry struct {
@@ -214,8 +218,12 @@ func (r *PipelineBlockDataRegistry) LoadOutput(blockSlug string) []*bytes.Buffer
 	return r.Get(blockSlug)
 }
 
-// SavePipelineLog saves the Pipeline Execution Log
-func (r *PipelineBlockDataRegistry) SavePipelineLog(logBuffer *bytes.Buffer) {
+// SavePipelineLog saves the Pipeline Execution Log & Status
+func (r *PipelineBlockDataRegistry) SavePipelineLog(
+	logBuffer *config.SafeBuffer,
+	logFileConstructor func(id uuid.UUID, slug string, logBufferFS *bytes.Buffer, storage interfaces.Storage) interfaces.PipelineProcessingDetails,
+	statusClassConstructor func(id uuid.UUID, slug string, logBufferCS *bytes.Buffer, storage interfaces.Storage) interfaces.PipelineProcessingStatus,
+) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -231,14 +239,46 @@ func (r *PipelineBlockDataRegistry) SavePipelineLog(logBuffer *bytes.Buffer) {
 	logIndex := time.Now().Unix()
 	for _, storage := range r.storages {
 		dataCopy := bytes.NewBuffer(logBytes)
+		logFileContent := bytes.NewBuffer(logBytes)
 
+		// LOG file
 		logStorageLocation := storage.NewStorageLocation(
 			path.Join(
 				filePath,
 				fmt.Sprintf(LOG_FILE_TEMPLATE, logIndex),
 			),
 		)
-		if _, err := storage.PutObjectBytes(logStorageLocation, dataCopy); err != nil {
+		if logContent, err := json.Marshal(
+			logFileConstructor(
+				r.processingId,
+				r.pipelineSlug,
+				dataCopy,
+				storage,
+			),
+		); err == nil {
+			logFileContent = bytes.NewBuffer(logContent)
+		}
+
+		if _, err := storage.PutObjectBytes(logStorageLocation, logFileContent); err != nil {
+			logger.Error(err)
+		}
+
+		// STATUS file
+		statusStorageLocation := storage.NewStorageLocation(
+			path.Join(
+				filePath,
+				fmt.Sprintf(STATUS_FILE_TEMPLATE, logIndex),
+			),
+		)
+		statusContent, err := json.Marshal(statusClassConstructor(r.processingId, r.pipelineSlug, dataCopy, storage))
+		if err != nil {
+			logger.Error(err)
+			continue
+		}
+		if _, err := storage.PutObjectBytes(
+			statusStorageLocation,
+			bytes.NewBuffer(statusContent),
+		); err != nil {
 			logger.Error(err)
 		}
 	}
@@ -264,6 +304,9 @@ func (r *PipelineBlockDataRegistry) SaveOutput(
 
 	for _, storage := range r.storages {
 		dataCopy := bytes.NewBuffer(output.Bytes())
+		if dataCopy.Len() == 0 {
+			dataCopy = bytes.NewBuffer([]byte("null"))
+		}
 
 		destinationStorageLocation, err := storage.PutObjectBytes(
 			storage.NewStorageLocation(

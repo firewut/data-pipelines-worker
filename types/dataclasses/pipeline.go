@@ -5,10 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/xeipuuv/gojsonschema"
@@ -206,7 +206,11 @@ func (p *PipelineData) Process(
 
 		// Save result of Pipeline execution in any case
 		defer func() {
-			pipelineBlockDataRegistry.SavePipelineLog(loggerBuffer)
+			pipelineBlockDataRegistry.SavePipelineLog(
+				loggerBuffer,
+				NewPipelineProcessingDetailsFromLogData,
+				NewPipelineProcessingStatusFromLogData,
+			)
 		}()
 
 		// Loop through each block
@@ -243,10 +247,21 @@ func (p *PipelineData) Process(
 
 			if blockData.GetInputConfig() != nil {
 				var err error
-				inputConfigValue, parallel, err = blockData.GetInputConfigData(
-					pipelineBlockDataRegistry.GetAll(),
-				)
 
+				// Get historical data ( previous steps )
+				processingData := pipelineBlockDataRegistry.GetAll()
+
+				// If input data passed for the block - remove it from processingData
+				if (blockRelativeIndex == 0 &&
+					inputData.Block.Slug == blockData.GetSlug()) &&
+					inputData.Block.Input != nil &&
+					len(inputData.Block.Input) > 0 &&
+					inputData.Block.TargetIndex < 0 {
+
+					processingData[inputData.Block.Slug] = nil
+				}
+
+				inputConfigValue, parallel, err = blockData.GetInputConfigData(processingData)
 				if err != nil {
 					logger.Error(err)
 					tmpProcessing.Stop(
@@ -286,7 +301,6 @@ func (p *PipelineData) Process(
 				},
 			)
 
-			// Merge inputs
 			blockInputData = MergeMaps(append(blockInputData, inputConfigValue...))
 
 			// Append to local mapping for blockInputsData
@@ -576,7 +590,7 @@ func (p *PipelineData) Process(
 	return processingId, nil
 }
 
-func (p *PipelineData) GetProcessingsInfo(resultStorages []interfaces.Storage) map[uuid.UUID][]interfaces.PipelineProcessingInfo {
+func (p *PipelineData) GetProcessingsStatus(resultStorages []interfaces.Storage) map[uuid.UUID][]interfaces.PipelineProcessingStatus {
 	pipelineProcessingsPath := fmt.Sprintf(
 		"%s", p.GetSlug(),
 	)
@@ -589,9 +603,8 @@ func (p *PipelineData) GetProcessingsInfo(resultStorages []interfaces.Storage) m
 		),
 	)
 
-	processings := make(map[uuid.UUID][]interfaces.PipelineProcessingInfo)
+	processingsStatuses := make(map[uuid.UUID][]interfaces.PipelineProcessingStatus)
 	for _, storage := range resultStorages {
-		// List all processings in pipelineProcessingsPath
 		objects, err := storage.ListObjects(
 			storage.NewStorageLocation(
 				pipelineProcessingsPath,
@@ -605,20 +618,79 @@ func (p *PipelineData) GetProcessingsInfo(resultStorages []interfaces.Storage) m
 			matches := processingDirectoryRegexp.FindStringSubmatch(object.GetFilePath())
 			if len(matches) == 2 {
 				processingId := uuid.MustParse(matches[1])
-				if _, ok := processings[processingId]; !ok {
-					processings[processingId] = make(
-						[]interfaces.PipelineProcessingInfo,
+				if _, ok := processingsStatuses[processingId]; !ok {
+					processingsStatuses[processingId] = make(
+						[]interfaces.PipelineProcessingStatus,
 						0,
 					)
 				}
 
-				processings[processingId] = append(
-					processings[processingId],
-					NewPipelineProcessingInfoData(
-						processingId,
-						object,
-					),
-				)
+				if registries.STATUS_FILE_REGEX.MatchString(object.GetFilePath()) {
+					if statusDataBuffer, err := object.GetObjectBytes(); err == nil {
+						processingStatus := NewPipelineProcessingStatusFromStatusFile(
+							processingId,
+							p.GetSlug(),
+							statusDataBuffer,
+							storage,
+						)
+
+						processingsStatuses[processingId] = append(
+							processingsStatuses[processingId],
+							processingStatus,
+						)
+					}
+				}
+			}
+		}
+	}
+
+	return processingsStatuses
+}
+
+func (p *PipelineData) GetProcessingDetails(processingId uuid.UUID, resultStorages []interfaces.Storage) []interfaces.PipelineProcessingDetails {
+	pipelineProcessingsPath := fmt.Sprintf(
+		"%s", p.GetSlug(),
+	)
+
+	processingDirectoryRegexp := regexp.MustCompile(
+		fmt.Sprintf(
+			"%s\\/%s",
+			pipelineProcessingsPath,
+			"([a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12})",
+		),
+	)
+
+	processings := make([]interfaces.PipelineProcessingDetails, 0)
+	for _, storage := range resultStorages {
+		objects, err := storage.ListObjects(
+			storage.NewStorageLocation(
+				pipelineProcessingsPath,
+			),
+		)
+		if err != nil || len(objects) == 0 {
+			continue
+		}
+
+		for _, object := range objects {
+			matches := processingDirectoryRegexp.FindStringSubmatch(object.GetFilePath())
+			if len(matches) == 2 {
+				storageProcessingId := uuid.MustParse(matches[1])
+				if storageProcessingId != processingId {
+					continue
+				}
+
+				if registries.LOG_FILE_REGEX.MatchString(object.GetFilePath()) {
+					if statusDataBuffer, err := object.GetObjectBytes(); err == nil {
+						processingDetails := NewProcessingDetailsFromLogFile(
+							processingId,
+							p.GetSlug(),
+							statusDataBuffer,
+							storage,
+						)
+
+						processings = append(processings, processingDetails)
+					}
+				}
 			}
 		}
 	}
@@ -626,108 +698,185 @@ func (p *PipelineData) GetProcessingsInfo(resultStorages []interfaces.Storage) m
 	return processings
 }
 
-// PipelineProcessingInfoData represents the structure of a pipeline processing in the system.
-// It includes the processing's metadata, log, and block data.
+// PipelineProcessingStatus represents the structure of a pipeline processing status in the system.
+// It includes the processing's metadata, storage, and completion status.
 //
 // swagger:model
-type PipelineProcessingInfoData struct {
-	sync.Mutex `json:"-"`
-
-	Id          uuid.UUID          `json:"id"`
-	Storage     interfaces.Storage `json:"-"`
-	IsBlockData bool               `json:"-"`
-	BlockData   bytes.Buffer       `json:"-"`
-	BlockSlug   string             `json:"-"`
-	OutputName  string             `json:"-"`
-	IsLogData   bool               `json:"is_log"`
-	LogData     string             `json:"log"`
+type PipelineProcessingStatus struct {
+	Id           uuid.UUID `json:"id"`
+	PipelineSlug string    `json:"pipeline_slug"`
+	Storage      string    `json:"storage"`
+	IsStopped    bool      `json:"is_stopped"`
+	IsCompleted  bool      `json:"is_completed"`
+	IsError      bool      `json:"is_error"`
+	DateFinished time.Time `json:"date_finished"`
 }
 
-func (p *PipelineProcessingInfoData) MarshalJSON() ([]byte, error) {
-	customRepresentation := struct {
-		Id          uuid.UUID `json:"id"`
-		StorageName string    `json:"storage_name"`
-		IsLogData   bool      `json:"is_log"`
-		LogData     string    `json:"log,omitempty"`
-		BlockSlug   string    `json:"block_slug,omitempty"`
-		OutputName  string    `json:"output_name,omitempty"`
-	}{
-		Id:          p.Id,
-		StorageName: p.Storage.GetStorageName(),
-		IsLogData:   p.IsLogData,
-		LogData:     p.LogData,
-		BlockSlug:   p.BlockSlug,
-		OutputName:  p.OutputName,
-	}
-
-	// Use the standard JSON marshaller for the custom structure
-	return json.Marshal(customRepresentation)
-}
-
-func NewPipelineProcessingInfoData(id uuid.UUID, location interfaces.StorageLocation) *PipelineProcessingInfoData {
-	fileName := filepath.Base(location.GetFileName())
-
-	isBlockData := false
-	isLogData := false
-	logData := ""
-	blockslug := ""
-
-	if registries.LOG_FILE_REGEX.MatchString(fileName) {
-		isLogData = true
-		if logDataBuffer, err := location.GetObjectBytes(); err == nil {
-			logData = logDataBuffer.String()
-		}
-	} else if registries.OUTPUT_FILE_REGEX.MatchString(fileName) {
-		isBlockData = true
-		segments := strings.Split(location.GetFilePath(), "/")
-		for i, segment := range segments {
-			if segment == id.String() {
-				if i+1 < len(segments) {
-					blockslug = segments[i+1]
-				}
-				break
-			}
-		}
-	}
-
-	return &PipelineProcessingInfoData{
-		Id:          id,
-		Storage:     location.GetStorage(),
-		IsLogData:   isLogData,
-		LogData:     logData,
-		IsBlockData: isBlockData,
-		BlockData:   *bytes.NewBufferString(""),
-		BlockSlug:   blockslug,
-		OutputName:  fileName,
-	}
-}
-
-func (p *PipelineProcessingInfoData) GetStorage() interfaces.Storage {
-	p.Lock()
-	defer p.Unlock()
-
-	return p.Storage
-}
-
-func (p *PipelineProcessingInfoData) GetId() uuid.UUID {
-	p.Lock()
-	defer p.Unlock()
-
+func (p *PipelineProcessingStatus) GetId() uuid.UUID {
 	return p.Id
 }
 
-func (p *PipelineProcessingInfoData) SetLogData(data []byte) {
-	p.Lock()
-	defer p.Unlock()
+func (p *PipelineProcessingStatus) MarshalJSON() ([]byte, error) {
+	customRepresentation := struct {
+		Id           uuid.UUID `json:"id"`
+		Storage      string    `json:"storage"`
+		IsStopped    bool      `json:"is_stopped"`
+		IsCompleted  bool      `json:"is_completed"`
+		IsError      bool      `json:"is_error"`
+		DateFinished time.Time `json:"date_finished"`
+	}{
+		Id:           p.Id,
+		Storage:      p.Storage,
+		IsStopped:    p.IsStopped,
+		IsCompleted:  p.IsCompleted,
+		IsError:      p.IsError,
+		DateFinished: p.DateFinished,
+	}
 
-	p.IsLogData = true
-	p.LogData = string(data)
+	return json.Marshal(customRepresentation)
 }
 
-func (p *PipelineProcessingInfoData) SetBlockData(data []byte) {
-	p.Lock()
-	defer p.Unlock()
+func NewPipelineProcessingStatusFromStatusFile(
+	id uuid.UUID,
+	pipelineSlug string,
+	statusFileBuffer *bytes.Buffer,
+	storage interfaces.Storage,
+) interfaces.PipelineProcessingStatus {
+	processingStatus := &PipelineProcessingStatus{
+		Id:           id,
+		PipelineSlug: pipelineSlug,
+		Storage:      storage.GetStorageName(),
+	}
 
-	p.IsBlockData = true
-	p.BlockData.Write(data)
+	if err := json.Unmarshal(statusFileBuffer.Bytes(), processingStatus); err != nil {
+		config.GetLogger().Error(err)
+	}
+
+	return processingStatus
+}
+
+func NewPipelineProcessingStatusFromLogData(
+	id uuid.UUID,
+	pipelineSlug string,
+	logBuffer *bytes.Buffer,
+	storage interfaces.Storage,
+) interfaces.PipelineProcessingStatus {
+	is_stopped := false
+	is_completed := false
+	is_error := false
+
+	logData := logBuffer.String()
+
+	// Check that pipeline is correct
+	if strings.Contains(
+		logData, fmt.Sprintf(`"prefix":"pipeline:%s"`, id.String()),
+	) {
+		if strings.Contains(
+			logData, fmt.Sprintf(`"message":"Processing Pipeline %s completed"`, pipelineSlug),
+		) {
+			is_completed = true
+		}
+		if strings.Contains(
+			logData, `"message":"Pipeline stopped by block [`,
+		) {
+			is_stopped = true
+		}
+	}
+
+	if strings.Contains(
+		logData,
+		`"ERROR"`,
+	) {
+		is_error = true
+	}
+
+	return &PipelineProcessingStatus{
+		Id:           id,
+		Storage:      storage.GetStorageName(),
+		PipelineSlug: pipelineSlug,
+		IsStopped:    is_stopped,
+		IsCompleted:  is_completed,
+		IsError:      is_error,
+		DateFinished: time.Now().UTC(),
+	}
+}
+
+// PipelineProcessingDetails represents the structure of a pipeline processing in the system.
+// It includes the processing's metadata, log, and block data.
+//
+// swagger:model
+type PipelineProcessingDetails struct {
+	PipelineProcessingStatus
+	LogData []map[string]interface{} `json:"log_data"`
+}
+
+func (p *PipelineProcessingDetails) GetId() uuid.UUID {
+	return p.Id
+}
+
+func (p *PipelineProcessingDetails) MarshalJSON() ([]byte, error) {
+	customRepresentation := struct {
+		Id           uuid.UUID                `json:"id"`
+		PipelineSlug string                   `json:"pipeline_slug"`
+		Storage      string                   `json:"storage"`
+		IsStopped    bool                     `json:"is_stopped"`
+		IsCompleted  bool                     `json:"is_completed"`
+		IsError      bool                     `json:"is_error"`
+		DateFinished time.Time                `json:"date_finished"`
+		LogData      []map[string]interface{} `json:"log_data"`
+	}{
+		Id:           p.Id,
+		PipelineSlug: p.PipelineSlug,
+		Storage:      p.Storage,
+		IsStopped:    p.IsStopped,
+		IsCompleted:  p.IsCompleted,
+		IsError:      p.IsError,
+		DateFinished: p.DateFinished,
+		LogData:      p.LogData,
+	}
+
+	return json.Marshal(customRepresentation)
+}
+
+func NewProcessingDetailsFromLogFile(
+	id uuid.UUID,
+	slug string,
+	logBuffer *bytes.Buffer,
+	storage interfaces.Storage,
+) interfaces.PipelineProcessingDetails {
+	processingDetails := &PipelineProcessingDetails{
+		PipelineProcessingStatus: PipelineProcessingStatus{
+			Id:           id,
+			PipelineSlug: slug,
+			Storage:      storage.GetStorageName(),
+		},
+	}
+
+	if err := json.Unmarshal(logBuffer.Bytes(), processingDetails); err != nil {
+		config.GetLogger().Error(err)
+	}
+
+	return processingDetails
+}
+
+func NewPipelineProcessingDetailsFromLogData(
+	id uuid.UUID,
+	slug string,
+	logBuffer *bytes.Buffer,
+	storage interfaces.Storage,
+) interfaces.PipelineProcessingDetails {
+	status := NewPipelineProcessingStatusFromLogData(id, slug, logBuffer, storage)
+
+	logData := make([]map[string]interface{}, 0)
+	for _, logLine := range strings.Split(logBuffer.String(), "\n") {
+		logDataItem := make(map[string]interface{})
+		if err := json.Unmarshal([]byte(logLine), &logDataItem); err == nil {
+			logData = append(logData, logDataItem)
+		}
+	}
+
+	return &PipelineProcessingDetails{
+		PipelineProcessingStatus: *status.(*PipelineProcessingStatus),
+		LogData:                  logData,
+	}
 }

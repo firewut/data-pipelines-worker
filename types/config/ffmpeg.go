@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-//go:embed assets/ffmpeg/ffmpeg-darwin
+//go:embed assets/ffmpeg/ffmpeg-darwin assets/ffmpeg/ffmpeg-linux
 var ffmpegFiles embed.FS
 
 var (
@@ -24,8 +24,8 @@ func GetFFmpegBinary() (string, error) {
 		switch runtime.GOOS {
 		case "darwin":
 			ffmpegFile = "assets/ffmpeg/ffmpeg-darwin"
-		// case "linux":
-		// 	ffmpegFile = "bin/ffmpeg-linux"
+		case "linux":
+			ffmpegFile = "assets/ffmpeg/ffmpeg-linux"
 		// case "windows":
 		// 	ffmpegFile = "bin/ffmpeg-windows.exe"
 		default:

@@ -17,6 +17,7 @@ import (
 	"data-pipelines-worker/api/handlers"
 	"data-pipelines-worker/api/schemas"
 	"data-pipelines-worker/test/factories"
+	"data-pipelines-worker/types"
 	"data-pipelines-worker/types/blocks"
 	"data-pipelines-worker/types/interfaces"
 	"data-pipelines-worker/types/registries"
@@ -62,13 +63,13 @@ func (suite *FunctionalTestSuite) TestPipelineGetInfoHandler() {
 	c.SetParamValues(pipelineSlug)
 
 	// When
-	handlers.PipelineProcessingsInfoHandler(server.GetPipelineRegistry())(c)
+	handlers.PipelineProcessingsStatusHandler(server.GetPipelineRegistry())(c)
 
 	// Then
 	suite.Equal(http.StatusOK, rec.Code)
 }
 
-func (suite *FunctionalTestSuite) TestPipelineStartHandler() {
+func (suite *FunctionalTestSuite) TestPipelinesListHandler() {
 	// Given
 	server, _, err := suite.NewWorkerServerWithHandlers(true, suite._config)
 	suite.Nil(err)
@@ -89,6 +90,175 @@ func (suite *FunctionalTestSuite) TestPipelineStartHandler() {
 	suite.NotNil(rec.Body.String())
 	suite.Contains(rec.Body.String(), "openai-yt-short-generation")
 	suite.Contains(rec.Body.String(), "test-two-http-blocks")
+}
+
+func (suite *FunctionalTestSuite) TestPipelineProcessingsStatus() {
+	suite.T().Skip("Skipping MiniIO due to Cache issues")
+
+	// Given
+	server, _, err := suite.NewWorkerServerWithHandlers(true, suite._config)
+	suite.Nil(err)
+	suite.NotEmpty(server)
+
+	server.GetPipelineRegistry().SetPipelineResultStorages(
+		[]interfaces.Storage{
+			types.NewMINIOStorage(),
+		},
+	)
+
+	notificationChannel := make(chan interfaces.Processing)
+	serverProcessingRegistry := server.GetProcessingRegistry()
+	serverProcessingRegistry.SetNotificationChannel(notificationChannel)
+
+	mockedSecondBlockResponse := fmt.Sprintf("Hello, world! Mocked value is %s", uuid.NewString())
+	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, 0)
+	firstBlockInput := suite.GetMockHTTPServerURL(secondBlockInput, http.StatusOK, 0)
+	server.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(firstBlockInput))
+
+	testPipelineSlug, _ := "test-two-http-blocks", "http_request"
+	inputData := schemas.PipelineStartInputSchema{
+		Pipeline: schemas.PipelineInputSchema{
+			Slug: testPipelineSlug,
+		},
+		Block: schemas.BlockInputSchema{
+			Slug: "test-block-first-slug",
+			Input: map[string]interface{}{
+				"url": firstBlockInput,
+			},
+		},
+	}
+
+	// When
+	processingResponse, statusCode, errorResponse, err := suite.SendProcessingStartRequest(
+		server,
+		inputData,
+		nil,
+	)
+
+	// Then
+	suite.Empty(errorResponse)
+	suite.Nil(err, errorResponse)
+	suite.Equal(http.StatusOK, statusCode, errorResponse)
+	suite.NotNil(processingResponse.ProcessingID)
+
+	// Wait for completion events
+	block1Processing := <-notificationChannel
+	suite.NotEmpty(block1Processing.GetId())
+	suite.Equal(processingResponse.ProcessingID, block1Processing.GetId())
+
+	block2Processing := <-notificationChannel
+	suite.NotEmpty(block2Processing.GetId())
+	suite.Equal(processingResponse.ProcessingID, block2Processing.GetId())
+
+	time.Sleep(time.Second * 2)
+	// Check Processings Logs and Status
+	processingsStatus, statusCode, errorResponse, err := suite.GetPipelineProcessingsStatus(
+		server,
+		testPipelineSlug,
+		nil,
+	)
+	suite.Empty(errorResponse)
+	suite.Nil(err, errorResponse)
+	suite.Equal(http.StatusOK, statusCode, errorResponse)
+	suite.NotEmpty(processingsStatus)
+	suite.Contains(
+		processingsStatus,
+		processingResponse.ProcessingID.String(),
+	)
+
+	processingsStatusMap, ok := processingsStatus[processingResponse.ProcessingID.String()]
+	suite.True(ok)
+	processingsStatusMap0, ok := processingsStatusMap[0].(map[string]interface{})
+	suite.True(ok)
+	suite.Equal(processingResponse.ProcessingID.String(), processingsStatusMap0["id"].(string))
+	suite.True(processingsStatusMap0["is_completed"].(bool))
+	suite.False(processingsStatusMap0["is_error"].(bool))
+	suite.False(processingsStatusMap0["is_stopped"].(bool))
+}
+
+func (suite *FunctionalTestSuite) TestPipelineProcessingDetails() {
+	suite.T().Skip("Skipping MiniIO due to Cache issues")
+
+	// Given
+	server, _, err := suite.NewWorkerServerWithHandlers(true, suite._config)
+	suite.Nil(err)
+	suite.NotEmpty(server)
+
+	server.GetPipelineRegistry().SetPipelineResultStorages(
+		[]interfaces.Storage{
+			types.NewMINIOStorage(),
+		},
+	)
+
+	notificationChannel := make(chan interfaces.Processing)
+	serverProcessingRegistry := server.GetProcessingRegistry()
+	serverProcessingRegistry.SetNotificationChannel(notificationChannel)
+
+	mockedSecondBlockResponse := fmt.Sprintf("Hello, world! Mocked value is %s", uuid.NewString())
+	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, 0)
+	firstBlockInput := suite.GetMockHTTPServerURL(secondBlockInput, http.StatusOK, 0)
+	server.GetPipelineRegistry().Add(suite.GetTestPipelineTwoBlocks(firstBlockInput))
+
+	testPipelineSlug, _ := "test-two-http-blocks", "http_request"
+	inputData := schemas.PipelineStartInputSchema{
+		Pipeline: schemas.PipelineInputSchema{
+			Slug: testPipelineSlug,
+		},
+		Block: schemas.BlockInputSchema{
+			Slug: "test-block-first-slug",
+			Input: map[string]interface{}{
+				"url": firstBlockInput,
+			},
+		},
+	}
+
+	// When
+	processingResponse, statusCode, errorResponse, err := suite.SendProcessingStartRequest(
+		server,
+		inputData,
+		nil,
+	)
+
+	// Then
+	suite.Empty(errorResponse)
+	suite.Nil(err, errorResponse)
+	suite.Equal(http.StatusOK, statusCode, errorResponse)
+	suite.NotNil(processingResponse.ProcessingID)
+
+	// Wait for completion events
+	block1Processing := <-notificationChannel
+	suite.NotEmpty(block1Processing.GetId())
+	suite.Equal(processingResponse.ProcessingID, block1Processing.GetId())
+
+	block2Processing := <-notificationChannel
+	suite.NotEmpty(block2Processing.GetId())
+	suite.Equal(processingResponse.ProcessingID, block2Processing.GetId())
+
+	time.Sleep(time.Second * 2)
+	// Check Processings Logs and Status
+	processingDetails, statusCode, errorResponse, err := suite.GetPipelineProcessingDetails(
+		server,
+		testPipelineSlug,
+		processingResponse.ProcessingID.String(),
+		nil,
+	)
+
+	suite.Empty(errorResponse)
+	suite.Nil(err, errorResponse)
+	suite.Equal(http.StatusOK, statusCode, errorResponse)
+	suite.NotEmpty(processingDetails)
+
+	processingDetails0, ok := processingDetails[0].(map[string]interface{})
+	suite.True(ok)
+	suite.Contains(
+		processingDetails0["id"],
+		processingResponse.ProcessingID.String(),
+	)
+
+	suite.True(processingDetails0["is_completed"].(bool))
+	suite.False(processingDetails0["is_error"].(bool))
+	suite.False(processingDetails0["is_stopped"].(bool))
+	suite.NotEmpty(processingDetails0["log_data"])
 }
 
 func (suite *FunctionalTestSuite) TestPipelineStartHandlerTwoBlocks() {
@@ -3046,6 +3216,7 @@ func (suite *FunctionalTestSuite) TestPipelineMultipartFormDataFile() {
 			Input: map[string]interface{}{
 				"video": videoBuffer.Bytes(),
 			},
+			TargetIndex: -1,
 		},
 	}
 

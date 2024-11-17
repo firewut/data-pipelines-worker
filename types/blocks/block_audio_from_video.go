@@ -118,7 +118,7 @@ func (p *ProcessorAudioFromVideo) Process(
 	args = append(args, tempOutputFile.Name())
 
 	var stderr bytes.Buffer
-	cmd := exec.Command("ffmpeg", args...)
+	cmd := exec.Command(ffmpegBinary, args...)
 	cmd.Stderr = &stderr
 
 	err = cmd.Run()

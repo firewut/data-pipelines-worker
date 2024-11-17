@@ -381,6 +381,59 @@ func (suite *FunctionalTestSuite) SendProcessingStartRequestMultipart(
 	return result, response.StatusCode, "", err
 }
 
+func (suite *FunctionalTestSuite) GetPipelineProcessingsStatus(
+	server *api.Server,
+	pipelineSlug string,
+	httpClient *http.Client,
+) (map[string][]interface{}, int, string, error) {
+	result := make(map[string][]interface{})
+
+	if httpClient == nil {
+		httpClient = &http.Client{}
+	}
+
+	response, err := httpClient.Get(
+		fmt.Sprintf("%s/pipelines/%s/processings/", server.GetAPIAddress(), pipelineSlug),
+	)
+	suite.Nil(err)
+	defer response.Body.Close()
+
+	responseBodyBytes, _ := io.ReadAll(response.Body)
+
+	if err := json.Unmarshal(responseBodyBytes, &result); err != nil {
+		return result, response.StatusCode, string(responseBodyBytes), err
+	}
+
+	return result, response.StatusCode, "", err
+}
+
+func (suite *FunctionalTestSuite) GetPipelineProcessingDetails(
+	server *api.Server,
+	pipelineSlug string,
+	processingId string,
+	httpClient *http.Client,
+) ([]interface{}, int, string, error) {
+	result := make([]interface{}, 0)
+
+	if httpClient == nil {
+		httpClient = &http.Client{}
+	}
+
+	response, err := httpClient.Get(
+		fmt.Sprintf("%s/pipelines/%s/processings/%s", server.GetAPIAddress(), pipelineSlug, processingId),
+	)
+	suite.Nil(err)
+	defer response.Body.Close()
+
+	responseBodyBytes, _ := io.ReadAll(response.Body)
+
+	if err := json.Unmarshal(responseBodyBytes, &result); err != nil {
+		return result, response.StatusCode, string(responseBodyBytes), err
+	}
+
+	return result, response.StatusCode, "", err
+}
+
 func (suite *FunctionalTestSuite) SendProcessingStartRequest(
 	server *api.Server,
 	input schemas.PipelineStartInputSchema,

@@ -7,12 +7,16 @@ import (
 	"data-pipelines-worker/api/schemas"
 )
 
-type PipelineProcessingInfo interface {
+type PipelineProcessingStatus interface {
 	GetId() uuid.UUID
-	GetStorage() Storage
 
-	SetLogData([]byte)
-	SetBlockData([]byte)
+	MarshalJSON() ([]byte, error)
+}
+
+type PipelineProcessingDetails interface {
+	GetId() uuid.UUID
+
+	MarshalJSON() ([]byte, error)
 }
 
 type Pipeline interface {
@@ -32,7 +36,8 @@ type Pipeline interface {
 		[]Storage,
 	) (uuid.UUID, error)
 
-	GetProcessingsInfo([]Storage) map[uuid.UUID][]PipelineProcessingInfo
+	GetProcessingsStatus([]Storage) map[uuid.UUID][]PipelineProcessingStatus
+	GetProcessingDetails(uuid.UUID, []Storage) []PipelineProcessingDetails
 }
 
 type PipelineCatalogueLoader interface {

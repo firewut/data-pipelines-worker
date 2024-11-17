@@ -1,5 +1,5 @@
 Name:           data-pipelines-worker
-Version:        1.0.5
+Version:        1.0.6
 Release:        1%{?dist}
 Summary:        Data pipelines worker
 License:        Custom License
@@ -44,6 +44,9 @@ fi
 /etc/systemd/system/data-pipelines-worker.service
 
 %changelog
+* Sun Nov 17 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.6
+- Fixed data races at Pipeline Processing Logs gathering
+- Fixed bug with load data  when input passed
 * Fri Nov 15 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.5
 - Added HTTP Handler to GET specific Pipeline Processings
 - Added HTTP Handler to GET specific Pipeline Processing

@@ -51,16 +51,16 @@ func PipelineHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
 // @Accept json
 // @Produce json
 // @Param slug path string true "Pipeline slug"
-// @Success 200 {object} map[uuid.UUID][]dataclasses.PipelineProcessingInfoData
+// @Success 200 {object} map[uuid.UUID][]dataclasses.PipelineProcessingStatus
 // @Failure 404 {string} string "Pipeline not found"
-func PipelineProcessingsInfoHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
+func PipelineProcessingsStatusHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		pipeline := registry.Get(c.Param("slug"))
 		if pipeline == nil {
 			return c.JSON(http.StatusNotFound, "Pipeline not found")
 		}
 
-		return c.JSON(http.StatusOK, registry.GetProcessingsInfo(pipeline))
+		return c.JSON(http.StatusOK, registry.GetProcessingsStatus(pipeline))
 	}
 }
 
@@ -70,9 +70,9 @@ func PipelineProcessingsInfoHandler(registry interfaces.PipelineRegistry) echo.H
 // @Accept json
 // @Produce json
 // @Param slug path string true "Pipeline slug"
-// @Success 200 {object} []dataclasses.PipelineProcessingInfoData
+// @Success 200 {object} []dataclasses.PipelineProcessingDetails
 // @Failure 404 {string} string "Pipeline not found"
-func PipelineProcessingInfoHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
+func PipelineProcessingDetailsHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		pipeline := registry.Get(c.Param("slug"))
 		id := c.Param("id")
@@ -87,17 +87,7 @@ func PipelineProcessingInfoHandler(registry interfaces.PipelineRegistry) echo.Ha
 			return c.JSON(http.StatusBadRequest, "Invalid processing ID")
 		}
 
-		processings := registry.GetProcessingsInfo(pipeline)
-		if len(processings) > 0 {
-			processing, ok := processings[processingId]
-			if ok {
-				return c.JSON(http.StatusOK, processing)
-			} else {
-				return c.JSON(http.StatusNotFound, "Processing not found")
-			}
-		}
-
-		return c.JSON(http.StatusNotFound, "Processing not found")
+		return c.JSON(http.StatusOK, registry.GetProcessingDetails(pipeline, processingId))
 	}
 }
 

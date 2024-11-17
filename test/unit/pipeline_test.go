@@ -79,7 +79,7 @@ func (suite *UnitTestSuite) TestPipelineProcess() {
 		"test-block-slug",
 		nil,
 	)
-	mockStorage := suite.NewMockLocalStorage(2)
+	mockStorage := suite.NewMockLocalStorage(3)
 	pipelineRegistry.SetPipelineResultStorages(
 		[]interfaces.Storage{
 			mockStorage,
@@ -115,106 +115,24 @@ func (suite *UnitTestSuite) TestPipelineProcess() {
 	<-mockStorage.GetCreatedFilesChan()
 	pipelineLogFile := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(pipelineLogFile)
+	suite.Contains(pipelineLogFile.filePath, fmt.Sprintf("%s/log_", processingId.String()))
+	suite.Contains(pipelineLogFile.data.String(), `"is_stopped":false`)
+	suite.Contains(pipelineLogFile.data.String(), `"is_completed":true`)
+	suite.Contains(pipelineLogFile.data.String(), `"is_error":false`)
+	suite.Contains(pipelineLogFile.data.String(), fmt.Sprintf(`"id":"%s"`, processingId.String()))
+
+	pipelineStatusFile := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineStatusFile)
+	suite.Contains(pipelineStatusFile.filePath, fmt.Sprintf("%s/status_", processingId.String()))
+	suite.Contains(pipelineStatusFile.data.String(), `"is_stopped":false`)
+	suite.Contains(pipelineStatusFile.data.String(), `"is_completed":true`)
+	suite.Contains(pipelineStatusFile.data.String(), `"is_error":false`)
+	suite.Contains(pipelineStatusFile.data.String(), fmt.Sprintf(`"id":"%s"`, processingId.String()))
 }
 
 func (suite *UnitTestSuite) TestPipelineProcessStopPipelineTrue() {
 	// Given
 	mockedResponse := `{"action": "declined"}`
-	successUrl := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK, 0)
-
-	pipeline := suite.GetTestPipeline(
-		fmt.Sprintf(
-			`{
-				"slug": "test-pipeline-slug-two-blocks",
-				"title": "Test Pipeline",
-				"description": "Test Pipeline Description",
-				"blocks": [
-					{
-						"id": "http_request",
-						"slug": "test-block-first-slug",
-						"description": "Request Local Resourse",
-						"input": {
-							"url": "%s"
-						}
-					},
-					{
-						"id": "stop_pipeline",
-						"slug": "stop-pipeline-if-declined",
-						"description": "Stop Pipeline if Declined",
-						"input_config": {
-							"property": {
-								"data": {
-									"origin": "test-block-first-slug",
-									"json_path": "$.action"
-								}
-							}
-						},
-						"input": {
-							"condition": "==",
-							"value": "declined"
-						}
-					}
-				]
-			}`,
-			successUrl,
-		),
-	)
-	pipeline, processingData, pipelineRegistry := suite.RegisterTestPipelineAndInputForProcessing(
-		pipeline,
-		"test-pipeline-slug-two-blocks",
-		"test-block-first-slug",
-		nil,
-	)
-	mockStorage := suite.NewMockLocalStorage(2)
-	pipelineRegistry.SetPipelineResultStorages(
-		[]interfaces.Storage{
-			mockStorage,
-		},
-	)
-	notificationChannel := make(chan interfaces.Processing)
-	processingRegistry := suite.GetProcessingRegistry(true)
-	processingRegistry.SetNotificationChannel(notificationChannel)
-
-	// When
-	processingId, err := pipeline.Process(
-		suite.GetWorkerRegistry(true),
-		suite.GetBlockRegistry(),
-		processingRegistry,
-		processingData,
-		pipelineRegistry.GetPipelineResultStorages(),
-	)
-
-	// Then
-	suite.Nil(err)
-	suite.NotEmpty(processingId)
-
-	// Wait for Notifications
-	processing1 := <-notificationChannel
-	suite.NotNil(processing1)
-	suite.Equal(processingId, processing1.GetId())
-	suite.Equal(interfaces.ProcessingStatusCompleted, processing1.GetStatus())
-
-	processing1Output := processing1.GetOutput()
-	suite.NotNil(processing1Output)
-	suite.Equal(mockedResponse, processing1Output.GetValue().String())
-
-	processing2 := <-notificationChannel
-	suite.NotNil(processing2)
-	suite.Equal(processingId, processing2.GetId())
-	suite.Equal(interfaces.ProcessingStatusStopped, processing2.GetStatus())
-
-	processing2Output := processing2.GetOutput()
-	suite.NotNil(processing2Output)
-	suite.True(processing2Output.GetStop())
-
-	<-mockStorage.GetCreatedFilesChan()
-	pipelineLogFile := <-mockStorage.GetCreatedFilesChan()
-	suite.NotEmpty(pipelineLogFile)
-}
-
-func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalse() {
-	// Given
-	mockedResponse := `{"action": "accepted"}`
 	successUrl := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK, 0)
 
 	pipeline := suite.GetTestPipeline(
@@ -296,6 +214,114 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalse() {
 	processing2 := <-notificationChannel
 	suite.NotNil(processing2)
 	suite.Equal(processingId, processing2.GetId())
+	suite.Equal(interfaces.ProcessingStatusStopped, processing2.GetStatus())
+
+	processing2Output := processing2.GetOutput()
+	suite.NotNil(processing2Output)
+	suite.True(processing2Output.GetStop())
+
+	<-mockStorage.GetCreatedFilesChan()
+	pipelineLogFile := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineLogFile)
+	suite.Contains(pipelineLogFile.filePath, fmt.Sprintf("%s/log_", processingId.String()))
+	suite.Contains(pipelineLogFile.data.String(), `"is_stopped":true`)
+	suite.Contains(pipelineLogFile.data.String(), `"is_completed":false`)
+	suite.Contains(pipelineLogFile.data.String(), `"is_error":false`)
+	suite.Contains(pipelineLogFile.data.String(), fmt.Sprintf(`"id":"%s"`, processingId.String()))
+
+	pipelineStatusFile := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineStatusFile)
+	suite.Contains(pipelineStatusFile.filePath, fmt.Sprintf("%s/status_", processingId.String()))
+	suite.Contains(pipelineStatusFile.data.String(), `"is_stopped":true`)
+	suite.Contains(pipelineStatusFile.data.String(), `"is_completed":false`)
+	suite.Contains(pipelineStatusFile.data.String(), `"is_error":false`)
+	suite.Contains(pipelineStatusFile.data.String(), fmt.Sprintf(`"id":"%s"`, processingId.String()))
+}
+
+func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalse() {
+	// Given
+	mockedResponse := `{"action": "accepted"}`
+	successUrl := suite.GetMockHTTPServerURL(mockedResponse, http.StatusOK, 0)
+
+	pipeline := suite.GetTestPipeline(
+		fmt.Sprintf(
+			`{
+				"slug": "test-pipeline-slug-two-blocks",
+				"title": "Test Pipeline",
+				"description": "Test Pipeline Description",
+				"blocks": [
+					{
+						"id": "http_request",
+						"slug": "test-block-first-slug",
+						"description": "Request Local Resourse",
+						"input": {
+							"url": "%s"
+						}
+					},
+					{
+						"id": "stop_pipeline",
+						"slug": "stop-pipeline-if-declined",
+						"description": "Stop Pipeline if Declined",
+						"input_config": {
+							"property": {
+								"data": {
+									"origin": "test-block-first-slug",
+									"json_path": "$.action"
+								}
+							}
+						},
+						"input": {
+							"condition": "==",
+							"value": "declined"
+						}
+					}
+				]
+			}`,
+			successUrl,
+		),
+	)
+	pipeline, processingData, pipelineRegistry := suite.RegisterTestPipelineAndInputForProcessing(
+		pipeline,
+		"test-pipeline-slug-two-blocks",
+		"test-block-first-slug",
+		nil,
+	)
+	mockStorage := suite.NewMockLocalStorage(4)
+	pipelineRegistry.SetPipelineResultStorages(
+		[]interfaces.Storage{
+			mockStorage,
+		},
+	)
+	notificationChannel := make(chan interfaces.Processing)
+	processingRegistry := suite.GetProcessingRegistry(true)
+	processingRegistry.SetNotificationChannel(notificationChannel)
+
+	// When
+	processingId, err := pipeline.Process(
+		suite.GetWorkerRegistry(true),
+		suite.GetBlockRegistry(),
+		processingRegistry,
+		processingData,
+		pipelineRegistry.GetPipelineResultStorages(),
+	)
+
+	// Then
+	suite.Nil(err)
+	suite.NotEmpty(processingId)
+
+	// Wait for Notifications
+	processing1 := <-notificationChannel
+	suite.NotNil(processing1)
+	suite.Equal(processingId, processing1.GetId())
+	suite.Equal(interfaces.ProcessingStatusCompleted, processing1.GetStatus())
+
+	processing1Output := processing1.GetOutput()
+	suite.NotNil(processing1Output)
+	suite.Equal(mockedResponse, processing1Output.GetValue().String())
+
+	processing2 := <-notificationChannel
+	suite.NotNil(processing2)
+	suite.Equal(processingId, processing2.GetId())
 	suite.Equal(interfaces.ProcessingStatusCompleted, processing2.GetStatus())
 
 	processing2Output := processing2.GetOutput()
@@ -306,6 +332,20 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalse() {
 	<-mockStorage.GetCreatedFilesChan()
 	pipelineLogFile := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(pipelineLogFile)
+	suite.Contains(pipelineLogFile.filePath, fmt.Sprintf("%s/log_", processingId.String()))
+	suite.Contains(pipelineLogFile.data.String(), `"is_stopped":false`)
+	suite.Contains(pipelineLogFile.data.String(), `"is_completed":true`)
+	suite.Contains(pipelineLogFile.data.String(), `"is_error":false`)
+	suite.Contains(pipelineLogFile.data.String(), fmt.Sprintf(`"id":"%s"`, processingId.String()))
+
+	pipelineStatusFile := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineStatusFile)
+	suite.Contains(pipelineStatusFile.filePath, fmt.Sprintf("%s/status_", processingId.String()))
+	suite.Contains(pipelineStatusFile.data.String(), `"is_stopped":false`)
+	suite.Contains(pipelineStatusFile.data.String(), `"is_completed":true`)
+	suite.Contains(pipelineStatusFile.data.String(), `"is_error":false`)
+	suite.Contains(pipelineStatusFile.data.String(), fmt.Sprintf(`"id":"%s"`, processingId.String()))
+
 }
 
 func (suite *UnitTestSuite) TestPipelineProcessStopPipelineTrueThreeBlocks() {
@@ -370,7 +410,7 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineTrueThreeBlocks() {
 		"test-block-first-slug",
 		nil,
 	)
-	mockStorage := suite.NewMockLocalStorage(4)
+	mockStorage := suite.NewMockLocalStorage(5)
 	pipelineRegistry.SetPipelineResultStorages(
 		[]interfaces.Storage{
 			mockStorage,
@@ -415,6 +455,19 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineTrueThreeBlocks() {
 	<-mockStorage.GetCreatedFilesChan()
 	pipelineLogFile := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(pipelineLogFile)
+	suite.Contains(pipelineLogFile.filePath, fmt.Sprintf("%s/log_", processingId.String()))
+	suite.Contains(pipelineLogFile.data.String(), `"is_stopped":true`)
+	suite.Contains(pipelineLogFile.data.String(), `"is_completed":false`)
+	suite.Contains(pipelineLogFile.data.String(), `"is_error":false`)
+	suite.Contains(pipelineLogFile.data.String(), fmt.Sprintf(`"id":"%s"`, processingId.String()))
+
+	pipelineStatusFile := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineStatusFile)
+	suite.Contains(pipelineStatusFile.filePath, fmt.Sprintf("%s/status_", processingId.String()))
+	suite.Contains(pipelineStatusFile.data.String(), `"is_stopped":true`)
+	suite.Contains(pipelineStatusFile.data.String(), `"is_completed":false`)
+	suite.Contains(pipelineStatusFile.data.String(), `"is_error":false`)
+	suite.Contains(pipelineStatusFile.data.String(), fmt.Sprintf(`"id":"%s"`, processingId.String()))
 
 	// Third block must not be processed
 	select {
@@ -490,7 +543,7 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalseThreeBlocks() {
 		"test-block-first-slug",
 		nil,
 	)
-	mockStorage := suite.NewMockLocalStorage(4)
+	mockStorage := suite.NewMockLocalStorage(5)
 	pipelineRegistry.SetPipelineResultStorages(
 		[]interfaces.Storage{
 			mockStorage,
@@ -546,6 +599,19 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalseThreeBlocks() {
 	<-mockStorage.GetCreatedFilesChan()
 	pipelineLogFile := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(pipelineLogFile)
+	suite.Contains(pipelineLogFile.filePath, fmt.Sprintf("%s/log_", processingId.String()))
+	suite.Contains(pipelineLogFile.data.String(), `"is_stopped":false`)
+	suite.Contains(pipelineLogFile.data.String(), `"is_completed":true`)
+	suite.Contains(pipelineLogFile.data.String(), `"is_error":false`)
+	suite.Contains(pipelineLogFile.data.String(), fmt.Sprintf(`"id":"%s"`, processingId.String()))
+
+	pipelineStatusFile := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineStatusFile)
+	suite.Contains(pipelineStatusFile.filePath, fmt.Sprintf("%s/status_", processingId.String()))
+	suite.Contains(pipelineStatusFile.data.String(), `"is_stopped":false`)
+	suite.Contains(pipelineStatusFile.data.String(), `"is_completed":true`)
+	suite.Contains(pipelineStatusFile.data.String(), `"is_error":false`)
+	suite.Contains(pipelineStatusFile.data.String(), fmt.Sprintf(`"id":"%s"`, processingId.String()))
 }
 
 func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
@@ -570,7 +636,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
 		},
 	)
 
-	mockStorage := suite.NewMockLocalStorage(3)
+	mockStorage := suite.NewMockLocalStorage(4)
 	registry.SetPipelineResultStorages(
 		[]interfaces.Storage{
 			mockStorage,
@@ -613,6 +679,19 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
 	<-mockStorage.GetCreatedFilesChan()
 	pipelineLogFile := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(pipelineLogFile)
+	suite.Contains(pipelineLogFile.filePath, fmt.Sprintf("%s/log_", processingId.String()))
+	suite.Contains(pipelineLogFile.data.String(), `"is_stopped":false`)
+	suite.Contains(pipelineLogFile.data.String(), `"is_completed":true`)
+	suite.Contains(pipelineLogFile.data.String(), `"is_error":false`)
+	suite.Contains(pipelineLogFile.data.String(), fmt.Sprintf(`"id":"%s"`, processingId.String()))
+
+	pipelineStatusFile := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineStatusFile)
+	suite.Contains(pipelineStatusFile.filePath, fmt.Sprintf("%s/status_", processingId.String()))
+	suite.Contains(pipelineStatusFile.data.String(), `"is_stopped":false`)
+	suite.Contains(pipelineStatusFile.data.String(), `"is_completed":true`)
+	suite.Contains(pipelineStatusFile.data.String(), `"is_error":false`)
+	suite.Contains(pipelineStatusFile.data.String(), fmt.Sprintf(`"id":"%s"`, processingId.String()))
 }
 
 func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcessNStorages() {
@@ -636,8 +715,8 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcessNStorages() {
 			"url": firstBlockInput,
 		},
 	)
-	mockStorage1 := suite.NewMockLocalStorage(3)
-	mockStorage2 := suite.NewMockLocalStorage(3)
+	mockStorage1 := suite.NewMockLocalStorage(4)
+	mockStorage2 := suite.NewMockLocalStorage(4)
 	storages := []interfaces.Storage{
 		types.NewLocalStorage(""),
 		mockStorage1,
@@ -678,27 +757,34 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcessNStorages() {
 	suite.Equal(mockedSecondBlockResponse, secondBlockProcessingOutput.GetValue().String())
 
 	// Check Storages
-	createdFileBlock1 := <-mockStorage1.createdFilesChan
+	createdFileBlock1 := <-mockStorage1.GetCreatedFilesChan()
 	suite.NotEmpty(createdFileBlock1)
 	suite.Equal(secondBlockInput, createdFileBlock1.data.String())
 
-	createdFileBlock2 := <-mockStorage1.createdFilesChan
+	createdFileBlock2 := <-mockStorage1.GetCreatedFilesChan()
 	suite.NotEmpty(createdFileBlock2)
 	suite.Equal(mockedSecondBlockResponse, createdFileBlock2.data.String())
 
-	createdFileBlock1 = <-mockStorage2.createdFilesChan
+	createdFileBlock1 = <-mockStorage2.GetCreatedFilesChan()
 	suite.NotEmpty(createdFileBlock1)
 	suite.Equal(secondBlockInput, createdFileBlock1.data.String())
 
-	createdFileBlock2 = <-mockStorage2.createdFilesChan
+	createdFileBlock2 = <-mockStorage2.GetCreatedFilesChan()
 	suite.NotEmpty(createdFileBlock2)
 	suite.Equal(mockedSecondBlockResponse, createdFileBlock2.data.String())
 
 	pipelineLogFile1 := <-mockStorage1.GetCreatedFilesChan()
 	suite.NotEmpty(pipelineLogFile1)
 
+	pipelineStateFile1 := <-mockStorage1.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineStateFile1)
+
 	pipelineLogFile2 := <-mockStorage2.GetCreatedFilesChan()
 	suite.NotEmpty(pipelineLogFile2)
+
+	pipelineStateFile2 := <-mockStorage2.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineStateFile2)
+
 }
 
 func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlockInputPassed() {
@@ -709,6 +795,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 		uuid.NewString(),
 	)
 	secondBlockInput := suite.GetMockHTTPServerURL(mockedSecondBlockResponse, http.StatusOK, 0)
+	firstBlockInput := suite.GetMockHTTPServerURL(secondBlockInput, http.StatusOK, 0)
 
 	notificationChannel := make(chan interfaces.Processing, 2)
 	processingRegistry := suite.GetProcessingRegistry(true)
@@ -724,7 +811,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 	)
 	processingData.Pipeline.ProcessingID = processingId
 
-	mockStorage := suite.NewMockLocalStorage(3)
+	mockStorage := suite.NewMockLocalStorage(4)
 	mockStorage.AddFile(
 		mockStorage.NewStorageLocation(
 			fmt.Sprintf(
@@ -732,7 +819,21 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 				"test-pipeline-slug-two-blocks",
 				processingId.String(),
 				"test-block-first-slug",
-				"output_1.txt",
+				"output_0.txt",
+			),
+		),
+		bytes.NewBufferString(
+			firstBlockInput,
+		),
+	)
+	mockStorage.AddFile(
+		mockStorage.NewStorageLocation(
+			fmt.Sprintf(
+				"%s/%s/%s/%s",
+				"test-pipeline-slug-two-blocks",
+				processingId.String(),
+				"test-block-second-slug",
+				"output_0.txt",
 			),
 		),
 		bytes.NewBufferString(
@@ -760,21 +861,35 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 	suite.NotEmpty(processingId)
 
 	// Wait for Notification about processing completed
-	firstBlockProcessing := <-notificationChannel
-	suite.NotNil(firstBlockProcessing)
-	suite.Equal(processingId, firstBlockProcessing.GetId())
-	suite.Equal(interfaces.ProcessingStatusCompleted, firstBlockProcessing.GetStatus())
-
-	secondBlockProcessing := firstBlockProcessing.GetOutput()
+	secondBlockProcessing := <-notificationChannel
 	suite.NotNil(secondBlockProcessing)
-	suite.Equal(mockedSecondBlockResponse, secondBlockProcessing.GetValue().String())
+	suite.Equal(processingId, secondBlockProcessing.GetId())
+	suite.Equal(interfaces.ProcessingStatusCompleted, secondBlockProcessing.GetStatus())
+	suite.Equal(mockedSecondBlockResponse, secondBlockProcessing.GetOutput().GetValue().String())
 
 	createdFileBlock1 := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(createdFileBlock1)
 	suite.Equal(mockedSecondBlockResponse, createdFileBlock1.data.String())
 
+	createdFileBlock2 := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(createdFileBlock2)
+	suite.Equal(mockedSecondBlockResponse, createdFileBlock1.data.String())
+
 	pipelineLogFile := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(pipelineLogFile)
+	suite.Contains(pipelineLogFile.filePath, fmt.Sprintf("%s/log_", processingId.String()))
+	suite.Contains(pipelineLogFile.data.String(), `"is_stopped":false`)
+	suite.Contains(pipelineLogFile.data.String(), `"is_completed":true`)
+	suite.Contains(pipelineLogFile.data.String(), `"is_error":false`)
+	suite.Contains(pipelineLogFile.data.String(), fmt.Sprintf(`"id":"%s"`, processingId.String()))
+
+	pipelineStatusFile := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineStatusFile)
+	suite.Contains(pipelineStatusFile.filePath, fmt.Sprintf("%s/status_", processingId.String()))
+	suite.Contains(pipelineStatusFile.data.String(), `"is_stopped":false`)
+	suite.Contains(pipelineStatusFile.data.String(), `"is_completed":true`)
+	suite.Contains(pipelineStatusFile.data.String(), `"is_error":false`)
+	suite.Contains(pipelineStatusFile.data.String(), fmt.Sprintf(`"id":"%s"`, processingId.String()))
 }
 
 func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlockInputMissing() {
@@ -798,7 +913,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 	)
 	processingData.Pipeline.ProcessingID = processingId
 
-	mockStorage := suite.NewMockLocalStorage(3)
+	mockStorage := suite.NewMockLocalStorage(4)
 	mockStorage.AddFile(
 		mockStorage.NewStorageLocation(
 			fmt.Sprintf(
@@ -847,4 +962,17 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 
 	pipelineLogFile := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(pipelineLogFile)
+	suite.Contains(pipelineLogFile.filePath, fmt.Sprintf("%s/log_", processingId.String()))
+	suite.Contains(pipelineLogFile.data.String(), `"is_stopped":false`)
+	suite.Contains(pipelineLogFile.data.String(), `"is_completed":true`)
+	suite.Contains(pipelineLogFile.data.String(), `"is_error":false`)
+	suite.Contains(pipelineLogFile.data.String(), fmt.Sprintf(`"id":"%s"`, processingId.String()))
+
+	pipelineStatusFile := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineStatusFile)
+	suite.Contains(pipelineStatusFile.filePath, fmt.Sprintf("%s/status_", processingId.String()))
+	suite.Contains(pipelineStatusFile.data.String(), `"is_stopped":false`)
+	suite.Contains(pipelineStatusFile.data.String(), `"is_completed":true`)
+	suite.Contains(pipelineStatusFile.data.String(), `"is_error":false`)
+	suite.Contains(pipelineStatusFile.data.String(), fmt.Sprintf(`"id":"%s"`, processingId.String()))
 }

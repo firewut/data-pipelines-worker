@@ -261,16 +261,63 @@
                 }
             }
         },
-        "dataclasses.PipelineProcessingInfoData": {
+        "dataclasses.PipelineProcessingDetails": {
             "type": "object",
             "properties": {
+                "date_finished": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
+                },
+                "is_completed": {
+                    "type": "boolean"
+                },
+                "is_error": {
+                    "type": "boolean"
                 },
                 "is_log": {
                     "type": "boolean"
                 },
-                "log": {
+                "is_stopped": {
+                    "type": "boolean"
+                },
+                "log_data": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "pipeline_slug": {
+                    "type": "string"
+                },
+                "storage": {
+                    "type": "string"
+                }
+            }
+        },
+        "dataclasses.PipelineProcessingStatus": {
+            "type": "object",
+            "properties": {
+                "date_finished": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_completed": {
+                    "type": "boolean"
+                },
+                "is_error": {
+                    "type": "boolean"
+                },
+                "is_stopped": {
+                    "type": "boolean"
+                },
+                "pipeline_slug": {
+                    "type": "string"
+                },
+                "storage": {
                     "type": "string"
                 }
             }

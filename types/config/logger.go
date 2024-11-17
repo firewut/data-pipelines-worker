@@ -22,8 +22,38 @@ var (
 )
 
 type EntityLoggerStore struct {
-	mu      sync.RWMutex
+	sync.RWMutex
 	loggers map[string]*LoggerWrapper
+}
+
+// SafeBuffer is a thread-safe wrapper around bytes.Buffer
+type SafeBuffer struct {
+	sync.RWMutex
+	buffer bytes.Buffer
+}
+
+func (sb *SafeBuffer) Write(p []byte) (n int, err error) {
+	sb.Lock()
+	defer sb.Unlock()
+	return sb.buffer.Write(p)
+}
+
+func (sb *SafeBuffer) Bytes() []byte {
+	sb.RLock()
+	defer sb.RUnlock()
+	return sb.buffer.Bytes()
+}
+
+func (sb *SafeBuffer) String() string {
+	sb.RLock()
+	defer sb.RUnlock()
+	return sb.buffer.String()
+}
+
+func (sb *SafeBuffer) Reset() {
+	sb.Lock()
+	defer sb.Unlock()
+	sb.buffer.Reset()
 }
 
 // LoggerWrapper holds multiple writers for easier extraction
@@ -45,10 +75,10 @@ func (lw *LoggerWrapper) AddWriter(writer io.Writer) {
 	lw.writers = append(lw.writers, writer)
 }
 
-func (lw *LoggerWrapper) GetBuffer() *bytes.Buffer {
+func (lw *LoggerWrapper) GetBuffer() *SafeBuffer {
 	for _, writer := range lw.writers {
 		if buf, ok := writer.(*syncWriter); ok {
-			if buffer, ok := buf.writer.(*bytes.Buffer); ok {
+			if buffer, ok := buf.writer.(*SafeBuffer); ok {
 				return buffer
 			}
 		}
@@ -56,15 +86,14 @@ func (lw *LoggerWrapper) GetBuffer() *bytes.Buffer {
 	return nil
 }
 
-// Custom writer that synchronizes access to an underlying writer
 type syncWriter struct {
-	mu     sync.Mutex // Mutex to synchronize writes
-	writer io.Writer  // The underlying writer (e.g., bytes.Buffer, file, etc.)
+	sync.Mutex
+	writer io.Writer // The underlying writer (e.g., bytes.Buffer, file, etc.)
 }
 
 func (s *syncWriter) Write(p []byte) (n int, err error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.Lock()
+	defer s.Unlock()
 
 	return s.writer.Write(p)
 }
@@ -94,13 +123,13 @@ func GetLogger() echo.Logger {
 }
 
 // TODO: Cleanup that mapping since it might take some memory
-func GetLoggerForEntity(entityType string, entityId interface{}) (echo.Logger, *bytes.Buffer) {
+func GetLoggerForEntity(entityType string, entityId interface{}) (echo.Logger, *SafeBuffer) {
 	logLevel := log.DEBUG
 	entityKey := fmt.Sprintf("%s:%s", entityType, entityId)
 
-	entityLoggerStore.mu.RLock()
+	entityLoggerStore.RLock()
 	existingLogger, found := entityLoggerStore.loggers[entityKey]
-	entityLoggerStore.mu.RUnlock()
+	entityLoggerStore.RUnlock()
 
 	if found {
 		e := echo.New()
@@ -111,7 +140,10 @@ func GetLoggerForEntity(entityType string, entityId interface{}) (echo.Logger, *
 		return e.Logger, existingLogger.GetBuffer()
 	}
 
-	newBuffer := &bytes.Buffer{}
+	//&bytes.Buffer{}
+	newBuffer := &SafeBuffer{
+		buffer: bytes.Buffer{},
+	}
 	syncBuffer := &syncWriter{
 		writer: newBuffer,
 	}
@@ -122,9 +154,9 @@ func GetLoggerForEntity(entityType string, entityId interface{}) (echo.Logger, *
 		writers: []io.Writer{syncBuffer, syncStdout},
 	}
 
-	entityLoggerStore.mu.Lock()
+	entityLoggerStore.Lock()
 	entityLoggerStore.loggers[entityKey] = logWriter
-	entityLoggerStore.mu.Unlock()
+	entityLoggerStore.Unlock()
 
 	e := echo.New()
 	e.Logger.SetLevel(logLevel)

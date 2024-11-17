@@ -272,10 +272,10 @@ func (s *Server) SetAPIHandlers() {
 	s.AddHTTPAPIRoute("GET", "/pipelines/:slug/", handlers.PipelineHandler(
 		s.GetPipelineRegistry(),
 	))
-	s.AddHTTPAPIRoute("GET", "/pipelines/:slug/processings/:id", handlers.PipelineProcessingInfoHandler(
+	s.AddHTTPAPIRoute("GET", "/pipelines/:slug/processings/:id", handlers.PipelineProcessingDetailsHandler(
 		s.GetPipelineRegistry(),
 	))
-	s.AddHTTPAPIRoute("GET", "/pipelines/:slug/processings/", handlers.PipelineProcessingsInfoHandler(
+	s.AddHTTPAPIRoute("GET", "/pipelines/:slug/processings/", handlers.PipelineProcessingsStatusHandler(
 		s.GetPipelineRegistry(),
 	))
 	s.AddHTTPAPIRoute(

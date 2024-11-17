@@ -120,7 +120,7 @@ func (p *ProcessorVideoFromImage) Process(
 	}
 
 	var stderr bytes.Buffer
-	cmd := exec.Command("ffmpeg", args...)
+	cmd := exec.Command(ffmpegBinary, args...)
 	cmd.Stderr = &stderr
 
 	err = cmd.Run()

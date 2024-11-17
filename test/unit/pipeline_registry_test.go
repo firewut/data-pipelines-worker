@@ -222,7 +222,7 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineTest() {
 		nil,
 	)
 
-	mockStorage := suite.NewMockLocalStorage(2)
+	mockStorage := suite.NewMockLocalStorage(3)
 	registry.SetPipelineResultStorages(
 		[]interfaces.Storage{mockStorage},
 	)
@@ -240,6 +240,9 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineTest() {
 
 	pipelineLogFile := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(pipelineLogFile)
+
+	pipelineStatusFile := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineStatusFile)
 }
 
 func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineWithInputTest() {
@@ -264,7 +267,7 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineWithInputTest() {
 	)
 	suite.Equal(processingData.Block.Input["url"], priorityUrl)
 
-	mockStorage := suite.NewMockLocalStorage(2)
+	mockStorage := suite.NewMockLocalStorage(3)
 	registry.SetPipelineResultStorages(
 		[]interfaces.Storage{mockStorage},
 	)
@@ -282,6 +285,9 @@ func (suite *UnitTestSuite) TestPipelineRegistryStartPipelineWithInputTest() {
 
 	pipelineLogFile := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(pipelineLogFile)
+
+	pipelineStatusFile := <-mockStorage.GetCreatedFilesChan()
+	suite.NotEmpty(pipelineStatusFile)
 }
 
 func (suite *UnitTestSuite) TestPipelineRegistryShutDown() {

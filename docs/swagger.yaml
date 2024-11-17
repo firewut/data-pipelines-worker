@@ -25,13 +25,44 @@ definitions:
           example: "Example Pipeline"
         type: string
     type: object
-  dataclasses.PipelineProcessingInfoData:
+  dataclasses.PipelineProcessingDetails:
     properties:
+      date_finished:
+        type: string
       id:
         type: string
+      is_completed:
+        type: boolean
+      is_error:
+        type: boolean
       is_log:
         type: boolean
-      log:
+      is_stopped:
+        type: boolean
+      log_data:
+        items:
+          type: string
+        type: array
+      pipeline_slug:
+        type: string
+      storage:
+        type: string
+    type: object
+  dataclasses.PipelineProcessingStatus:
+    properties:
+      date_finished:
+        type: string
+      id:
+        type: string
+      is_completed:
+        type: boolean
+      is_error:
+        type: boolean
+      is_stopped:
+        type: boolean
+      pipeline_slug:
+        type: string
+      storage:
         type: string
     type: object
   dataclasses.Worker:
