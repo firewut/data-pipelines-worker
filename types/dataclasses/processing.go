@@ -171,8 +171,10 @@ func (p *Processing) Start() interfaces.ProcessingOutput {
 	if p.GetStatus() != interfaces.ProcessingStatusPending {
 		processingOutput.SetError(
 			fmt.Errorf(
-				"processing with id %s is not in pending state",
+				"processing with id %s at block [%s:%s] is not in pending state",
 				p.GetId().String(),
+				p.GetData().GetSlug(),
+				p.GetData().GetId(),
 			),
 		)
 		p.sendResult(false)
@@ -198,8 +200,10 @@ func (p *Processing) Start() interfaces.ProcessingOutput {
 		if p.ctx.Err() == context.Canceled {
 			processingOutput.SetError(
 				fmt.Errorf(
-					"processing with id %s was cancelled",
+					"processing with id %s was cancelled at block [%s:%s] before processing",
 					p.GetId().String(),
+					p.GetData().GetSlug(),
+					p.GetData().GetId(),
 				),
 			)
 			p.SetError(p.ctx.Err())
@@ -227,8 +231,10 @@ func (p *Processing) Start() interfaces.ProcessingOutput {
 		if err == context.Canceled {
 			processingOutput.SetError(
 				fmt.Errorf(
-					"processing with id %s was cancelled",
+					"processing with id %s was cancelled at block [%s:%s]",
 					p.GetId().String(),
+					p.GetData().GetSlug(),
+					p.GetData().GetId(),
 				),
 			)
 			p.SetError(err)
@@ -242,8 +248,10 @@ func (p *Processing) Start() interfaces.ProcessingOutput {
 			p.SetStatus(interfaces.ProcessingStatusRetry)
 
 			logger.Warnf(
-				"processing with id %s requires retry, attempt %d of %d",
+				"processing with id %s at block [%s:%s] requires retry, attempt %d of %d",
 				p.GetId().String(),
+				p.GetData().GetSlug(),
+				p.GetData().GetId(),
 				attempt+1,
 				retryCount,
 			)
@@ -256,8 +264,10 @@ func (p *Processing) Start() interfaces.ProcessingOutput {
 		if attempt == retryCount && retry {
 			processingOutput.SetError(
 				fmt.Errorf(
-					"processing with id %s failed after exhausting all %d retry attempts",
+					"processing with id %s at block [%s:%s] failed after exhausting all %d retry attempts",
 					p.GetId().String(),
+					p.GetData().GetSlug(),
+					p.GetData().GetId(),
 					retryCount,
 				),
 			)
@@ -273,7 +283,7 @@ func (p *Processing) Start() interfaces.ProcessingOutput {
 			if attempt > 0 {
 				retryMsg = fmt.Sprintf(" after %d attempt(s)", attempt+1)
 			}
-			_err := fmt.Errorf("processing with id %s failed%s: %w", p.GetId().String(), retryMsg, err)
+			_err := fmt.Errorf("processing with id %s failed %s: %w", p.GetId().String(), retryMsg, err)
 			processingOutput.SetError(_err)
 
 			p.SetStatus(interfaces.ProcessingStatusFailed)
