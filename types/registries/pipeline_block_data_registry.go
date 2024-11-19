@@ -221,8 +221,8 @@ func (r *PipelineBlockDataRegistry) LoadOutput(blockSlug string) []*bytes.Buffer
 // SavePipelineLog saves the Pipeline Execution Log & Status
 func (r *PipelineBlockDataRegistry) SavePipelineLog(
 	logBuffer *config.SafeBuffer,
-	logFileConstructor func(id uuid.UUID, slug string, logBufferFS *bytes.Buffer, storage interfaces.Storage) interfaces.PipelineProcessingDetails,
-	statusClassConstructor func(id uuid.UUID, slug string, logBufferCS *bytes.Buffer, storage interfaces.Storage) interfaces.PipelineProcessingStatus,
+	logFileConstructor func(id uuid.UUID, slug string, logId uuid.UUID, logBufferFS *bytes.Buffer, storage interfaces.Storage) interfaces.PipelineProcessingDetails,
+	statusClassConstructor func(id uuid.UUID, slug string, logId uuid.UUID, logBufferCS *bytes.Buffer, storage interfaces.Storage) interfaces.PipelineProcessingStatus,
 ) {
 	r.Lock()
 	defer r.Unlock()
@@ -237,6 +237,8 @@ func (r *PipelineBlockDataRegistry) SavePipelineLog(
 
 	// convert current date to timestamp
 	logIndex := time.Now().Unix()
+	logId := uuid.New()
+
 	for _, storage := range r.storages {
 		dataCopy := bytes.NewBuffer(logBytes)
 		logFileContent := bytes.NewBuffer(logBytes)
@@ -252,6 +254,7 @@ func (r *PipelineBlockDataRegistry) SavePipelineLog(
 			logFileConstructor(
 				r.processingId,
 				r.pipelineSlug,
+				logId,
 				dataCopy,
 				storage,
 			),
@@ -270,7 +273,7 @@ func (r *PipelineBlockDataRegistry) SavePipelineLog(
 				fmt.Sprintf(STATUS_FILE_TEMPLATE, logIndex),
 			),
 		)
-		statusContent, err := json.Marshal(statusClassConstructor(r.processingId, r.pipelineSlug, dataCopy, storage))
+		statusContent, err := json.Marshal(statusClassConstructor(r.processingId, r.pipelineSlug, logId, dataCopy, storage))
 		if err != nil {
 			logger.Error(err)
 			continue

@@ -174,6 +174,7 @@ func (suite *FunctionalTestSuite) TestPipelineProcessingsStatus() {
 	suite.True(processingsStatusMap0["is_completed"].(bool))
 	suite.False(processingsStatusMap0["is_error"].(bool))
 	suite.False(processingsStatusMap0["is_stopped"].(bool))
+	suite.NotEmpty(processingsStatusMap0["log_id"])
 }
 
 func (suite *FunctionalTestSuite) TestPipelineProcessingDetails() {
@@ -259,6 +260,8 @@ func (suite *FunctionalTestSuite) TestPipelineProcessingDetails() {
 	suite.False(processingDetails0["is_error"].(bool))
 	suite.False(processingDetails0["is_stopped"].(bool))
 	suite.NotEmpty(processingDetails0["log_data"])
+	suite.NotEmpty(processingDetails0["log_id"])
+
 }
 
 func (suite *FunctionalTestSuite) TestPipelineStartHandlerTwoBlocks() {

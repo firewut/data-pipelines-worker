@@ -705,6 +705,7 @@ func (p *PipelineData) GetProcessingDetails(processingId uuid.UUID, resultStorag
 type PipelineProcessingStatus struct {
 	Id           uuid.UUID `json:"id"`
 	PipelineSlug string    `json:"pipeline_slug"`
+	LogId        uuid.UUID `json:"log_id"`
 	Storage      string    `json:"storage"`
 	IsStopped    bool      `json:"is_stopped"`
 	IsCompleted  bool      `json:"is_completed"`
@@ -719,6 +720,7 @@ func (p *PipelineProcessingStatus) GetId() uuid.UUID {
 func (p *PipelineProcessingStatus) MarshalJSON() ([]byte, error) {
 	customRepresentation := struct {
 		Id           uuid.UUID `json:"id"`
+		LogId        uuid.UUID `json:"log_id"`
 		Storage      string    `json:"storage"`
 		IsStopped    bool      `json:"is_stopped"`
 		IsCompleted  bool      `json:"is_completed"`
@@ -726,6 +728,7 @@ func (p *PipelineProcessingStatus) MarshalJSON() ([]byte, error) {
 		DateFinished time.Time `json:"date_finished"`
 	}{
 		Id:           p.Id,
+		LogId:        p.LogId,
 		Storage:      p.Storage,
 		IsStopped:    p.IsStopped,
 		IsCompleted:  p.IsCompleted,
@@ -758,6 +761,7 @@ func NewPipelineProcessingStatusFromStatusFile(
 func NewPipelineProcessingStatusFromLogData(
 	id uuid.UUID,
 	pipelineSlug string,
+	logId uuid.UUID,
 	logBuffer *bytes.Buffer,
 	storage interfaces.Storage,
 ) interfaces.PipelineProcessingStatus {
@@ -794,6 +798,7 @@ func NewPipelineProcessingStatusFromLogData(
 		Id:           id,
 		Storage:      storage.GetStorageName(),
 		PipelineSlug: pipelineSlug,
+		LogId:        logId,
 		IsStopped:    is_stopped,
 		IsCompleted:  is_completed,
 		IsError:      is_error,
@@ -818,6 +823,7 @@ func (p *PipelineProcessingDetails) MarshalJSON() ([]byte, error) {
 	customRepresentation := struct {
 		Id           uuid.UUID                `json:"id"`
 		PipelineSlug string                   `json:"pipeline_slug"`
+		LogId        uuid.UUID                `json:"log_id"`
 		Storage      string                   `json:"storage"`
 		IsStopped    bool                     `json:"is_stopped"`
 		IsCompleted  bool                     `json:"is_completed"`
@@ -827,6 +833,7 @@ func (p *PipelineProcessingDetails) MarshalJSON() ([]byte, error) {
 	}{
 		Id:           p.Id,
 		PipelineSlug: p.PipelineSlug,
+		LogId:        p.LogId,
 		Storage:      p.Storage,
 		IsStopped:    p.IsStopped,
 		IsCompleted:  p.IsCompleted,
@@ -862,10 +869,11 @@ func NewProcessingDetailsFromLogFile(
 func NewPipelineProcessingDetailsFromLogData(
 	id uuid.UUID,
 	slug string,
+	logId uuid.UUID,
 	logBuffer *bytes.Buffer,
 	storage interfaces.Storage,
 ) interfaces.PipelineProcessingDetails {
-	status := NewPipelineProcessingStatusFromLogData(id, slug, logBuffer, storage)
+	status := NewPipelineProcessingStatusFromLogData(id, slug, logId, logBuffer, storage)
 
 	logData := make([]map[string]interface{}, 0)
 	for _, logLine := range strings.Split(logBuffer.String(), "\n") {

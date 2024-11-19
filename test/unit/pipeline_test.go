@@ -604,6 +604,7 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalseThreeBlocks() {
 	suite.Contains(pipelineLogFile.data.String(), `"is_completed":true`)
 	suite.Contains(pipelineLogFile.data.String(), `"is_error":false`)
 	suite.Contains(pipelineLogFile.data.String(), fmt.Sprintf(`"id":"%s"`, processingId.String()))
+	suite.Contains(pipelineLogFile.data.String(), `"log_id":"`)
 
 	pipelineStatusFile := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(pipelineStatusFile)
@@ -612,6 +613,7 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalseThreeBlocks() {
 	suite.Contains(pipelineStatusFile.data.String(), `"is_completed":true`)
 	suite.Contains(pipelineStatusFile.data.String(), `"is_error":false`)
 	suite.Contains(pipelineStatusFile.data.String(), fmt.Sprintf(`"id":"%s"`, processingId.String()))
+	suite.Contains(pipelineStatusFile.data.String(), `"log_id":"`)
 }
 
 func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
