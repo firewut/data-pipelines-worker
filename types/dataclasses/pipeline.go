@@ -535,17 +535,19 @@ func (p *PipelineData) Process(
 					for _, saveOutputResult := range saveOutputResults {
 						if saveOutputResult.Error != nil {
 							logger.Errorf(
-								"Error saving output for block [%s:%s] to storage %s: %s",
+								"Error saving output for block [%s:%s] with index %d to storage %s: %s",
 								_blockData.GetSlug(),
 								block.GetId(),
+								blockInputIndex,
 								saveOutputResult.StorageLocation.GetStorageName(),
 								saveOutputResult.Error,
 							)
 						} else {
 							logger.Infof(
-								"Saved output for block [%s:%s] to storage %s",
+								"Saved output for block [%s:%s] with index %d to storage %s",
 								_blockData.GetSlug(),
 								block.GetId(),
+								blockInputIndex,
 								saveOutputResult.StorageLocation.GetStorageName(),
 							)
 						}
