@@ -218,6 +218,58 @@ const docTemplate = `{
                 }
             }
         },
+        "/pipelines/{slug}/processings/{id}/{log-id}": {
+            "get": {
+                "description": "Returns a JSON object of the pipeline Processing Details.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pipelines"
+                ],
+                "summary": "Get pipeline Processing Details by Log Id",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Pipeline slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Processing ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Log ID",
+                        "name": "log-id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dataclasses.PipelineProcessingDetails"
+                        }
+                    },
+                    "404": {
+                        "description": "Pipeline not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/pipelines/{slug}/resume": {
             "post": {
                 "description": "Resumes a paused pipeline with the given input data and returns the processing ID.",
@@ -389,6 +441,9 @@ const docTemplate = `{
                         "additionalProperties": true
                     }
                 },
+                "log_id": {
+                    "type": "string"
+                },
                 "pipeline_slug": {
                     "type": "string"
                 },
@@ -414,6 +469,9 @@ const docTemplate = `{
                 },
                 "is_stopped": {
                     "type": "boolean"
+                },
+                "log_id": {
+                    "type": "string"
                 },
                 "pipeline_slug": {
                     "type": "string"

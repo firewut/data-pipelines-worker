@@ -42,6 +42,8 @@ definitions:
           additionalProperties: true
           type: object
         type: array
+      log_id:
+        type: string
       pipeline_slug:
         type: string
       storage:
@@ -59,6 +61,8 @@ definitions:
         type: boolean
       is_stopped:
         type: boolean
+      log_id:
+        type: string
       pipeline_slug:
         type: string
       storage:
@@ -307,6 +311,41 @@ paths:
           schema:
             type: string
       summary: Get pipeline Processing Details
+      tags:
+      - pipelines
+  /pipelines/{slug}/processings/{id}/{log-id}:
+    get:
+      consumes:
+      - application/json
+      description: Returns a JSON object of the pipeline Processing Details.
+      parameters:
+      - description: Pipeline slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Processing ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Log ID
+        in: path
+        name: log-id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dataclasses.PipelineProcessingDetails'
+        "404":
+          description: Pipeline not found
+          schema:
+            type: string
+      summary: Get pipeline Processing Details by Log Id
       tags:
       - pipelines
   /pipelines/{slug}/resume:
