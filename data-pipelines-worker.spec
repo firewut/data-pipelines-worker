@@ -46,6 +46,7 @@ fi
 %changelog
 * Wed Nov 20 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.7
 - Added handler for Pipeline Processing Details by Log Id
+- Fixed bug with Log buffer potential overflow
 * Sun Nov 17 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.6
 - Fixed data races at Pipeline Processing Logs gathering
 - Fixed bug with load data  when input passed
