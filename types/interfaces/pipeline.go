@@ -9,12 +9,14 @@ import (
 
 type PipelineProcessingStatus interface {
 	GetId() uuid.UUID
+	GetLogId() uuid.UUID
 
 	MarshalJSON() ([]byte, error)
 }
 
 type PipelineProcessingDetails interface {
 	GetId() uuid.UUID
+	GetLogId() uuid.UUID
 
 	MarshalJSON() ([]byte, error)
 }
@@ -38,6 +40,7 @@ type Pipeline interface {
 
 	GetProcessingsStatus([]Storage) map[uuid.UUID][]PipelineProcessingStatus
 	GetProcessingDetails(uuid.UUID, []Storage) []PipelineProcessingDetails
+	GetProcessingDetailsByLogId(uuid.UUID, uuid.UUID, []Storage) PipelineProcessingDetails
 }
 
 type PipelineCatalogueLoader interface {

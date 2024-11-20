@@ -65,6 +65,40 @@ func PipelineProcessingsStatusHandler(registry interfaces.PipelineRegistry) echo
 	}
 }
 
+// @Summary Get pipeline Processing Details by Log Id
+// @Description Returns a JSON object of the pipeline Processing Details.
+// @Tags pipelines
+// @Accept json
+// @Produce json
+// @Param slug path string true "Pipeline slug"
+// @Param id path string true "Processing ID"
+// @Param log-id path string true "Log ID"
+// @Success 200 {object} dataclasses.PipelineProcessingDetails
+// @Failure 404 {string} string "Pipeline not found"
+// @Router /pipelines/{slug}/processings/{id}/{log-id} [get]
+func PipelineProcessingDetailsByLogIdHandler(registry interfaces.PipelineRegistry) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		pipeline := registry.Get(c.Param("slug"))
+		id := c.Param("id")
+		if pipeline == nil {
+			return c.JSON(http.StatusNotFound, "Pipeline not found")
+		}
+		if len(id) == 0 {
+			return c.JSON(http.StatusNotFound, "Processing not found")
+		}
+		processingId, err := uuid.Parse(id)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, "Invalid processing ID")
+		}
+		logId, err := uuid.Parse(c.Param("log-id"))
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, "Invalid log ID")
+		}
+
+		return c.JSON(http.StatusOK, registry.GetProcessingDetailsByLogId(pipeline, processingId, logId))
+	}
+}
+
 // @Summary Get pipeline Processing Details
 // @Description Returns a JSON object of the pipeline Processing Details.
 // @Tags pipelines

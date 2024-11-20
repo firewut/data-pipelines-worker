@@ -144,6 +144,10 @@ func (pr *PipelineRegistry) GetProcessingsStatus(p interfaces.Pipeline) map[uuid
 	)
 }
 
+func (pr *PipelineRegistry) GetProcessingDetailsByLogId(p interfaces.Pipeline, pipelineId uuid.UUID, logId uuid.UUID) interfaces.PipelineProcessingDetails {
+	return p.GetProcessingDetailsByLogId(pipelineId, logId, pr.GetPipelineResultStorages())
+}
+
 func (pr *PipelineRegistry) GetProcessingDetails(p interfaces.Pipeline, pipelineId uuid.UUID) []interfaces.PipelineProcessingDetails {
 	return p.GetProcessingDetails(pipelineId, pr.GetPipelineResultStorages())
 }

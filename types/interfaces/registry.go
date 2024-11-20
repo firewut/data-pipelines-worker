@@ -46,6 +46,7 @@ type PipelineRegistry interface {
 
 	GetProcessingsStatus(Pipeline) map[uuid.UUID][]PipelineProcessingStatus
 	GetProcessingDetails(Pipeline, uuid.UUID) []PipelineProcessingDetails
+	GetProcessingDetailsByLogId(Pipeline, uuid.UUID, uuid.UUID) PipelineProcessingDetails
 }
 
 type BlockRegistry interface {

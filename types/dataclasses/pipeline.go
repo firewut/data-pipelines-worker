@@ -647,6 +647,59 @@ func (p *PipelineData) GetProcessingsStatus(resultStorages []interfaces.Storage)
 	return processingsStatuses
 }
 
+func (p *PipelineData) GetProcessingDetailsByLogId(processingId uuid.UUID, logId uuid.UUID, resultStorages []interfaces.Storage) interfaces.PipelineProcessingDetails {
+	pipelineProcessingsPath := fmt.Sprintf(
+		"%s", p.GetSlug(),
+	)
+
+	processingDirectoryRegexp := regexp.MustCompile(
+		fmt.Sprintf(
+			"%s\\/%s",
+			pipelineProcessingsPath,
+			"([a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12})",
+		),
+	)
+
+	var processing interfaces.PipelineProcessingDetails
+
+	for _, storage := range resultStorages {
+		objects, err := storage.ListObjects(
+			storage.NewStorageLocation(
+				pipelineProcessingsPath,
+			),
+		)
+		if err != nil || len(objects) == 0 {
+			continue
+		}
+
+		for _, object := range objects {
+			matches := processingDirectoryRegexp.FindStringSubmatch(object.GetFilePath())
+			if len(matches) == 2 {
+				storageProcessingId := uuid.MustParse(matches[1])
+				if storageProcessingId != processingId {
+					continue
+				}
+
+				if registries.LOG_FILE_REGEX.MatchString(object.GetFilePath()) {
+					if statusDataBuffer, err := object.GetObjectBytes(); err == nil {
+						processingDetails := NewProcessingDetailsFromLogFile(
+							processingId,
+							p.GetSlug(),
+							statusDataBuffer,
+							storage,
+						)
+						if processingDetails.GetLogId() == logId {
+							return processingDetails
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return processing
+}
+
 func (p *PipelineData) GetProcessingDetails(processingId uuid.UUID, resultStorages []interfaces.Storage) []interfaces.PipelineProcessingDetails {
 	pipelineProcessingsPath := fmt.Sprintf(
 		"%s", p.GetSlug(),
@@ -715,6 +768,10 @@ type PipelineProcessingStatus struct {
 
 func (p *PipelineProcessingStatus) GetId() uuid.UUID {
 	return p.Id
+}
+
+func (p *PipelineProcessingStatus) GetLogId() uuid.UUID {
+	return p.LogId
 }
 
 func (p *PipelineProcessingStatus) MarshalJSON() ([]byte, error) {
@@ -817,6 +874,10 @@ type PipelineProcessingDetails struct {
 
 func (p *PipelineProcessingDetails) GetId() uuid.UUID {
 	return p.Id
+}
+
+func (p *PipelineProcessingDetails) GetLogId() uuid.UUID {
+	return p.LogId
 }
 
 func (p *PipelineProcessingDetails) MarshalJSON() ([]byte, error) {
