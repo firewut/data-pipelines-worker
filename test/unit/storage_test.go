@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"data-pipelines-worker/types"
+	"data-pipelines-worker/types/helpers"
 )
 
 const (
@@ -28,7 +29,7 @@ func (suite *UnitTestSuite) TestDetectMimeTypeFromBuffer() {
 	}
 	for _, _case := range cases_list {
 		buffer := bytes.NewBufferString(_case.content)
-		mimeType, err := types.DetectMimeTypeFromBuffer(*buffer)
+		mimeType, err := helpers.DetectMimeTypeFromBuffer(*buffer)
 		suite.Nil(err)
 		suite.Equal(_case.mimeType, mimeType.String())
 		suite.Equal(_case.extension, mimeType.Extension())

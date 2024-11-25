@@ -27,6 +27,7 @@ import (
 	"data-pipelines-worker/types"
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/dataclasses"
+	"data-pipelines-worker/types/helpers"
 	"data-pipelines-worker/types/interfaces"
 )
 
@@ -332,7 +333,7 @@ func (suite *FunctionalTestSuite) SendProcessingStartRequestMultipart(
 	for key, value := range input.Block.Input {
 		switch v := value.(type) {
 		case []byte: // File content or raw byte data
-			ext, err := types.DetectMimeTypeFromBuffer(*bytes.NewBuffer(v))
+			ext, err := helpers.DetectMimeTypeFromBuffer(*bytes.NewBuffer(v))
 			suite.Nil(err)
 
 			fileField, err := multipartWriter.CreateFormFile(

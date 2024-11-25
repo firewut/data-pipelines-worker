@@ -1,0 +1,71 @@
+{
+    "slug": "openai-mux-subtitles-to-video",
+    "title": "Mux subtitles to video",
+    "description": "Generates subtitles for video using OpenAI API",
+    "blocks": [
+        {
+            "id": "upload_file",
+            "slug": "upload-video-file",
+            "description": "Upload a video for further processing",
+            "input": {}
+        },
+        {
+            "id": "audio_from_video",
+            "slug": "get-audio-from-video",
+            "description": "Extract audio from video",
+            "input_config": {
+                "property": {
+                    "video": {
+                        "origin": "upload-video-file"
+                    }
+                }
+            }
+        },
+        {
+            "id": "openai_transcription_request",
+            "slug": "get-audio-transcription",
+            "description": "Make a request to OpenAI TTS API to convert audio to transcription",
+            "input_config": {
+                "property": {
+                    "audio_file": {
+                        "origin": "get-audio-from-video"
+                    }
+                }
+            }
+        },
+        {
+            "id": "subtitles_from_transcription",
+            "slug": "make-video-subtitles-file",
+            "description": "Create a subtitles file from the transcription",
+            "input_config": {
+                "property": {
+                    "transcription": {
+                        "origin": "get-audio-transcription"
+                    }
+                }
+            },
+            "input": {
+                "input_format": "openai_verbose_json",
+                "output_format": "ass"
+            }
+        },
+        {
+            "id": "video_add_subtitles",
+            "slug": "mux-subtitles-to-video",
+            "description": "Add subtitles to video in a separate track ( non destructive )",
+            "input_config": {
+                "property": {
+                    "video": {
+                        "origin": "upload-video-file"
+                    },
+                    "subtitles": {
+                        "origin": "make-video-subtitles-file"
+                    }
+                }
+            },
+            "input": {
+                "embedding_type": "mux"
+            }
+        }
+    ]
+}

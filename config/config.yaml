@@ -38,6 +38,15 @@ telegram:
   bot_name: "TDIHVideoModerationBot"
 
 blocks:
+  upload_file:
+    detector:
+      check_interval: 50m
+      conditions:
+    reliability:
+      policy: "none"
+    parallel_available: true
+    config:
+    
   http_request:
     detector:
       check_interval: 1m
@@ -231,6 +240,17 @@ blocks:
     config:
       ffmpeg_binary: ""
       replace_original_audio: false
+
+  video_add_subtitles:
+    detector:
+      check_interval: 60m
+      conditions:
+    reliability:
+      policy: "none"
+    parallel_available: false
+    config:
+      ffmpeg_binary: ""
+      embedding_type: "mux"
   
   send_message_tg:
     detector:

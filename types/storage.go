@@ -4,17 +4,16 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 
-	"github.com/gabriel-vasile/mimetype"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 
 	"data-pipelines-worker/types/config"
 	"data-pipelines-worker/types/dataclasses"
+	"data-pipelines-worker/types/helpers"
 	"data-pipelines-worker/types/interfaces"
 )
 
@@ -128,7 +127,7 @@ func (s *LocalStorage) PutObjectBytes(
 	destination interfaces.StorageLocation,
 	content *bytes.Buffer,
 ) (interfaces.StorageLocation, error) {
-	mimeType, err := DetectMimeTypeFromBuffer(*content)
+	mimeType, err := helpers.DetectMimeTypeFromBuffer(*content)
 	if err != nil {
 		return s.NewStorageLocation(""), err
 	}
@@ -283,7 +282,7 @@ func (s *MINIOStorage) PutObject(
 		if err != nil {
 			return s.NewStorageLocation(""), err
 		}
-		mimeType, err := DetectMimeTypeFromBuffer(*content)
+		mimeType, err := helpers.DetectMimeTypeFromBuffer(*content)
 		if err != nil {
 			return s.NewStorageLocation(""), err
 		}
@@ -367,21 +366,3 @@ func (s *MINIOStorage) LocationExists(location interfaces.StorageLocation) bool 
 }
 
 func (s *MINIOStorage) Shutdown() {}
-
-func DetectMimeTypeFromBuffer(largeBuffer bytes.Buffer) (*mimetype.MIME, error) {
-	var detectorBytesLen int64 = 261
-
-	// Create a new buffer to hold the copied data
-	var copiedBuffer bytes.Buffer
-
-	// Create a TeeReader that reads from largeBuffer and writes to copiedBuffer
-	teeReader := io.TeeReader(io.LimitReader(&largeBuffer, detectorBytesLen), &copiedBuffer)
-
-	smallBuffer := make([]byte, detectorBytesLen)
-	bytesRead, err := io.ReadFull(teeReader, smallBuffer)
-	if err != nil && err != io.ErrUnexpectedEOF {
-		return nil, err
-	}
-
-	return mimetype.Detect(smallBuffer[:bytesRead]), nil
-}

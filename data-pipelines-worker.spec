@@ -1,5 +1,5 @@
 Name:           data-pipelines-worker
-Version:        1.0.7
+Version:        1.0.8
 Release:        1%{?dist}
 Summary:        Data pipelines worker
 License:        Custom License
@@ -44,6 +44,10 @@ fi
 /etc/systemd/system/data-pipelines-worker.service
 
 %changelog
+* Wed Nov 25 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.8
+- Added block `upload_file`
+- Added block `video_add_subtitles`
+- Updated pipeline `openai-mux-subtitles-to-video`
 * Wed Nov 20 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.7
 - Added handler for Pipeline Processing Details by Log Id
 - Fixed bug with Log buffer potential overflow

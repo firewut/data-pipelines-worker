@@ -30,13 +30,11 @@ curl -X POST -H "Content-Type: application/json" -d '{"pipeline":{"slug":"openai
 curl -X POST -H "Content-Type: application/json" -d '{"pipeline":{"slug":"openai-yt-short-generation", "processing_id":"0e2796da-d262-4e2c-b9f0-bf792de1f0dc"},"block":{"slug":"get-event-images"}}' "http://localhost:8080/pipelines/openai-yt-short-generation/resume"
 
 
-curl -X POST "http://192.168.1.116:8080/pipelines/openai-yt-short-generation/resume" \
-  -H "Content-Type: multipart/form-data" \
-  -F "pipeline.slug=openai-yt-short-generation" \
-  -F "pipeline.processing_id=14c9f824-2211-45f2-9378-c875b3e1e34c" \
-  -F "block.slug=get-event-images" \
-  -F "block.target_index=1" \
-  -F "block.input.video=@/path/to/video.mp4"
+curl -X POST -H "Content-Type: multipart/form-data" \
+  -F "pipeline.slug=openai-mux-subtitles-to-video" \
+  -F "block.slug=upload-video-file" \
+  -F "block.input.file=@../../video.mp4" \
+  "http://192.168.1.116:8080/pipelines/openai-mux-subtitles-to-video/start"
 
 For arrays use:
 ```

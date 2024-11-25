@@ -84,6 +84,8 @@ func (br *BlockRegistry) DetectBlocks() {
 	formatStringFromObjectBlock := blocks.NewBlockFormatStringFromObject()
 	audioFromVideoBlock := blocks.NewBlockAudioFromVideo()
 	subtitlesFromTranscriptionBlock := blocks.NewBlockSubtitlesFromTranscription()
+	uploadFileBlock := blocks.NewBlockUploadFile()
+	videoAddSubtitlesBlock := blocks.NewBlockVideoAddSubtitles()
 
 	br.blocksDetector = map[interfaces.Block]interfaces.BlockDetector{
 		httpBlock: blocks.NewDetectorHTTP(
@@ -153,6 +155,12 @@ func (br *BlockRegistry) DetectBlocks() {
 		),
 		subtitlesFromTranscriptionBlock: blocks.NewDetectorSubtitlesFromTranscription(
 			_config.Blocks[subtitlesFromTranscriptionBlock.GetId()].Detector,
+		),
+		uploadFileBlock: blocks.NewDetectorUploadFile(
+			_config.Blocks[uploadFileBlock.GetId()].Detector,
+		),
+		videoAddSubtitlesBlock: blocks.NewDetectorVideoAddSubtitles(
+			_config.Blocks[videoAddSubtitlesBlock.GetId()].Detector,
 		),
 	}
 
