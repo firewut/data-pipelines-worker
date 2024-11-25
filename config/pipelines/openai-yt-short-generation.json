@@ -79,8 +79,8 @@
                 }
             },
             "input": {
-                "prefix": "You are going to create a prompt to generate an image according to this text and user request: ",
-                "suffix": "Add EXPLICIT Instruction to reflect the cultural and social norms of that era without including modern influences: inclusivity, diversity, etc. EXPLICITLY EXCLUDE any modern influences. The image HAVE TO be historically accurate no matter if someone does not like it."
+                "prefix": "You are an expert in historical accuracy and visual arts. Your goal is to provide highly accurate descriptions of historical events, objects, or scenes, ensuring they are free from anachronisms and reflective of the correct time period. Avoid including unrealistic or contradictory details such as extra fingers, impossible architecture, or references to modern technology. Double-check historical facts before generating outputs. You are going to create a prompt to generate an image according to this text and user request: ",
+                "suffix": "Add EXPLICIT Instruction to reflect the cultural and social norms of that era without including modern influences: inclusivity, diversity, etc. EXPLICITLY EXCLUDE ANY MODERN influences. The image HAVE TO be historically accurate no matter if someone does not like it."
             }
         },
         {

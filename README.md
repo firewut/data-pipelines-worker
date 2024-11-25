@@ -24,11 +24,15 @@ make start
 
 curl -X POST -H "Content-Type: application/json" -d '{"pipeline":{"slug":"openai-yt-short-generation"},"block":{"slug":"get-event-text", "input": {"user_prompt": "What happened years ago today October twenty fourth?"}}}' "http://192.168.1.116:8080/pipelines/openai-yt-short-generation/start"
 
+curl -X POST -H "Content-Type: application/json" -d '{"pipeline":{"slug":"openai-motivational-quote-to-video"},"block":{"slug":"analyze-user-input", "input": {"user_prompt": "Your time is limited, so do not waste it living someone else life"}}}' "http://192.168.1.116:8080/pipelines/openai-motivational-quote-to-video/start"
+
+
 ## Resume
 curl -X POST -H "Content-Type: application/json" -d '{"pipeline":{"slug":"openai-yt-short-generation", "processing_id":"99e4d0d9-eaf0-4dea-89dd-15b5cbb5ce1f"},"block":{"slug":"send-event-images-moderation-to-telegram" }}' "http://192.168.1.116:8080/pipelines/openai-yt-short-generation/resume"
 
 curl -X POST -H "Content-Type: application/json" -d '{"pipeline":{"slug":"openai-yt-short-generation", "processing_id":"0e2796da-d262-4e2c-b9f0-bf792de1f0dc"},"block":{"slug":"get-event-images"}}' "http://localhost:8080/pipelines/openai-yt-short-generation/resume"
 
+curl -X POST -H "Content-Type: application/json" -d '{"pipeline":{"slug":"openai-motivational-quote-to-video", "processing_id":"baceaadc-b8d8-4576-998a-923737044fcf"},"block":{"slug":"add-text-to-event-images"}}' "http://192.168.1.116:8080/pipelines/openai-motivational-quote-to-video/resume"
 
 curl -X POST -H "Content-Type: multipart/form-data" \
   -F "pipeline.slug=openai-mux-subtitles-to-video" \
