@@ -35,10 +35,21 @@ curl -X POST -H "Content-Type: application/json" -d '{"pipeline":{"slug":"openai
 curl -X POST -H "Content-Type: application/json" -d '{"pipeline":{"slug":"openai-motivational-quote-to-video", "processing_id":"baceaadc-b8d8-4576-998a-923737044fcf"},"block":{"slug":"add-text-to-event-images"}}' "http://192.168.1.116:8080/pipelines/openai-motivational-quote-to-video/resume"
 
 curl -X POST -H "Content-Type: multipart/form-data" \
+  -F "pipeline.slug=openai-podcast-summary" \
+  -F "block.slug=get-event-transcription" \
+  -F "block.input.audio_file=@../../output000.mp3" \
+  "http://192.168.1.116:8080/pipelines/openai-podcast-summary/start"
+
+curl -X POST -H "Content-Type: application/json" -d '{"pipeline":{"slug":"openai-podcast-summary", "processing_id":"43aa8a6a-9088-42c7-8ea9-773f10b9d5ea"},"block":{"slug":"get-summary-of-a-podcast"}}' "http://192.168.1.116:8080/pipelines/openai-podcast-summary/resume"
+
+
+curl -X POST -H "Content-Type: multipart/form-data" \
   -F "pipeline.slug=openai-mux-subtitles-to-video" \
   -F "block.slug=upload-video-file" \
   -F "block.input.file=@../../video.mp4" \
   "http://192.168.1.116:8080/pipelines/openai-mux-subtitles-to-video/start"
+
+
 
 For arrays use:
 ```

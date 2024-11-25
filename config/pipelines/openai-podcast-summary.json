@@ -1,0 +1,32 @@
+{
+    "slug": "openai-podcast-summary",
+    "title": "Make a summary of a podcast",
+    "description": "Make a summary of a podcast using OpenAI API",
+    "blocks": [
+        {
+            "id": "openai_transcription_request",
+            "slug": "get-event-transcription",
+            "description": "Make a request to OpenAI TTS API to convert audio to transcription",
+            "input": {
+                "format": "text"
+            }
+        },
+        {
+            "id": "openai_chat_completion",
+            "slug": "get-summary-of-a-podcast",
+            "description": "Gets summary of a podcast from OpenAI Chat Completion",
+            "input_config": {
+                "property": {
+                    "user_prompt": {
+                        "origin": "get-event-transcription",
+                        "json_path": "$.text"
+                    }
+                }
+            },
+            "input": {
+                "model": "gpt-4o-2024-08-06",
+                "system_prompt": "Please summarize the following podcast episode transcript in a concise and engaging way, highlighting the key topics, themes, and insights discussed. The summary should be approximately 200 words long and suitable for use as a description on podcast platforms. Avoid technical jargon unless necessary and ensure the tone is professional yet accessible."
+            }
+        }
+    ]
+}

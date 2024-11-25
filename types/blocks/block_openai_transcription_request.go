@@ -109,7 +109,7 @@ func NewBlockOpenAIRequestTranscription() *BlockOpenAIRequestTranscription {
 		BlockParent: BlockParent{
 			Id:          "openai_transcription_request",
 			Name:        "OpenAI Audio Transcription",
-			Description: "Block to Transcribe audio to JSON using OpenAI",
+			Description: "Block to Transcribe audio to JSON using OpenAI. File size limit is 20MB and duration limit is 10 minutes.",
 			Version:     "1",
 			SchemaString: `{
 				"type": "object",
@@ -133,7 +133,7 @@ func NewBlockOpenAIRequestTranscription() *BlockOpenAIRequestTranscription {
 								"description": "Response format",
 								"type": "string",
 								"default": "verbose_json",
-								"enum": ["verbose_json"]
+								"enum": ["verbose_json", "text"]
 							},
 							"language": {
 								"description": "Language of the audio",
