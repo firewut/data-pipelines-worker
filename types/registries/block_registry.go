@@ -79,6 +79,7 @@ func (br *BlockRegistry) DetectBlocks() {
 	textAddPrefixOrSuffixBlock := blocks.NewBlockTextAddPrefixOrSuffix()
 	videoFromImageBlock := blocks.NewBlockVideoFromImage()
 	joinVideosBlock := blocks.NewBlockJoinVideos()
+	joinStringsBlock := blocks.NewBlockJoinStrings()
 	videoAddAudioBlock := blocks.NewBlockVideoAddAudio()
 	sendMessageToTelegramBlock := blocks.NewBlockSendMessageToTelegram()
 	formatStringFromObjectBlock := blocks.NewBlockFormatStringFromObject()
@@ -139,6 +140,9 @@ func (br *BlockRegistry) DetectBlocks() {
 		),
 		joinVideosBlock: blocks.NewDetectorJoinVideos(
 			_config.Blocks[joinVideosBlock.GetId()].Detector,
+		),
+		joinStringsBlock: blocks.NewDetectorJoinStrings(
+			_config.Blocks[joinStringsBlock.GetId()].Detector,
 		),
 		videoAddAudioBlock: blocks.NewDetectorVideoAddAudio(
 			_config.Blocks[videoAddAudioBlock.GetId()].Detector,

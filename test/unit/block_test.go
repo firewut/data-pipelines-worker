@@ -1424,6 +1424,7 @@ func (suite *UnitTestSuite) TestPipelineJoinVideos() {
 
 	videosJoinBlock := blocks[1]
 	suite.NotNil(videosJoinBlock)
+	suite.Equal("join_videos", videosJoinBlock.GetId())
 
 	// When
 	inputData, _, err := videosJoinBlock.GetInputConfigData(pipelineResults)
@@ -1433,4 +1434,98 @@ func (suite *UnitTestSuite) TestPipelineJoinVideos() {
 	suite.NotEmpty(inputData)
 	suite.Equal(1, len(inputData))
 	suite.Equal(2, len(inputData[0]["videos"].([]interface{})))
+}
+
+func (suite *UnitTestSuite) TestPipelineJoinStrings() {
+	// Given
+	pipelineString := `{
+		"slug": "openai-test",
+		"title": "Youtube video generation pipeline from prompt",
+		"description": "Generates videos for youtube Channel <CHANNEL>. Uses Prompt in the Block.",
+		"blocks": [
+			{
+				"id": "openai_chat_completion",
+				"slug": "analyze-user-input",
+				"description": "Get a text from OpenAI Chat Completion",
+				"input": {
+					"response_format": "json",
+					"model": "gpt-4o-2024-08-06",
+					"user_prompt": "Your time is limited, so don't waste it living someone else's life"
+				}
+			},
+			{
+				"id": "openai_chat_completion",
+				"slug": "get-summary-from-image-prompt",
+				"description": "Get summary from prompt used for Image generation using OpenAI Chat Completion",
+				"input_config": {
+					"type": "array",
+					"property": {
+						"user_prompt": {
+							"origin": "analyze-user-input",
+							"json_path": "$.background_suggestions[*]"
+						}
+					}
+				},
+				"input": {
+					"model": "gpt-4o-2024-08-06",
+					"system_prompt": "..."
+				}
+			},
+			{
+				"id": "join_strings",
+				"slug": "make-text-for-audio-generation",
+				"description": "Make a text for audio generation from the Summaries",
+				"input_config": {
+					"property": {
+						"strings": {
+							"origin": "get-summary-from-image-prompt",
+							"array_input": true
+						}
+					}
+				},
+				"input": {
+					"separator": ". "
+				}
+			}
+		]
+	}`
+
+	pipelineResults := map[string][]*bytes.Buffer{
+		"analyze-user-input": {
+			bytes.NewBufferString(`{ 
+				"text": "Your time is limited, so do not waste it living someone else life", 
+				"color_palette": ["#FFA726", "#F57C00", "#FFEB3B", "#E64A19"], 
+				"typography": "bold", 
+				"background_suggestions": [
+					"a sunrise over a mountain, symbolizing new beginnings and self-discovery", 
+					"an empty road stretching into the horizon, representing a journey towards personal fulfillment", 
+					"an open book set on a table, signifying the importance of writing your own story"
+				] 
+			}`),
+		},
+		"get-summary-from-image-prompt": {
+			bytes.NewBufferString(`a sunrise over a mountain, symbolizing new beginnings and self-discovery`),
+			bytes.NewBufferString(`an empty road stretching into the horizon, representing a journey towards personal fulfillment`),
+			bytes.NewBufferString(`an open book set on a table, signifying the importance of writing your own story`),
+		},
+	}
+
+	pipeline := suite.GetTestPipeline(pipelineString)
+	suite.NotNil(pipeline)
+
+	blocks := pipeline.GetBlocks()
+	suite.NotEmpty(blocks)
+
+	stringsJoinBlock := blocks[2]
+	suite.NotNil(stringsJoinBlock)
+	suite.Equal("join_strings", stringsJoinBlock.GetId())
+
+	// When
+	inputData, _, err := stringsJoinBlock.GetInputConfigData(pipelineResults)
+
+	// Then
+	suite.Nil(err)
+	suite.NotEmpty(inputData)
+	suite.Equal(1, len(inputData))
+	suite.Equal(3, len(inputData[0]["strings"].([]interface{})))
 }

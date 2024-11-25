@@ -194,6 +194,16 @@ blocks:
     parallel_available: true
     config:
   
+  join_strings:
+    detector:
+      check_interval: 50m
+      conditions:
+    reliability:
+      policy: "none"
+    parallel_available: true
+    config:
+      separator: ""
+  
   wrap_text:
     detector:
       check_interval: 50m

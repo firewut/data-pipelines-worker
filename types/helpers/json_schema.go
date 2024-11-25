@@ -69,17 +69,24 @@ func CastDataToType(data interface{}, schema map[string]interface{}) (interface{
 		if propFormat == "file" {
 			// Handle special case for file format
 			switch v := data.(type) {
+			case string:
+				return []byte(v), nil // Convert string to []byte
 			case *bytes.Buffer:
 				return v.Bytes(), nil // Convert *bytes.Buffer to []byte for file format
 			case []byte:
 				return v, nil // Directly return []byte
-			case string:
-				return []byte(v), nil // Convert string to []byte
 			}
 		}
-		if str, ok := data.(string); ok {
-			return str, nil
+
+		switch v := data.(type) {
+		case *bytes.Buffer:
+			return v.String(), nil
+		case []byte:
+			return string(v), nil
+		case string:
+			return v, nil
 		}
+
 		return nil, errors.New("data is not a valid string")
 	case "integer":
 		return int(data.(float64)), nil // Assuming data is provided as float64 (common for JSON numbers)

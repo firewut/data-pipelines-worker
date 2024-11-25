@@ -1,0 +1,224 @@
+{
+    "slug": "openai-motivational-quote-to-video",
+    "title": "Motivational Quote to video",
+    "description": "Generates video from motivational quote using OpenAI API",
+    "blocks": [
+        {
+            "id": "openai_chat_completion",
+            "slug": "analyze-user-input",
+            "description": "Get a text from OpenAI Chat Completion",
+            "input": {
+                "response_format": "json",
+                "model": "gpt-4o-2024-08-06",
+                "system_prompt": "Analyze the tone of the provided quote and generate a JSON object with four keys: \"text\", \"color_palette\", \"typography\", and \"background_suggestions\". \"text\" must contain the user's input (the provided quote). For \"color_palette\", suggest a palette of three to four colors that represent the tone of the quote. For \"typography\", recommend a typography style (e.g., bold, serif, cursive) that aligns with the mood of the quote. For \"background_suggestions\", provide two to three suggestions for background imagery that visually capture the essence of the quote. The response should be in the following JSON format: { \"text\": \"user's input\", \"color_palette\": [\"#color1\", \"#color2\", \"#color3\", \"#color4\"], \"typography\": \"...\", \"background_suggestions\": [\"...\", \"...\", \"...\"] }",
+                "user_prompt": "Your time is limited, so don't waste it living someone else's life"
+            }
+        },
+        {
+            "id": "wrap_text",
+            "slug": "make-system-prompt-for-image-prompt-generation",
+            "description": "Make a system prompt for image generation from the suggestions",
+            "input_config": {
+                "property": {
+                    "text": {
+                        "origin": "analyze-user-input",
+                        "json_path": "$.text"
+                    }
+                }
+            },
+            "input": {
+                "prefix": "You are tasked with creating a prompt to generate an image suitable for social media, based on the following description provided by the user: ",
+                "suffix": " \nAdd EXPLICIT Instruction: Ensure the instructions focus on clarity, creativity, and visual appeal, avoiding the inclusion of modern ideological concepts or influences such as contemporary interpretations of inclusivity, diversity, woke and other. The image should be engaging, timeless, and resonate broadly with audiences while respecting the original intent of the description."
+            }
+        },
+        {
+            "id": "openai_chat_completion",
+            "slug": "get-prompt-for-image-generation-text",
+            "description": "Get prompts for image generation from OpenAI Chat Completion",
+            "input_config": {
+                "type": "array",
+                "property": {
+                    "system_prompt": {
+                        "origin": "make-system-prompt-for-image-prompt-generation"
+                    },
+                    "user_prompt": {
+                        "origin": "analyze-user-input",
+                        "json_path": "$.background_suggestions[*]"
+                    }
+                }
+            },
+            "input": {
+                "model": "gpt-4o-2024-08-06"
+            }
+        },
+        {
+            "id": "openai_chat_completion",
+            "slug": "get-summary-from-image-prompt",
+            "description": "Get summary from prompt used for Image generation using OpenAI Chat Completion",
+            "input_config": {
+                "type": "array",
+                "property": {
+                    "user_prompt": {
+                        "origin": "get-prompt-for-image-generation-text"
+                    }
+                }
+            },
+            "input": {
+                "model": "gpt-4o-2024-08-06",
+                "system_prompt": "Generate a three-to-five word inspirational phrase that captures the essence of the image’s theme. The text should be short and evocative, complementing the overall mood and concept of the image. It should reflect universal themes while fitting naturally with the visual elements present in the scene. The phrase should be concise, impactful, and suitable for social media sharing."
+            }
+        },
+        {
+            "id": "join_strings",
+            "slug": "make-text-for-audio-generation",
+            "description": "Make a text for audio generation from the Summaries",
+            "input_config": {
+                "property": {
+                    "strings": {
+                        "origin": "get-summary-from-image-prompt",
+                        "array_input": true
+                    }
+                }
+            },
+            "input": {
+                "separator": "... ."
+            }
+        },
+        {
+            "id": "openai_tts_request",
+            "slug": "get-event-tts",
+            "description": "Make a request to OpenAI TTS API to convert text to speech",
+            "input_config": {
+                "property": {
+                    "text": {
+                        "origin": "make-text-for-audio-generation"
+                    }
+                }
+            }
+        },
+        {
+            "id": "openai_transcription_request",
+            "slug": "get-event-transcription",
+            "description": "Make a request to OpenAI TTS API to convert audio to transcription",
+            "input_config": {
+                "property": {
+                    "audio_file": {
+                        "origin": "get-event-tts"
+                    }
+                }
+            }
+        },
+        {
+            "id": "openai_chat_completion",
+            "slug": "get-event-details",
+            "description": "Get a title, description and tags for the event",
+            "input_config": {
+                "property": {
+                    "user_prompt": {
+                        "origin": "analyze-user-input"
+                    }
+                }
+            },
+            "input": {
+                "response_format": "json",
+                "model": "gpt-4o-2024-08-06",
+                "system_prompt": "Generate a JSON object with three keys: \"title\", \"summary\", and \"tags\". For the \"title\", create a title for the provided text consisting of exactly three words, where two of the words summarize the main theme or idea. For the \"summary\", provide a short summary of the text in five to ten words that is informative and used as a summary for video. For the \"tags\", generate a list of tags related to the text that are formatted as valid hashtags (e.g., #tag1, #tag2), ensuring that only words are used without any additional symbols. The response should be in the following JSON format: { \"title\": \"...\", \"summary\": \"...\", \"tags\": [\"#tag1\", \"#tag2\", \"#tag3\"] }"
+            }
+        },
+        {
+            "id": "openai_image_request",
+            "slug": "get-event-images",
+            "description": "Make a request to OpenAI Image API to get an image",
+            "input_config": {
+                "type": "array",
+                "property": {
+                    "prompt": {
+                        "origin": "get-prompt-for-image-generation-text"
+                    }
+                }
+            },
+            "input": {
+                "quality": "hd",
+                "size": "1024x1792"
+            }
+        },
+        {
+            "id": "image_add_text",
+            "slug": "add-text-to-event-images",
+            "description": "Add text to the generated Event Images",
+            "input_config": {
+                "type": "array",
+                "parallel": true,
+                "property": {
+                    "image": {
+                        "origin": "get-event-images"
+                    },
+                    "text": {
+                        "origin": "get-event-transcription",
+                        "json_path": "$.segments[*].text"
+                    }
+                }
+            },
+            "input": {
+                "font": "Roboto-Regular.ttf",
+                "font_color": "#fff",
+                "text_bg_alpha": 0.8,
+                "text_bg_margin": 25,
+                "text_bg_all_width": true
+            }
+        },
+        {
+            "id": "video_from_image",
+            "slug": "generate-videos-from-images-and-transcriptions",
+            "description": "Generate video from Images and Transcription Segments",
+            "input_config": {
+                "type": "array", 
+                "parallel": true,
+                "property": {
+                    "start": {
+                        "origin": "get-event-transcription",
+                        "json_path": "$.segments[*].start"
+                    },
+                    "end": {
+                        "origin": "get-event-transcription",
+                        "json_path": "$.segments[*].end"
+                    },
+                    "image": {
+                        "origin": "add-text-to-event-images"
+                    }
+                }
+            }
+        },
+        {
+            "id": "join_videos",
+            "slug": "join-videos-from-array",
+            "description": "Join Videos from Array of Videos",
+            "input_config": {
+                "property": {
+                    "videos": {
+                        "origin": "generate-videos-from-images-and-transcriptions",
+                        "array_input": true
+                    }
+                }
+            }
+        },
+        {
+            "id": "video_add_audio",
+            "slug": "add-audio-to-joined-video",
+            "description": "Add Generated TTS to Result Video",
+            "input_config": {
+                "property": {
+                    "audio": {
+                        "origin": "get-event-tts"
+                    },
+                    "video": {
+                        "origin": "join-videos-from-array"
+                    }
+                }
+            },
+            "input": {
+                "replace_original_audio": true
+            }
+        }
+    ]
+}
