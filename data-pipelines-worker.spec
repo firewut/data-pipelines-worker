@@ -6,7 +6,10 @@ License:        Custom License
 Group:          Development/Tools
 
 %description
-Pipelines management and execution system.
+This project is a pipeline management system designed to process and transform data through modular "blocks." 
+It focuses on generating multimedia content, such as videos, images, and text, using AI integrations while incorporating moderation workflows through social network platforms. 
+The system allows flexible inter-block communication, parallel processing, and seamless recovery mechanisms. 
+It's also tailored for scalability and autonomy, with plans for deployment on resource-constrained devices.
 
 %prep
 
