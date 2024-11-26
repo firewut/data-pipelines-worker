@@ -34,8 +34,8 @@ func (p *ProcessorOpenAIRequestTTS) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, string, int, error) {
-	output := &bytes.Buffer{}
+) ([]*bytes.Buffer, bool, bool, string, int, error) {
+	output := make([]*bytes.Buffer, 0)
 	blockConfig := &BlockOpenAIRequestTTSConfig{}
 
 	_config := config.GetConfig()
@@ -70,7 +70,7 @@ func (p *ProcessorOpenAIRequestTTS) Process(
 		return output, false, false, "", -1, err
 	}
 
-	output = bytes.NewBuffer(buf)
+	output = append(output, bytes.NewBuffer(buf))
 
 	return output, false, false, "", -1, err
 }

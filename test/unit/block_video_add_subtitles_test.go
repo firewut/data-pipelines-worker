@@ -110,14 +110,14 @@ func (suite *UnitTestSuite) TestBlockVideoAddSubtitlesProcessSuccess() {
 	suite.NotNil(videoResult)
 	suite.Nil(err)
 
-	videoNoSubtitles := videoResult.Bytes()
+	videoNoSubtitles := videoResult[0].Bytes()
 	block := blocks.NewBlockVideoAddSubtitles()
 	data := &dataclasses.BlockData{
 		Id:   "video_add_subtitles",
 		Slug: "video-add-audio",
 		Input: map[string]interface{}{
 			"video":     videoNoSubtitles,
-			"subtitles": transcriptionResult.Bytes(),
+			"subtitles": transcriptionResult[0].Bytes(),
 		},
 	}
 	data.SetBlock(block)
@@ -134,5 +134,5 @@ func (suite *UnitTestSuite) TestBlockVideoAddSubtitlesProcessSuccess() {
 	suite.False(stop)
 	suite.Nil(err)
 
-	suite.NotEqual(videoNoSubtitles, videoWithSubtitlesBuffer.Bytes())
+	suite.NotEqual(videoNoSubtitles, videoWithSubtitlesBuffer[0].Bytes())
 }

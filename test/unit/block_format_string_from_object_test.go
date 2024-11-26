@@ -134,7 +134,7 @@ func (suite *UnitTestSuite) TestBlockFormatStringFromObjectProcessSuccess() {
 
 		suite.Equal(
 			tc.expected,
-			result.String(),
+			result[0].String(),
 		)
 	}
 }

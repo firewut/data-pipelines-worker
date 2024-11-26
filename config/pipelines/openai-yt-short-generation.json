@@ -60,7 +60,7 @@
             "description": "Make a request to OpenAI TTS API to convert audio to transcription",
             "input_config": {
                 "property": {
-                    "audio_file": {
+                    "audio": {
                         "origin": "get-event-tts"
                     }
                 }
@@ -209,7 +209,7 @@
             "slug": "generate-videos-from-images-and-transcriptions",
             "description": "Generate video from Images and Transcription Segments",
             "input_config": {
-                "type": "array", 
+                "type": "array",
                 "parallel": true,
                 "property": {
                     "start": {

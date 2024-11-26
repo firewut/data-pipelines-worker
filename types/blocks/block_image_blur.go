@@ -53,8 +53,8 @@ func (p *ProcessorImageBlur) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, string, int, error) {
-	output := &bytes.Buffer{}
+) ([]*bytes.Buffer, bool, bool, string, int, error) {
+	output := make([]*bytes.Buffer, 0)
 	blockConfig := &BlockImageBlurConfig{}
 
 	_config := config.GetConfig()
@@ -79,7 +79,8 @@ func (p *ProcessorImageBlur) Process(
 
 	blurredImage := imaging.Blur(img, blockConfig.Sigma)
 
-	err = png.Encode(output, blurredImage)
+	output = append(output, &bytes.Buffer{})
+	err = png.Encode(output[0], blurredImage)
 	if err != nil {
 		config.GetLogger().Fatalf("Failed to encode PNG image: %v", err)
 	}

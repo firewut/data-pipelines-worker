@@ -47,14 +47,14 @@ type BlockProcessor interface {
 	// @param ctx The context for the processing.
 	// @param block The block to be processed.
 	// @param data The data to be processed.
-	// @return *bytes.Buffer The processed data.
+	// @return []*bytes.Buffer The processed data.
 	// @return bool A boolean indicating the pipeline must be stopped.
 	// @return bool A boolean indicating block processing must be retries.
 	// @return string A string indicating block Slug if TargetBlockIndex is > -1.
 	// @return int A TargetBlockIndex if processing has Regenerate request. Default -1.
 	// @return error An error if the processing fails.
 	Process(context.Context, Block, ProcessableBlockData) (
-		output *bytes.Buffer,
+		output []*bytes.Buffer,
 		stopPipeline bool,
 		retryBlockProcessing bool,
 		gotoProcessingTargetBlock string,
@@ -127,7 +127,7 @@ type Block interface {
 	// @param ctx The context for the processing.
 	// @param processor The processor to be used for processing.
 	// @param data The data to be processed.
-	// @return *bytes.Buffer The processed data.
+	// @return []*bytes.Buffer The processed data.
 	// @return bool A boolean indicating the pipeline must be stopped.
 	// @return bool A boolean indicating block processing must be retries.
 	// @return string A string indicating block Slug if TargetBlockIndex is > -1.
@@ -138,7 +138,7 @@ type Block interface {
 		BlockProcessor,
 		ProcessableBlockData,
 	) (
-		output *bytes.Buffer,
+		output []*bytes.Buffer,
 		stopPipeline bool,
 		retryBlockProcessing bool,
 		gotoProcessingTargetBlock string,
@@ -219,8 +219,8 @@ type ProcessableBlockData interface {
 
 	// GetInputConfigData retrieves input configuration data based on provided buffers.
 	// @param buffers A map of string keys to slice of bytes buffers.
-	// @return The input configuration data as a slice of maps, a bool indicating success, and an error if any.
-	GetInputConfigData(map[string][]*bytes.Buffer) ([]map[string]interface{}, bool, error)
+	// @return The input configuration data as a slice of maps, bool indicating array, bool indicating success, error if any.
+	GetInputConfigData(map[string][]*bytes.Buffer) ([]map[string]interface{}, bool, bool, error)
 
 	// GetStringRepresentation returns a string representation of the block data.
 	// @return The string representation of the data.

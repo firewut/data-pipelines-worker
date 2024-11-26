@@ -142,8 +142,8 @@ func (p *ProcessorSendModerationToTelegram) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, string, int, error) {
-	output := &bytes.Buffer{}
+) ([]*bytes.Buffer, bool, bool, string, int, error) {
+	output := make([]*bytes.Buffer, 0)
 	blockConfig := &BlockSendModerationToTelegramConfig{}
 
 	processingID := uuid.Nil
@@ -253,7 +253,7 @@ func (p *ProcessorSendModerationToTelegram) Process(
 	if err != nil {
 		return output, false, false, "", -1, err
 	}
-	output = bytes.NewBuffer(sentMessageBytes)
+	output = append(output, bytes.NewBuffer(sentMessageBytes))
 
 	return output, false, false, "", -1, nil
 }

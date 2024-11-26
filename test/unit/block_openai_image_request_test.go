@@ -151,5 +151,5 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestImageProcessSuccess() {
 	suite.False(stop)
 	suite.Nil(err)
 
-	suite.Equal(pngBuffer.Bytes(), result.Bytes())
+	suite.Equal(pngBuffer.Bytes(), result[0].Bytes())
 }

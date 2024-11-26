@@ -121,7 +121,7 @@ func (suite *UnitTestSuite) TestBlockImageResizeProcessSuccess() {
 		suite.False(stop)
 		suite.Nil(err)
 
-		image, err := png.Decode(bytes.NewReader(result.Bytes()))
+		image, err := png.Decode(bytes.NewReader(result[0].Bytes()))
 		suite.Nil(err)
 		suite.NotNil(image)
 		suite.Equal(tc.width, image.Bounds().Dx())

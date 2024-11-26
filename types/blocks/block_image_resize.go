@@ -53,8 +53,8 @@ func (p *ProcessorImageResize) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, string, int, error) {
-	output := &bytes.Buffer{}
+) ([]*bytes.Buffer, bool, bool, string, int, error) {
+	output := make([]*bytes.Buffer, 0)
 	blockConfig := &BlockImageResizeConfig{}
 
 	_config := config.GetConfig()
@@ -79,7 +79,8 @@ func (p *ProcessorImageResize) Process(
 
 	resizedImage := imaging.Resize(img, blockConfig.Width, blockConfig.Height, imaging.Lanczos)
 
-	err = png.Encode(output, resizedImage)
+	output = append(output, &bytes.Buffer{})
+	err = png.Encode(output[0], resizedImage)
 	if err != nil {
 		config.GetLogger().Fatalf("Failed to encode PNG image: %v", err)
 	}

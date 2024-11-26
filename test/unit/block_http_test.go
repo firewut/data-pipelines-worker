@@ -89,7 +89,7 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessSuccess() {
 	suite.NotNil(result)
 	suite.False(stop)
 	suite.Nil(err)
-	suite.Equal("Hello, world!\n", result.String())
+	suite.Equal("Hello, world!\n", result[0].String())
 }
 
 func (suite *UnitTestSuite) TestBlockHTTPProcessCancel() {
@@ -155,7 +155,7 @@ func (suite *UnitTestSuite) TestBlockHTTPProcessError() {
 	suite.NotNil(result)
 	suite.False(stop)
 	suite.NotNil(err, err)
-	suite.Contains(result.String(), "Server panic")
+	suite.Contains(result[0].String(), "Server panic")
 	suite.Contains(
 		err.Error(),
 		"HTTP request failed with status code: 500",

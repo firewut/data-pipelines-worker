@@ -110,7 +110,7 @@ func (suite *UnitTestSuite) TestPipelineProcess() {
 
 	processingOutput := processing.GetOutput()
 	suite.NotNil(processingOutput)
-	suite.Equal(mockedResponse, processingOutput.GetValue().String())
+	suite.Equal(mockedResponse, processingOutput.GetValue()[0].String())
 
 	<-mockStorage.GetCreatedFilesChan()
 	pipelineLogFile := <-mockStorage.GetCreatedFilesChan()
@@ -209,7 +209,7 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineTrue() {
 
 	processing1Output := processing1.GetOutput()
 	suite.NotNil(processing1Output)
-	suite.Equal(mockedResponse, processing1Output.GetValue().String())
+	suite.Equal(mockedResponse, processing1Output.GetValue()[0].String())
 
 	processing2 := <-notificationChannel
 	suite.NotNil(processing2)
@@ -317,7 +317,7 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalse() {
 
 	processing1Output := processing1.GetOutput()
 	suite.NotNil(processing1Output)
-	suite.Equal(mockedResponse, processing1Output.GetValue().String())
+	suite.Equal(mockedResponse, processing1Output.GetValue()[0].String())
 
 	processing2 := <-notificationChannel
 	suite.NotNil(processing2)
@@ -441,7 +441,7 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineTrueThreeBlocks() {
 
 	processing1Output := processing1.GetOutput()
 	suite.NotNil(processing1Output)
-	suite.Equal(thirdBlockInput, processing1Output.GetValue().String())
+	suite.Equal(thirdBlockInput, processing1Output.GetValue()[0].String())
 
 	processing2 := <-notificationChannel
 	suite.NotNil(processing2)
@@ -476,7 +476,7 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineTrueThreeBlocks() {
 		suite.Fail(
 			fmt.Sprintf(
 				"Expected notification channel to be empty, but got a value: %s",
-				sideProcessing.GetOutput().GetValue().String(),
+				sideProcessing.GetOutput().GetValue()[0].String(),
 			),
 		)
 	}
@@ -574,7 +574,7 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalseThreeBlocks() {
 
 	processing1Output := processing1.GetOutput()
 	suite.NotNil(processing1Output)
-	suite.Equal(thirdBlockInput, processing1Output.GetValue().String())
+	suite.Equal(thirdBlockInput, processing1Output.GetValue()[0].String())
 
 	processing2 := <-notificationChannel
 	suite.NotNil(processing2)
@@ -592,7 +592,7 @@ func (suite *UnitTestSuite) TestPipelineProcessStopPipelineFalseThreeBlocks() {
 
 	processing3Output := processing3.GetOutput()
 	suite.NotNil(processing3Output)
-	suite.Equal(thirdBlockInput, processing1Output.GetValue().String())
+	suite.Equal(thirdBlockInput, processing1Output.GetValue()[0].String())
 
 	<-mockStorage.GetCreatedFilesChan()
 	<-mockStorage.GetCreatedFilesChan()
@@ -671,11 +671,11 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcess() {
 
 	firstBlockProcessingOutput := firstBlockProcessing.GetOutput()
 	suite.NotNil(firstBlockProcessingOutput)
-	suite.Equal(secondBlockInput, firstBlockProcessingOutput.GetValue().String())
+	suite.Equal(secondBlockInput, firstBlockProcessingOutput.GetValue()[0].String())
 
 	secondBlockProcessingOutput := secondBlockProcessing.GetOutput()
 	suite.NotNil(secondBlockProcessingOutput)
-	suite.Equal(mockedSecondBlockResponse, secondBlockProcessingOutput.GetValue().String())
+	suite.Equal(mockedSecondBlockResponse, secondBlockProcessingOutput.GetValue()[0].String())
 
 	<-mockStorage.GetCreatedFilesChan()
 	<-mockStorage.GetCreatedFilesChan()
@@ -752,11 +752,11 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksOneProcessNStorages() {
 
 	firstBlockProcessingOutput := firstBlockProcessing.GetOutput()
 	suite.NotNil(firstBlockProcessingOutput)
-	suite.Equal(secondBlockInput, firstBlockProcessingOutput.GetValue().String())
+	suite.Equal(secondBlockInput, firstBlockProcessingOutput.GetValue()[0].String())
 
 	secondBlockProcessingOutput := secondBlockProcessing.GetOutput()
 	suite.NotNil(secondBlockProcessingOutput)
-	suite.Equal(mockedSecondBlockResponse, secondBlockProcessingOutput.GetValue().String())
+	suite.Equal(mockedSecondBlockResponse, secondBlockProcessingOutput.GetValue()[0].String())
 
 	// Check Storages
 	createdFileBlock1 := <-mockStorage1.GetCreatedFilesChan()
@@ -867,7 +867,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 	suite.NotNil(secondBlockProcessing)
 	suite.Equal(processingId, secondBlockProcessing.GetId())
 	suite.Equal(interfaces.ProcessingStatusCompleted, secondBlockProcessing.GetStatus())
-	suite.Equal(mockedSecondBlockResponse, secondBlockProcessing.GetOutput().GetValue().String())
+	suite.Equal(mockedSecondBlockResponse, secondBlockProcessing.GetOutput().GetValue()[0].String())
 
 	createdFileBlock1 := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(createdFileBlock1)
@@ -956,7 +956,7 @@ func (suite *UnitTestSuite) TestPipelineProcessTwoBlocksResumeProcessOfSecondBlo
 
 	secondBlockProcessing := firstBlockProcessing.GetOutput()
 	suite.NotNil(secondBlockProcessing)
-	suite.Equal(mockedSecondBlockResponse, secondBlockProcessing.GetValue().String())
+	suite.Equal(mockedSecondBlockResponse, secondBlockProcessing.GetValue()[0].String())
 
 	createdFileBlock1 := <-mockStorage.GetCreatedFilesChan()
 	suite.NotEmpty(createdFileBlock1)

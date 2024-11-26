@@ -100,8 +100,8 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, string, int, error) {
-	output := &bytes.Buffer{}
+) ([]*bytes.Buffer, bool, bool, string, int, error) {
+	output := make([]*bytes.Buffer, 0)
 	blockConfig := &BlockFetchModerationFromTelegramConfig{}
 
 	processingID := uuid.Nil
@@ -249,7 +249,7 @@ func (p *ProcessorFetchModerationFromTelegram) Process(
 	if err != nil {
 		return output, stopPipeline, false, "", -1, err
 	}
-	output = bytes.NewBuffer(moderationDecisionBytes)
+	output = append(output, bytes.NewBuffer(moderationDecisionBytes))
 
 	// Retry if the decision is unknown
 	if blockConfig.RetryIfUnknown && moderationDecision.Action == ModerationActionUnknown {

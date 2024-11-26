@@ -244,7 +244,7 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocks
 	processingRegistry2Processing1 := processingRegistry2.Get(processingResponse.ProcessingID.String())
 	suite.NotNil(processingRegistry2Processing1)
 	suite.Equal(completedProcessing21.GetId(), processingRegistry2Processing1.GetId())
-	suite.Equal(secondBlockInput, completedProcessing21.GetOutput().GetValue().String())
+	suite.Equal(secondBlockInput, completedProcessing21.GetOutput().GetValue()[0].String())
 
 	completedProcessing22 := <-notificationChannel2
 	suite.Equal(completedProcessing22.GetId(), processingResponse.ProcessingID)
@@ -253,7 +253,7 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingRequiredBlocks
 	processingRegistry2Processing2 := processingRegistry2.Get(processingResponse.ProcessingID.String())
 	suite.NotNil(processingRegistry2Processing2)
 	suite.Equal(completedProcessing22.GetId(), processingRegistry2Processing2.GetId())
-	suite.Equal(mockedSecondBlockResponse, completedProcessing22.GetOutput().GetValue().String())
+	suite.Equal(mockedSecondBlockResponse, completedProcessing22.GetOutput().GetValue()[0].String())
 }
 
 func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingWorker1HasNoSecondBlock() {
@@ -373,7 +373,7 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingWorker1HasNoSe
 
 	processingRegistry1Processing := processingRegistry1.Get(processingResponse.ProcessingID.String())
 	suite.NotNil(processingRegistry1Processing)
-	suite.Equal(imageContent.String(), completedProcessing11.GetOutput().GetValue().String())
+	suite.Equal(imageContent.String(), completedProcessing11.GetOutput().GetValue()[0].String())
 	suite.Equal(completedProcessing11.GetId(), processingRegistry1Processing.GetId())
 
 	transferredProcessing12 := <-notificationChannel1
@@ -510,7 +510,7 @@ func (suite *FunctionalTestSuite) TestTwoWorkersPipelineProcessingWorker1HasNoSe
 
 	processingRegistry1Processing := processingRegistry1.Get(processingResponse.ProcessingID.String())
 	suite.NotNil(processingRegistry1Processing)
-	suite.Equal(imageContent.String(), completedProcessing11.GetOutput().GetValue().String())
+	suite.Equal(imageContent.String(), completedProcessing11.GetOutput().GetValue()[0].String())
 	suite.Equal(completedProcessing11.GetId(), processingRegistry1Processing.GetId())
 
 	transferredProcessing12 := <-notificationChannel1

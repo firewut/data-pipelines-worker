@@ -51,10 +51,10 @@ func (p *ProcessorVideoAddAudio) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, string, int, error) {
-	var err error
+) ([]*bytes.Buffer, bool, bool, string, int, error) {
+	output := make([]*bytes.Buffer, 0)
 
-	output := &bytes.Buffer{}
+	var err error
 	blockConfig := &BlockVideoAddAudioConfig{}
 
 	_config := config.GetConfig()
@@ -157,7 +157,7 @@ func (p *ProcessorVideoAddAudio) Process(
 		return nil, false, false, "", -1, err
 	}
 
-	output.Write(videoBuffer)
+	output = append(output, bytes.NewBuffer(videoBuffer))
 
 	return output, false, false, "", -1, nil
 }

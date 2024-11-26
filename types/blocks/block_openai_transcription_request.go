@@ -35,8 +35,8 @@ func (p *ProcessorOpenAIRequestTranscription) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, string, int, error) {
-	output := &bytes.Buffer{}
+) ([]*bytes.Buffer, bool, bool, string, int, error) {
+	output := make([]*bytes.Buffer, 0)
 	blockConfig := &BlockOpenAIRequestTranscriptionConfig{}
 
 	_config := config.GetConfig()
@@ -52,7 +52,7 @@ func (p *ProcessorOpenAIRequestTranscription) Process(
 		return output, false, false, "", -1, errors.New("openAI client is not configured")
 	}
 
-	audioBytes, err := helpers.GetValue[[]byte](_data, "audio_file")
+	audioBytes, err := helpers.GetValue[[]byte](_data, "audio")
 	if err != nil {
 		return nil, false, false, "", -1, err
 	}
@@ -77,7 +77,7 @@ func (p *ProcessorOpenAIRequestTranscription) Process(
 		return output, false, false, "", -1, err
 	}
 
-	output = bytes.NewBuffer(jsonData)
+	output = append(output, bytes.NewBuffer(jsonData))
 
 	return output, false, false, "", -1, err
 }
@@ -118,7 +118,7 @@ func NewBlockOpenAIRequestTranscription() *BlockOpenAIRequestTranscription {
 						"type": "object",
 						"description": "Input parameters",
 						"properties": {
-							"audio_file": {
+							"audio": {
 								"description": "Audio file to transcribe",
 								"type": "string",
 								"format": "file"
@@ -142,7 +142,7 @@ func NewBlockOpenAIRequestTranscription() *BlockOpenAIRequestTranscription {
 								"enum": ["en"]
 							}
 						},
-						"required": ["audio_file"]
+						"required": ["audio"]
 					},
 					"output": {
 						"description": "OpenAI Transcription output",

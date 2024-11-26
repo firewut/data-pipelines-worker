@@ -212,7 +212,7 @@ func GetShortVideoBuffer(width, height, durationSeconds int) bytes.Buffer {
 	return *buf
 }
 
-func GetShortAudioBuffer(durationSeconds int) bytes.Buffer {
+func GetShortAudioBufferWAV(durationSeconds int) bytes.Buffer {
 	buf := new(bytes.Buffer)
 
 	ffmpegBinary, err := config.GetFFmpegBinary()
@@ -252,6 +252,60 @@ func GetShortAudioBuffer(durationSeconds int) bytes.Buffer {
 	}
 
 	// Read the resulting video into a buffer
+	audioBuffer, err := os.ReadFile(tempOutputFile.Name())
+	if err != nil {
+		panic(err)
+	}
+
+	buf.Write(audioBuffer)
+
+	return *buf
+}
+
+func GetShortAudioBufferMP3(durationSeconds int) bytes.Buffer {
+	buf := new(bytes.Buffer)
+
+	// Get the FFmpeg binary path
+	ffmpegBinary, err := config.GetFFmpegBinary()
+	if err != nil {
+		panic(err)
+	}
+
+	tempOutputFile, err := os.CreateTemp("", "output-*.mp3")
+	if err != nil {
+		panic(err)
+	}
+	defer os.Remove(tempOutputFile.Name())
+
+	args := []string{
+		"-y",
+		"-f", "lavfi",
+		"-i", fmt.Sprintf(
+			"sine=frequency=1000:duration=%d",
+			durationSeconds,
+		),
+		"-c:a", "libmp3lame", // Use the MP3 encoder
+		"-b:a", "128k",
+		"-ar", "44100",
+		"-ac", "1",
+	}
+	args = append(args, tempOutputFile.Name())
+
+	// Capture stderr for debugging
+	var stderr bytes.Buffer
+	cmd := exec.Command(ffmpegBinary, args...)
+	cmd.Stderr = &stderr
+
+	// Run the FFmpeg command
+	err = cmd.Run()
+	if err != nil {
+		fmt.Printf("FFmpeg error: %v\n", err)
+		fmt.Printf("FFmpeg stderr: %s\n", stderr.String()) // Capture full error message
+
+		panic(err)
+	}
+
+	// Read the resulting MP3 file into a buffer
 	audioBuffer, err := os.ReadFile(tempOutputFile.Name())
 	if err != nil {
 		panic(err)

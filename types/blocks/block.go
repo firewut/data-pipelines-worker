@@ -149,8 +149,8 @@ func (b *BlockParent) Process(
 	ctx context.Context,
 	processor interfaces.BlockProcessor,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, string, int, error) {
-	var result *bytes.Buffer = &bytes.Buffer{}
+) ([]*bytes.Buffer, bool, bool, string, int, error) {
+	var result []*bytes.Buffer = make([]*bytes.Buffer, 0)
 
 	logger := config.GetLogger()
 

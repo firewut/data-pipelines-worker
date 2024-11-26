@@ -91,7 +91,7 @@ func (suite *UnitTestSuite) TestBlockJoinStringsProcessSuccess() {
 	suite.False(stop)
 	suite.Nil(err)
 
-	suite.Equal("string1-_-string2", result.String())
+	suite.Equal("string1-_-string2", result[0].String())
 }
 
 func (suite *UnitTestSuite) TestBlockJoinStringsProcessSuccessOneVideo() {
@@ -122,5 +122,5 @@ func (suite *UnitTestSuite) TestBlockJoinStringsProcessSuccessOneVideo() {
 	suite.False(stop)
 	suite.Nil(err)
 
-	suite.Equal("string1", result.String())
+	suite.Equal("string1", result[0].String())
 }

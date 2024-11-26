@@ -4,11 +4,77 @@
     "description": "Make a summary of a podcast using OpenAI API",
     "blocks": [
         {
+            "id": "upload_file",
+            "slug": "upload-podcast",
+            "description": "Upload a podcast for further processing",
+            "input": {}
+        },
+        {
+            "id": "audio_chunk",
+            "slug": "chunk-podcast",
+            "description": "Chunk the podcast into smaller parts for processing",
+            "input_config": {
+                "property": {
+                    "audio": {
+                        "origin": "upload-podcast"
+                    }
+                }
+            },
+            "input": {
+                "duration": "10m"
+            }
+        },
+        {
+            "id": "audio_convert",
+            "slug": "convert-podcast-to-low-quality",
+            "description": "Convert audio to low quality",
+            "input_config": {
+                "type": "array",
+                "parallel": true,
+                "property": {
+                    "audio": {
+                        "origin": "chunk-podcast"
+                    }
+                }
+            },
+            "input": {
+                "format": "mp3",
+                "mono": true,
+                "sample_rate": 22050,
+                "bitrate": "32k"
+            }
+        },
+        {
             "id": "openai_transcription_request",
-            "slug": "get-event-transcription",
+            "slug": "get-podcast-transcription",
             "description": "Make a request to OpenAI TTS API to convert audio to transcription",
+            "input_config": {
+                "type": "array",
+                "property": {
+                    "audio": {
+                        "origin": "convert-podcast-to-low-quality"
+                    }
+                }
+            },
             "input": {
                 "format": "text"
+            }
+        },
+        {
+            "id": "join_strings",
+            "slug": "join-transcription-chunks",
+            "description": "Join the transcription chunks into a single text",
+            "input_config": {
+                "property": {
+                    "strings": {
+                        "origin": "get-podcast-transcription",
+                        "json_path": "$.text",
+                        "array_input": true
+                    }
+                }
+            },
+            "input": {
+                "separator": " "
             }
         },
         {
@@ -18,8 +84,7 @@
             "input_config": {
                 "property": {
                     "user_prompt": {
-                        "origin": "get-event-transcription",
-                        "json_path": "$.text"
+                        "origin": "join-transcription-chunks"
                     }
                 }
             },

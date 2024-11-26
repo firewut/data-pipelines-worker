@@ -52,10 +52,10 @@ func (p *ProcessorJoinVideos) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, string, int, error) {
-	var err error
+) ([]*bytes.Buffer, bool, bool, string, int, error) {
+	output := make([]*bytes.Buffer, 0)
 
-	output := &bytes.Buffer{}
+	var err error
 	blockConfig := &BlockJoinVideosConfig{}
 
 	_config := config.GetConfig()
@@ -75,7 +75,9 @@ func (p *ProcessorJoinVideos) Process(
 
 	// No need to join if there is only one video
 	if len(videos) == 1 {
-		return bytes.NewBuffer(videos[0]), false, false, "", -1, nil
+		return []*bytes.Buffer{
+			bytes.NewBuffer(videos[0]),
+		}, false, false, "", -1, nil
 	}
 
 	ffmpegBinary := blockConfig.FFMPEGBinary
@@ -166,7 +168,7 @@ func (p *ProcessorJoinVideos) Process(
 		return nil, false, false, "", -1, err
 	}
 
-	output.Write(videoBuffer)
+	output = append(output, bytes.NewBuffer(videoBuffer))
 
 	return output, false, false, "", -1, nil
 }

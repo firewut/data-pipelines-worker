@@ -107,7 +107,7 @@ func (suite *UnitTestSuite) TestBlockSubtitlesFromTranscriptionProcessSuccess() 
 	suite.Nil(err)
 
 	suite.Contains(
-		result.String(),
+		result[0].String(),
 		`Dialogue: 0,00:00:16.73,00:00:20.54,Default,,0,0,0,, propelling them toward unprecedented `,
 	)
 }

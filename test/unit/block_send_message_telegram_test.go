@@ -96,7 +96,7 @@ func (suite *UnitTestSuite) TestBlockSendMessageToTelegramProcessSuccessTextDefa
 	suite.False(stop)
 	suite.Nil(err)
 
-	suite.Contains(result.String(), `"message_id"`)
+	suite.Contains(result[0].String(), `"message_id"`)
 }
 
 func (suite *UnitTestSuite) TestBlockSendMessageToTelegramProcessSuccessTextWithImage() {
@@ -132,7 +132,7 @@ func (suite *UnitTestSuite) TestBlockSendMessageToTelegramProcessSuccessTextWith
 	suite.False(stop)
 	suite.Nil(err)
 
-	suite.Contains(result.String(), `"message_id"`)
+	suite.Contains(result[0].String(), `"message_id"`)
 }
 
 func (suite *UnitTestSuite) TestBlockSendMessageToTelegramProcessSuccessTextWithVideo() {
@@ -168,7 +168,7 @@ func (suite *UnitTestSuite) TestBlockSendMessageToTelegramProcessSuccessTextWith
 	suite.False(stop)
 	suite.Nil(err)
 
-	suite.Contains(result.String(), `"message_id"`)
+	suite.Contains(result[0].String(), `"message_id"`)
 }
 
 func (suite *UnitTestSuite) TestTelegramMessageGenerationBasic() {

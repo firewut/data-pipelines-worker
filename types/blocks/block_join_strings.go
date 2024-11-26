@@ -49,8 +49,8 @@ func (p *ProcessorJoinStrings) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, string, int, error) {
-	output := &bytes.Buffer{}
+) ([]*bytes.Buffer, bool, bool, string, int, error) {
+	output := make([]*bytes.Buffer, 0)
 	blockConfig := &BlockJoinStringsConfig{}
 
 	_config := config.GetConfig()
@@ -65,11 +65,15 @@ func (p *ProcessorJoinStrings) Process(
 
 	// No need to join if there is only one video
 	if len(stringsList) == 1 {
-		return bytes.NewBufferString(stringsList[0]), false, false, "", -1, nil
+		return []*bytes.Buffer{
+			bytes.NewBufferString(stringsList[0]),
+		}, false, false, "", -1, nil
 	}
 
-	output = bytes.NewBufferString(
-		strings.Join(stringsList, blockConfig.Separator),
+	output = append(
+		output, bytes.NewBufferString(
+			strings.Join(stringsList, blockConfig.Separator),
+		),
 	)
 
 	return output, false, false, "", -1, nil

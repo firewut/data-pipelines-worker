@@ -282,6 +282,31 @@ blocks:
     config:
       template: ""
   
+  audio_chunk:
+    detector:
+      check_interval: 60m
+      conditions:
+    reliability:
+      policy: "none"
+    parallel_available: false
+    config:
+      ffmpeg_binary: ""
+      duration: "10m"
+
+  audio_convert:
+    detector:
+      check_interval: 60m
+      conditions:
+    reliability:
+      policy: "none"
+    parallel_available: false
+    config:
+      ffmpeg_binary: ""
+      format: "mp3"
+      mono: false
+      sample_rate: 44100
+      bit_rate: "64k"
+
   audio_from_video:
     detector:
       check_interval: 60m

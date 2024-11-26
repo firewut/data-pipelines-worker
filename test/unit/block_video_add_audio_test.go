@@ -70,7 +70,7 @@ func (suite *UnitTestSuite) TestBlockVideoAddAudioProcessSuccess() {
 	height := 10
 
 	image := factories.GetPNGImageBuffer(width, height)
-	audioBuffer := factories.GetShortAudioBuffer(1)
+	audioBuffer := factories.GetShortAudioBufferWAV(1)
 	videoBlock := blocks.NewBlockVideoFromImage()
 	_data := &dataclasses.BlockData{
 		Id:   "video_from_image",
@@ -95,7 +95,7 @@ func (suite *UnitTestSuite) TestBlockVideoAddAudioProcessSuccess() {
 	suite.False(_stop)
 	suite.Nil(err)
 
-	videoNoAudio := _videoResult.Bytes()
+	videoNoAudio := _videoResult[0].Bytes()
 
 	block := blocks.NewBlockVideoAddAudio()
 	data := &dataclasses.BlockData{
@@ -120,5 +120,5 @@ func (suite *UnitTestSuite) TestBlockVideoAddAudioProcessSuccess() {
 	suite.False(stop)
 	suite.Nil(err)
 
-	suite.NotEqual(videoNoAudio, videoWithAudioBuffer.Bytes())
+	suite.NotEqual(videoNoAudio, videoWithAudioBuffer[0].Bytes())
 }

@@ -99,7 +99,7 @@ func (suite *UnitTestSuite) TestBlockJoinVideosProcessSuccess() {
 		suite.False(_stop)
 		suite.Nil(err)
 
-		videos[i] = _result.Bytes()
+		videos[i] = _result[0].Bytes()
 	}
 
 	block := blocks.NewBlockJoinVideos()
@@ -159,7 +159,7 @@ func (suite *UnitTestSuite) TestBlockJoinVideosProcessSuccessOneVideo() {
 		suite.False(_stop)
 		suite.Nil(err)
 
-		videos[i] = _result.Bytes()
+		videos[i] = _result[0].Bytes()
 	}
 
 	block := blocks.NewBlockJoinVideos()
@@ -184,5 +184,5 @@ func (suite *UnitTestSuite) TestBlockJoinVideosProcessSuccessOneVideo() {
 	suite.False(stop)
 	suite.Nil(err)
 
-	suite.Equal(videos[0], result.Bytes())
+	suite.Equal(videos[0], result[0].Bytes())
 }

@@ -35,8 +35,8 @@ func (p *ProcessorOpenAIRequestImage) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, string, int, error) {
-	output := &bytes.Buffer{}
+) ([]*bytes.Buffer, bool, bool, string, int, error) {
+	output := make([]*bytes.Buffer, 0)
 	blockConfig := &BlockOpenAIRequestImageConfig{}
 
 	_config := config.GetConfig()
@@ -68,12 +68,11 @@ func (p *ProcessorOpenAIRequestImage) Process(
 	}
 
 	b64Image := resp.Data[0].B64JSON
-
 	imageData, err := base64.StdEncoding.DecodeString(b64Image)
 	if err != nil {
 		log.Fatalf("Failed to decode base64 image: %v", err)
 	}
-	output.Write(imageData)
+	output = append(output, bytes.NewBuffer(imageData))
 
 	return output, false, false, "", -1, err
 }

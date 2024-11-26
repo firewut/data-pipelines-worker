@@ -99,9 +99,9 @@ func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccessTextD
 	suite.False(stop)
 	suite.Nil(err)
 
-	suite.Contains(result.String(), `"message_id"`)
-	suite.Contains(result.String(), `"Approve"`)
-	suite.Contains(result.String(), `"Decline"`)
+	suite.Contains(result[0].String(), `"message_id"`)
+	suite.Contains(result[0].String(), `"Approve"`)
+	suite.Contains(result[0].String(), `"Decline"`)
 }
 
 func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccessTextExtraDecisions() {
@@ -135,10 +135,10 @@ func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccessTextE
 	suite.False(stop)
 	suite.Nil(err)
 
-	suite.Contains(result.String(), `"message_id"`)
-	suite.Contains(result.String(), `"Approve"`)
-	suite.Contains(result.String(), `"Decline"`)
-	suite.Contains(result.String(), `"RRRegenerate"`)
+	suite.Contains(result[0].String(), `"message_id"`)
+	suite.Contains(result[0].String(), `"Approve"`)
+	suite.Contains(result[0].String(), `"Decline"`)
+	suite.Contains(result[0].String(), `"RRRegenerate"`)
 }
 
 func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccessTextWithImage() {
@@ -174,7 +174,7 @@ func (suite *UnitTestSuite) TestBlockSendModerationToTelegramProcessSuccessTextW
 	suite.False(stop)
 	suite.Nil(err)
 
-	suite.Contains(result.String(), `"message_id"`)
+	suite.Contains(result[0].String(), `"message_id"`)
 }
 
 func (suite *UnitTestSuite) TestTelegramReviewMessageGenerationBasic() {

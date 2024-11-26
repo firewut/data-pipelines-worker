@@ -105,8 +105,8 @@ func (p *ProcessorFormatStringFromObject) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, string, int, error) {
-	output := &bytes.Buffer{}
+) ([]*bytes.Buffer, bool, bool, string, int, error) {
+	output := make([]*bytes.Buffer, 0)
 	blockConfig := &BlockFormatStringFromObjectConfig{}
 
 	_config := config.GetConfig()
@@ -122,7 +122,7 @@ func (p *ProcessorFormatStringFromObject) Process(
 		return nil, false, false, "", -1, err
 	}
 
-	output = bytes.NewBufferString(result)
+	output = append(output, bytes.NewBufferString(result))
 
 	return output, false, false, "", -1, nil
 }

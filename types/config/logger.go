@@ -58,10 +58,14 @@ func (sb *SafeBuffer) Reset() {
 
 // LoggerWrapper holds multiple writers for easier extraction
 type LoggerWrapper struct {
+	sync.Mutex
 	writers []io.Writer
 }
 
 func (lw *LoggerWrapper) Write(p []byte) (n int, err error) {
+	lw.Lock()
+	defer lw.Unlock()
+
 	for _, writer := range lw.writers {
 		n, err = writer.Write(p)
 		if err != nil {
@@ -72,10 +76,16 @@ func (lw *LoggerWrapper) Write(p []byte) (n int, err error) {
 }
 
 func (lw *LoggerWrapper) AddWriter(writer io.Writer) {
+	lw.Lock()
+	defer lw.Unlock()
+
 	lw.writers = append(lw.writers, writer)
 }
 
 func (lw *LoggerWrapper) GetBuffer() *SafeBuffer {
+	lw.Lock()
+	defer lw.Unlock()
+
 	for _, writer := range lw.writers {
 		if buf, ok := writer.(*syncWriter); ok {
 			if buffer, ok := buf.writer.(*SafeBuffer); ok {

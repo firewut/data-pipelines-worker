@@ -1,5 +1,5 @@
 Name:           data-pipelines-worker
-Version:        1.0.9
+Version:        1.0.10
 Release:        1%{?dist}
 Summary:        Data pipelines worker
 License:        Custom License
@@ -47,11 +47,16 @@ fi
 /etc/systemd/system/data-pipelines-worker.service
 
 %changelog
-* Wed Nov 25 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.9
+* Tue Nov 26 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.10
+- Added block `audio_chunk`
+- Added block `audio_convert`
+- Fixed bug when JSONPath did not interact with Arrays
+- Fixed Block Result so Block might return Array ( `audio_chunk` is an example )
+* Mon Nov 25 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.9
 - Added block `join_strings`
 - Added pipeline `openai-motivational-quote-to-video`
 - Fixed bug when input was raw string and interpreted incorrect
-* Wed Nov 25 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.8
+* Mon Nov 25 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.8
 - Added block `upload_file`
 - Added block `video_add_subtitles`
 - Updated pipeline `openai-mux-subtitles-to-video`

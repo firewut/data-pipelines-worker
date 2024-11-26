@@ -48,7 +48,7 @@ type Processing interface {
 
 type ProcessingOutput interface {
 	GetId() string
-	GetValue() *bytes.Buffer
+	GetValue() []*bytes.Buffer
 	GetError() error
 	GetStop() bool
 	GetRetry() bool
@@ -57,7 +57,7 @@ type ProcessingOutput interface {
 	GetTargetBlockInputIndex() int
 
 	SetId(string)
-	SetValue(*bytes.Buffer)
+	SetValue([]*bytes.Buffer)
 	SetError(error)
 	SetStop(bool)
 	SetRetry(bool)

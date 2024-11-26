@@ -199,8 +199,8 @@ func (p *ProcessorSubtitlesFromTranscription) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, string, int, error) {
-	output := &bytes.Buffer{}
+) ([]*bytes.Buffer, bool, bool, string, int, error) {
+	output := make([]*bytes.Buffer, 0)
 	blockConfig := &BlockSubtitlesFromTranscriptionConfig{}
 
 	_config := config.GetConfig()
@@ -234,7 +234,8 @@ func (p *ProcessorSubtitlesFromTranscription) Process(
 	case "ass":
 		subtitlesFile := newSubtitlesAssFile()
 		subtitlesFile.fromOpenAITranscription(transcription, blockConfig)
-		output.Write(subtitlesFile.getBytes())
+		output = append(output, bytes.NewBuffer(subtitlesFile.getBytes()))
+
 	case "srt":
 		// Not yet implemented
 	}

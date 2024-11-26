@@ -15,7 +15,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTranscription() {
 
 	suite.Equal("openai_transcription_request", block.GetId())
 	suite.Equal("OpenAI Audio Transcription", block.GetName())
-	suite.Equal("Block to Transcribe audio to JSON using OpenAI", block.GetDescription())
+	suite.Equal("Block to Transcribe audio to JSON using OpenAI. File size limit is 20MB and duration limit is 10 minutes.", block.GetDescription())
 	suite.NotNil(block.GetSchema())
 	suite.NotEmpty(block.GetSchemaString())
 
@@ -50,7 +50,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTranscriptionProcessIncorrectI
 		Id:   "openai_transcription_request",
 		Slug: "request-openai-transcription",
 		Input: map[string]interface{}{
-			"audio_file": nil,
+			"audio": nil,
 		},
 	}
 	data.SetBlock(block)
@@ -75,7 +75,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTranscriptionProcessEmptyClien
 		Id:   "openai_transcription_request",
 		Slug: "request-openai-transcription",
 		Input: map[string]interface{}{
-			"audio_file": "test.mp3",
+			"audio": "test.mp3",
 		},
 	}
 	data.SetBlock(block)
@@ -102,7 +102,7 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTranscriptionProcessSuccess() 
 		Id:   "openai_transcription_request",
 		Slug: "request-openai-transcription",
 		Input: map[string]interface{}{
-			"audio_file": []byte{1, 2, 3},
+			"audio": []byte{1, 2, 3},
 		},
 	}
 	data.SetBlock(block)
@@ -155,5 +155,5 @@ func (suite *UnitTestSuite) TestBlockOpenAIRequestTranscriptionProcessSuccess() 
 	suite.Nil(err)
 
 	// Encode response to JSON
-	suite.Contains(result.String(), `18.719999313354492`)
+	suite.Contains(result[0].String(), `18.719999313354492`)
 }

@@ -65,7 +65,9 @@ func NewProcessing(
 		output: NewProcessingOutput(
 			blockData.GetSlug(),
 			false,
-			bytes.NewBuffer([]byte{}),
+			[]*bytes.Buffer{
+				bytes.NewBuffer([]byte{}),
+			},
 			-1,
 			"",
 			nil,
@@ -187,7 +189,7 @@ func (p *Processing) Start() interfaces.ProcessingOutput {
 	retryInterval := p.processor.GetRetryInterval(p.block)
 
 	var (
-		output                *bytes.Buffer
+		output                []*bytes.Buffer
 		stop, retry           bool
 		err                   error
 		targetBlock           string
@@ -389,7 +391,7 @@ type ProcessingOutput struct {
 	stop                  bool
 	retry                 bool
 	retryAttempt          int
-	data                  *bytes.Buffer
+	data                  []*bytes.Buffer
 	err                   error
 	targetBlockInputIndex int
 	targetBlockSlug       string
@@ -398,7 +400,7 @@ type ProcessingOutput struct {
 func NewProcessingOutput(
 	blockSlug string,
 	stop bool,
-	data *bytes.Buffer,
+	data []*bytes.Buffer,
 	targetBlockInputIndex int,
 	targetBlockSlug string,
 	err error,
@@ -427,7 +429,7 @@ func (po *ProcessingOutput) GetStop() bool {
 	return po.stop
 }
 
-func (po *ProcessingOutput) GetValue() *bytes.Buffer {
+func (po *ProcessingOutput) GetValue() []*bytes.Buffer {
 	po.Lock()
 	defer po.Unlock()
 
@@ -469,7 +471,7 @@ func (po *ProcessingOutput) SetStop(stop bool) {
 	po.stop = stop
 }
 
-func (po *ProcessingOutput) SetValue(data *bytes.Buffer) {
+func (po *ProcessingOutput) SetValue(data []*bytes.Buffer) {
 	po.Lock()
 	defer po.Unlock()
 

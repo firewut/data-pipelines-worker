@@ -191,7 +191,7 @@ func (suite *UnitTestSuite) TestBlockImageAddTextProcessSuccess() {
 			// f.Close()
 
 			// Decode the resulting image
-			image, err := png.Decode(bytes.NewReader(result.Bytes()))
+			image, err := png.Decode(bytes.NewReader(result[0].Bytes()))
 			suite.Nil(err)
 			suite.NotNil(image)
 			suite.Equal(width, image.Bounds().Dx())

@@ -50,8 +50,8 @@ func (p *ProcessorTextReplace) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, string, int, error) {
-	output := &bytes.Buffer{}
+) ([]*bytes.Buffer, bool, bool, string, int, error) {
+	output := make([]*bytes.Buffer, 0)
 	blockConfig := &BlockTextReplaceConfig{}
 
 	_config := config.GetConfig()
@@ -71,9 +71,9 @@ func (p *ProcessorTextReplace) Process(
 	_suffix := strings.TrimLeft(blockConfig.Suffix, " ")
 
 	wrapped := _prefix + _new + _suffix
-	output = bytes.NewBufferString(
+	output = append(output, bytes.NewBufferString(
 		strings.ReplaceAll(text, _old, wrapped),
-	)
+	))
 
 	return output, false, false, "", -1, nil
 }

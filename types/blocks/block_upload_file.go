@@ -50,17 +50,17 @@ func (p *ProcessorUploadFile) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, string, int, error) {
-	output := &bytes.Buffer{}
-	blockConfig := &BlockUploadFileConfig{}
+) ([]*bytes.Buffer, bool, bool, string, int, error) {
+	output := make([]*bytes.Buffer, 0)
+	// blockConfig := &BlockUploadFileConfig{}
 
-	_config := config.GetConfig()
+	// _config := config.GetConfig()
 	_data := data.GetInputData().(map[string]interface{})
 
-	defaultBlockConfig := block.(*BlockUploadFile).GetBlockConfig(_config)
-	userBlockConfig := &BlockUploadFileConfig{}
-	helpers.MapToJSONStruct(_data, userBlockConfig)
-	helpers.MergeStructs(defaultBlockConfig, userBlockConfig, blockConfig)
+	// defaultBlockConfig := block.(*BlockUploadFile).GetBlockConfig(_config)
+	// userBlockConfig := &BlockUploadFileConfig{}
+	// helpers.MapToJSONStruct(_data, userBlockConfig)
+	// helpers.MergeStructs(defaultBlockConfig, userBlockConfig, blockConfig)
 
 	fileBytes, err := helpers.GetValue[[]byte](_data, "file")
 	if err != nil {
@@ -72,9 +72,7 @@ func (p *ProcessorUploadFile) Process(
 		)
 	}
 
-	if _, err := output.Write(fileBytes); err != nil {
-		return nil, false, false, "", -1, err
-	}
+	output = append(output, bytes.NewBuffer(fileBytes))
 
 	return output, false, false, "", -1, err
 }

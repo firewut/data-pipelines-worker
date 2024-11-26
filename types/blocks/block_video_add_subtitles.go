@@ -51,10 +51,10 @@ func (p *ProcessorVideoAddSubtitles) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, string, int, error) {
-	var err error
+) ([]*bytes.Buffer, bool, bool, string, int, error) {
+	output := make([]*bytes.Buffer, 0)
 
-	output := &bytes.Buffer{}
+	var err error
 	blockConfig := &BlockVideoAddSubtitlesConfig{}
 
 	_config := config.GetConfig()
@@ -105,7 +105,7 @@ func (p *ProcessorVideoAddSubtitles) Process(
 	}
 
 	files := []*blockTmpFile{
-		{namePattern: fmt.Sprintf("video-*.%s", videoMimeType.Extension()), data: video},
+		{namePattern: fmt.Sprintf("video-*%s", videoMimeType.Extension()), data: video},
 		{namePattern: "subtitles-*.ass", data: subtitles},
 	}
 	for _, tmpFile := range files {
@@ -124,7 +124,7 @@ func (p *ProcessorVideoAddSubtitles) Process(
 	}
 
 	// Create a temporary file to store the output video
-	tempOutputFile, err := os.CreateTemp("", fmt.Sprintf("output-*.%s", videoMimeType.Extension()))
+	tempOutputFile, err := os.CreateTemp("", fmt.Sprintf("output-*%s", videoMimeType.Extension()))
 	if err != nil {
 		return nil, false, false, "", -1, err
 	}
@@ -179,7 +179,7 @@ func (p *ProcessorVideoAddSubtitles) Process(
 		return nil, false, false, "", -1, err
 	}
 
-	output.Write(videoBuffer)
+	output = append(output, bytes.NewBuffer(videoBuffer))
 
 	return output, false, false, "", -1, nil
 }

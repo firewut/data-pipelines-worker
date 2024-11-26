@@ -229,6 +229,7 @@ func (p *PipelineData) Process(
 			var (
 				inputConfigValue []map[string]interface{}
 				parallel         bool
+				isArray          bool = false
 			)
 
 			blockInputWg := &sync.WaitGroup{}
@@ -261,7 +262,7 @@ func (p *PipelineData) Process(
 					processingData[inputData.Block.Slug] = nil
 				}
 
-				inputConfigValue, parallel, err = blockData.GetInputConfigData(processingData)
+				inputConfigValue, isArray, parallel, err = blockData.GetInputConfigData(processingData)
 				if err != nil {
 					logger.Error(err)
 					tmpProcessing.Stop(
@@ -519,37 +520,84 @@ func (p *PipelineData) Process(
 						blockInputIndex,
 					)
 
-					pipelineBlockDataRegistry.UpdateBlockData(
-						_blockData.GetSlug(),
-						blockInputIndex,
-						processingOutput.GetValue(),
-					)
+					// If isArray is true, then we need to save ONLY FIRST output Buffer
+					// else we need to save all output Buffers as independent indexes
+					if isArray {
+						outputResult := bytes.NewBuffer(nil)
+						if processingOutput.GetValue() != nil && len(processingOutput.GetValue()) > 0 {
+							outputResult = processingOutput.GetValue()[0]
+						}
+						pipelineBlockDataRegistry.UpdateBlockData(
+							_blockData.GetSlug(),
+							blockInputIndex,
+							outputResult,
+						)
+						// Save result to Storage
+						saveOutputResults := pipelineBlockDataRegistry.SaveOutput(
+							_blockData.GetSlug(),
+							blockInputIndex,
+							outputResult,
+						)
+						for _, saveOutputResult := range saveOutputResults {
+							if saveOutputResult.Error != nil {
+								logger.Errorf(
+									"Error saving output for block [%s:%s] with index %d to storage %s: %s",
+									_blockData.GetSlug(),
+									block.GetId(),
+									blockInputIndex,
+									saveOutputResult.StorageLocation.GetStorageName(),
+									saveOutputResult.Error,
+								)
+							} else {
+								logger.Infof(
+									"Saved output for block [%s:%s] with index %d to storage %s",
+									_blockData.GetSlug(),
+									block.GetId(),
+									blockInputIndex,
+									saveOutputResult.StorageLocation.GetStorageName(),
+								)
+							}
+						}
+					} else {
+						outputResult := []*bytes.Buffer{bytes.NewBuffer(nil)}
+						if processingOutput.GetValue() != nil && len(processingOutput.GetValue()) > 0 {
+							outputResult = processingOutput.GetValue()
+						}
 
-					// Save result to Storage
-					saveOutputResults := pipelineBlockDataRegistry.SaveOutput(
-						_blockData.GetSlug(),
-						blockInputIndex,
-						processingOutput.GetValue(),
-					)
-
-					for _, saveOutputResult := range saveOutputResults {
-						if saveOutputResult.Error != nil {
-							logger.Errorf(
-								"Error saving output for block [%s:%s] with index %d to storage %s: %s",
+						pipelineBlockDataRegistry.PrepareBlockData(blockData.GetSlug(), len(outputResult))
+						for outputIndex, output := range outputResult {
+							pipelineBlockDataRegistry.UpdateBlockData(
 								_blockData.GetSlug(),
-								block.GetId(),
-								blockInputIndex,
-								saveOutputResult.StorageLocation.GetStorageName(),
-								saveOutputResult.Error,
+								outputIndex,
+								output,
 							)
-						} else {
-							logger.Infof(
-								"Saved output for block [%s:%s] with index %d to storage %s",
+							saveOutputResults := pipelineBlockDataRegistry.SaveOutput(
 								_blockData.GetSlug(),
-								block.GetId(),
-								blockInputIndex,
-								saveOutputResult.StorageLocation.GetStorageName(),
+								outputIndex,
+								output,
 							)
+							for _, saveOutputResult := range saveOutputResults {
+								if saveOutputResult.Error != nil {
+									logger.Errorf(
+										"Error saving output for block [%s:%s] with index %d and output index %d to storage %s: %s",
+										_blockData.GetSlug(),
+										block.GetId(),
+										blockInputIndex,
+										outputIndex,
+										saveOutputResult.StorageLocation.GetStorageName(),
+										saveOutputResult.Error,
+									)
+								} else {
+									logger.Infof(
+										"Saved output for block [%s:%s] with index %d and output index %d to storage %s",
+										_blockData.GetSlug(),
+										block.GetId(),
+										blockInputIndex,
+										outputIndex,
+										saveOutputResult.StorageLocation.GetStorageName(),
+									)
+								}
+							}
 						}
 					}
 

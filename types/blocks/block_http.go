@@ -61,8 +61,8 @@ func (p *ProcessorHTTP) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, string, int, error) {
-	var output *bytes.Buffer = &bytes.Buffer{}
+) ([]*bytes.Buffer, bool, bool, string, int, error) {
+	output := make([]*bytes.Buffer, 0)
 
 	logger := config.GetLogger()
 
@@ -103,7 +103,9 @@ func (p *ProcessorHTTP) Process(
 	}
 	defer response.Body.Close()
 
-	_, err = io.Copy(output, response.Body)
+	// Create a buffer to store the response
+	output = append(output, &bytes.Buffer{})
+	_, err = io.Copy(output[0], response.Body)
 	if err != nil {
 		return output, false, false, "", -1, err
 	}

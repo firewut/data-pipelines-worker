@@ -116,7 +116,7 @@ func (suite *UnitTestSuite) TestBlockTextAddPrefixOrSuffixProcessSuccess() {
 
 		suite.Equal(
 			tc.prefix+tc.text+tc.suffix,
-			result.String(),
+			result[0].String(),
 		)
 	}
 }

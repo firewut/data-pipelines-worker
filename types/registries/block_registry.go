@@ -84,6 +84,8 @@ func (br *BlockRegistry) DetectBlocks() {
 	sendMessageToTelegramBlock := blocks.NewBlockSendMessageToTelegram()
 	formatStringFromObjectBlock := blocks.NewBlockFormatStringFromObject()
 	audioFromVideoBlock := blocks.NewBlockAudioFromVideo()
+	audioChunkBlock := blocks.NewBlockAudioChunk()
+	audioConvertBlock := blocks.NewBlockAudioConvert()
 	subtitlesFromTranscriptionBlock := blocks.NewBlockSubtitlesFromTranscription()
 	uploadFileBlock := blocks.NewBlockUploadFile()
 	videoAddSubtitlesBlock := blocks.NewBlockVideoAddSubtitles()
@@ -156,6 +158,12 @@ func (br *BlockRegistry) DetectBlocks() {
 		),
 		audioFromVideoBlock: blocks.NewDetectorAudioFromVideo(
 			_config.Blocks[audioFromVideoBlock.GetId()].Detector,
+		),
+		audioChunkBlock: blocks.NewDetectorAudioChunk(
+			_config.Blocks[audioChunkBlock.GetId()].Detector,
+		),
+		audioConvertBlock: blocks.NewDetectorAudioConvert(
+			_config.Blocks[audioConvertBlock.GetId()].Detector,
 		),
 		subtitlesFromTranscriptionBlock: blocks.NewDetectorSubtitlesFromTranscription(
 			_config.Blocks[subtitlesFromTranscriptionBlock.GetId()].Detector,

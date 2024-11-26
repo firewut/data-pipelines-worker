@@ -27,7 +27,7 @@
             "description": "Make a request to OpenAI TTS API to convert audio to transcription",
             "input_config": {
                 "property": {
-                    "audio_file": {
+                    "audio": {
                         "origin": "get-audio-from-video"
                     }
                 }

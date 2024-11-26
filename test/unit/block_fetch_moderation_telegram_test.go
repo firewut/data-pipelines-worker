@@ -239,7 +239,7 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessSuccess()
 			suite.Equal(blockConfig.StopPipelineIfDecline, stop)
 		}
 		suite.Nil(err)
-		suite.Contains(result.String(), fmt.Sprintf(`"%s"`, c.expected))
+		suite.Contains(result[0].String(), fmt.Sprintf(`"%s"`, c.expected))
 	}
 }
 
@@ -317,5 +317,5 @@ func (suite *UnitTestSuite) TestBlockFetchModerationFromTelegramProcessRetry() {
 	suite.NotNil(result)
 	suite.False(stop)
 	suite.Nil(err)
-	suite.Contains(result.String(), fmt.Sprintf(`"%s"`, blocks.ModerationActionUnknown))
+	suite.Contains(result[0].String(), fmt.Sprintf(`"%s"`, blocks.ModerationActionUnknown))
 }

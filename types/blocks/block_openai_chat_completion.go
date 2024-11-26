@@ -59,8 +59,8 @@ func (p *ProcessorOpenAIRequestCompletion) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, string, int, error) {
-	output := &bytes.Buffer{}
+) ([]*bytes.Buffer, bool, bool, string, int, error) {
+	output := make([]*bytes.Buffer, 0)
 	blockConfig := &BlockOpenAIRequestCompletionConfig{}
 
 	_config := config.GetConfig()
@@ -109,7 +109,10 @@ func (p *ProcessorOpenAIRequestCompletion) Process(
 		return output, false, false, "", -1, err
 	}
 
-	output = bytes.NewBufferString(resp.Choices[0].Message.Content)
+	output = append(
+		output,
+		bytes.NewBufferString(resp.Choices[0].Message.Content),
+	)
 	return output, false, false, "", -1, err
 }
 

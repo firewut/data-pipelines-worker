@@ -52,8 +52,8 @@ func (p *ProcessorAudioFromVideo) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, string, int, error) {
-	output := &bytes.Buffer{}
+) ([]*bytes.Buffer, bool, bool, string, int, error) {
+	output := make([]*bytes.Buffer, 0)
 	blockConfig := &BlockAudioFromVideoConfig{}
 
 	_config := config.GetConfig()
@@ -93,7 +93,7 @@ func (p *ProcessorAudioFromVideo) Process(
 	tempVideoFile.Close()
 
 	// Create a temporary file to store the output audio
-	tempOutputFile, err := os.CreateTemp("", "output-*.mp4")
+	tempOutputFile, err := os.CreateTemp("", "output-*.mp3")
 	if err != nil {
 		return nil, false, false, "", -1, err
 	}
@@ -131,7 +131,7 @@ func (p *ProcessorAudioFromVideo) Process(
 		return nil, false, false, "", -1, err
 	}
 
-	output.Write(videoBuffer)
+	output = append(output, bytes.NewBuffer(videoBuffer))
 
 	return output, false, false, "", -1, nil
 }

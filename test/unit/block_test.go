@@ -299,7 +299,7 @@ func (suite *UnitTestSuite) TestGetInputConfigDataNoInputConfig() {
 	suite.NotEmpty(blocks)
 
 	// When
-	firstInputData, _, err := blocks[0].GetInputConfigData(make(map[string][]*bytes.Buffer, 0))
+	firstInputData, _, _, err := blocks[0].GetInputConfigData(make(map[string][]*bytes.Buffer, 0))
 	suite.Nil(err)
 
 	// Then
@@ -355,9 +355,9 @@ func (suite *UnitTestSuite) TestGetInputConfigDataOneDependencyMissing() {
 	suite.NotNil(secondBlock)
 
 	// When
-	firstInputData, _, err := firstBlock.GetInputConfigData(pipelineResults)
+	firstInputData, _, _, err := firstBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	secondInputData, _, err := secondBlock.GetInputConfigData(pipelineResults)
+	secondInputData, _, _, err := secondBlock.GetInputConfigData(pipelineResults)
 	suite.NotNil(err, err)
 	suite.Contains(err.Error(), "origin test-block-missing-slug not found in pipelineResults")
 
@@ -418,9 +418,9 @@ func (suite *UnitTestSuite) TestGetInputConfigDataOneDependency() {
 	suite.NotNil(secondBlock)
 
 	// When
-	firstInputData, _, err := firstBlock.GetInputConfigData(pipelineResults)
+	firstInputData, _, _, err := firstBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	secondInputData, _, err := secondBlock.GetInputConfigData(pipelineResults)
+	secondInputData, _, _, err := secondBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
 
 	// Then
@@ -505,11 +505,11 @@ func (suite *UnitTestSuite) TestGetInputConfigDataTwoDependencies() {
 	suite.NotNil(thirdBlock)
 
 	// When
-	firstInputData, _, err := firstBlock.GetInputConfigData(pipelineResults)
+	firstInputData, _, _, err := firstBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	secondInputData, _, err := secondBlock.GetInputConfigData(pipelineResults)
+	secondInputData, _, _, err := secondBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	thirdInputData, _, err := thirdBlock.GetInputConfigData(pipelineResults)
+	thirdInputData, _, _, err := thirdBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
 
 	// Then
@@ -588,9 +588,9 @@ func (suite *UnitTestSuite) TestGetInputConfigDataJSONPathPlainProperty() {
 	suite.NotNil(secondBlock)
 
 	// When
-	firstInputData, _, err := firstBlock.GetInputConfigData(pipelineResults)
+	firstInputData, _, _, err := firstBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	secondInputData, _, err := secondBlock.GetInputConfigData(pipelineResults)
+	secondInputData, _, _, err := secondBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
 
 	// Then
@@ -656,9 +656,9 @@ func (suite *UnitTestSuite) TestGetInputConfigDataJSONPathArrayNthObjectProperty
 	suite.NotNil(secondBlock)
 
 	// When
-	firstInputData, _, err := firstBlock.GetInputConfigData(pipelineResults)
+	firstInputData, _, _, err := firstBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	secondInputData, _, err := secondBlock.GetInputConfigData(pipelineResults)
+	secondInputData, _, _, err := secondBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
 
 	// Then
@@ -724,9 +724,9 @@ func (suite *UnitTestSuite) TestGetInputConfigDataJSONPathValueAsArray() {
 	suite.NotNil(secondBlock)
 
 	// When
-	firstInputData, _, err := firstBlock.GetInputConfigData(pipelineResults)
+	firstInputData, _, _, err := firstBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	secondInputData, _, err := secondBlock.GetInputConfigData(pipelineResults)
+	secondInputData, _, _, err := secondBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
 
 	// Then
@@ -802,9 +802,9 @@ func (suite *UnitTestSuite) TestGetInputConfigDataJSONPathValueAsArrayMultipleDe
 	suite.NotNil(secondBlock)
 
 	// When
-	firstInputData, _, err := firstBlock.GetInputConfigData(pipelineResults)
+	firstInputData, _, _, err := firstBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	secondInputData, _, err := secondBlock.GetInputConfigData(pipelineResults)
+	secondInputData, _, _, err := secondBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
 
 	// Then
@@ -904,11 +904,11 @@ func (suite *UnitTestSuite) TestGetInputConfigDataTypeNotArrayInputArray() {
 	suite.NotNil(thirdBlock)
 
 	// When
-	firstInputData, _, err := firstBlock.GetInputConfigData(pipelineResults)
+	firstInputData, _, _, err := firstBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	secondInputData, _, err := secondBlock.GetInputConfigData(pipelineResults)
+	secondInputData, _, _, err := secondBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	thirdInputData, _, err := thirdBlock.GetInputConfigData(pipelineResults)
+	thirdInputData, _, _, err := thirdBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
 
 	// Then
@@ -1039,13 +1039,13 @@ func (suite *UnitTestSuite) TestGetInputConfigDataTypeArrayInputArray() {
 	suite.NotNil(fourthBlock)
 
 	// When
-	firstInputData, _, err := firstBlock.GetInputConfigData(pipelineResults)
+	firstInputData, _, _, err := firstBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	secondInputData, _, err := secondBlock.GetInputConfigData(pipelineResults)
+	secondInputData, _, _, err := secondBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	thirdInputData, _, err := thirdBlock.GetInputConfigData(pipelineResults)
+	thirdInputData, _, _, err := thirdBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	fourthInputData, _, err := fourthBlock.GetInputConfigData(pipelineResults)
+	fourthInputData, _, _, err := fourthBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
 
 	// Then
@@ -1190,13 +1190,13 @@ func (suite *UnitTestSuite) TestGetInputConfigDataTypeDefaultInputArray() {
 	suite.NotNil(fourthBlock)
 
 	// When
-	firstInputData, _, err := firstBlock.GetInputConfigData(pipelineResults)
+	firstInputData, _, _, err := firstBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	secondInputData, _, err := secondBlock.GetInputConfigData(pipelineResults)
+	secondInputData, _, _, err := secondBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	thirdInputData, _, err := thirdBlock.GetInputConfigData(pipelineResults)
+	thirdInputData, _, _, err := thirdBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
-	fourthInputData, _, err := fourthBlock.GetInputConfigData(pipelineResults)
+	fourthInputData, _, _, err := fourthBlock.GetInputConfigData(pipelineResults)
 	suite.Nil(err)
 
 	// Then
@@ -1263,7 +1263,7 @@ func (suite *UnitTestSuite) TestOpenAIPipeline() {
 				"description": "Make a request to OpenAI TTS API to convert text to speech",
 				"input_config": {
 					"property": {
-						"audio_file": {
+						"audio": {
 							"origin": "get-event-tts"
 						}
 					}
@@ -1315,7 +1315,7 @@ func (suite *UnitTestSuite) TestOpenAIPipeline() {
 	suite.NotNil(imageRequestblock)
 
 	// When
-	transcriptions, _, err := imageRequestblock.GetInputConfigData(pipelineResults)
+	transcriptions, _, _, err := imageRequestblock.GetInputConfigData(pipelineResults)
 
 	// Then
 	suite.Nil(err)
@@ -1409,7 +1409,7 @@ func (suite *UnitTestSuite) TestPipelineJoinVideos() {
 		suite.False(_stop)
 		suite.Nil(err)
 
-		videos[i] = _result
+		videos[i] = _result[0]
 	}
 
 	pipelineResults := map[string][]*bytes.Buffer{
@@ -1427,7 +1427,7 @@ func (suite *UnitTestSuite) TestPipelineJoinVideos() {
 	suite.Equal("join_videos", videosJoinBlock.GetId())
 
 	// When
-	inputData, _, err := videosJoinBlock.GetInputConfigData(pipelineResults)
+	inputData, _, _, err := videosJoinBlock.GetInputConfigData(pipelineResults)
 
 	// Then
 	suite.Nil(err)
@@ -1521,11 +1521,117 @@ func (suite *UnitTestSuite) TestPipelineJoinStrings() {
 	suite.Equal("join_strings", stringsJoinBlock.GetId())
 
 	// When
-	inputData, _, err := stringsJoinBlock.GetInputConfigData(pipelineResults)
+	inputData, _, _, err := stringsJoinBlock.GetInputConfigData(pipelineResults)
 
 	// Then
 	suite.Nil(err)
 	suite.NotEmpty(inputData)
 	suite.Equal(1, len(inputData))
 	suite.Equal(3, len(inputData[0]["strings"].([]interface{})))
+}
+
+func (suite *UnitTestSuite) TestPipelineJoinStringsJSONPath() {
+	// Given
+	pipelineString := `{
+		"slug": "openai-test",
+		"title": "Youtube video generation pipeline from prompt",
+		"description": "Generates videos for youtube Channel <CHANNEL>. Uses Prompt in the Block.",
+		"blocks": [
+			{
+				"id": "audio_chunk",
+				"slug": "chunk-podcast",
+				"description": "Chunk the podcast into smaller parts for processing",
+				"input_config": {
+					"property": {
+						"audio": {
+							"origin": "upload-podcast"
+						}
+					}
+				},
+				"input": {
+					"duration": "10m"
+				}
+			},
+			{
+				"id": "openai_transcription_request",
+				"slug": "get-podcast-transcription",
+				"description": "Make a request to OpenAI TTS API to convert audio to transcription",
+				"input_config": {
+					"type": "array",
+					"property": {
+						"audio": {
+							"origin": "chunk-podcast"
+						}
+					}
+				},
+				"input": {
+					"format": "text"
+				}
+			},
+			{
+				"id": "join_strings",
+				"slug": "join-transcription-chunks",
+				"description": "Join the transcription chunks into a single text",
+				"input_config": {
+					"property": {
+						"strings": {
+							"origin": "get-podcast-transcription",
+							"json_path": "$[*].text",
+							"array_input": true
+						}
+					}
+				},
+				"input": {
+					"separator": " "
+				}
+			},
+			{
+				"id": "openai_chat_completion",
+				"slug": "get-summary-of-a-podcast",
+				"description": "Gets summary of a podcast from OpenAI Chat Completion",
+				"input_config": {
+					"property": {
+						"user_prompt": {
+							"origin": "join-transcription-chunks"
+						}
+					}
+				},
+				"input": {
+					"model": "gpt-4o-2024-08-06",
+					"system_prompt": "Please summarize the following podcast episode transcript in a concise and engaging way, highlighting the key topics, themes, and insights discussed. The summary should be approximately 200 words long and suitable for use as a description on podcast platforms. Avoid technical jargon unless necessary and ensure the tone is professional yet accessible."
+				}
+			}
+		]
+	}`
+
+	pipelineResults := map[string][]*bytes.Buffer{
+		"get-podcast-transcription": {
+			bytes.NewBufferString(`{"task":"","language":"","duration":0,"segments":null,"words":null,"text":"1a"}`),
+			bytes.NewBufferString(`{"task":"","language":"","duration":0,"segments":null,"words":null,"text":"2b"}`),
+			bytes.NewBufferString(`{"task":"","language":"","duration":0,"segments":null,"words":null,"text":"3c"}`),
+		},
+	}
+
+	pipeline := suite.GetTestPipeline(pipelineString)
+	suite.NotNil(pipeline)
+
+	blocks := pipeline.GetBlocks()
+	suite.NotEmpty(blocks)
+
+	stringsJoinBlock := blocks[2]
+	suite.NotNil(stringsJoinBlock)
+	suite.Equal("join_strings", stringsJoinBlock.GetId())
+
+	// When
+	inputData, _, _, err := stringsJoinBlock.GetInputConfigData(pipelineResults)
+
+	// Then
+	suite.Nil(err)
+	suite.NotEmpty(inputData)
+	suite.Equal(1, len(inputData))
+	suite.Equal(3, len(inputData[0]["strings"].([]interface{})))
+	suite.EqualValues(
+		[]interface{}{"1a", "2b", "3c"},
+		inputData[0]["strings"],
+	)
 }

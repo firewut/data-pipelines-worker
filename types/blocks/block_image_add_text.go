@@ -57,8 +57,8 @@ func (p *ProcessorImageAddText) Process(
 	ctx context.Context,
 	block interfaces.Block,
 	data interfaces.ProcessableBlockData,
-) (*bytes.Buffer, bool, bool, string, int, error) {
-	output := &bytes.Buffer{}
+) ([]*bytes.Buffer, bool, bool, string, int, error) {
+	output := make([]*bytes.Buffer, 0)
 	blockConfig := &BlockImageAddTextConfig{}
 
 	_config := config.GetConfig()
@@ -169,7 +169,8 @@ func (p *ProcessorImageAddText) Process(
 		}
 	}
 
-	err = png.Encode(output, rgbaImage)
+	output = append(output, &bytes.Buffer{})
+	err = png.Encode(output[0], rgbaImage)
 	if err != nil {
 		config.GetLogger().Fatalf("Failed to encode PNG image: %v", err)
 	}

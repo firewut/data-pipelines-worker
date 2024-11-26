@@ -452,7 +452,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayFromJSONPathStart() {
 						"description": "Make a request to OpenAI TTS API to convert text to speech",
 						"input_config": {
 							"property": {
-								"audio_file": {
+								"audio": {
 									"origin": "get-event-tts"
 								}
 							}
@@ -658,7 +658,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayFromJSONPathResume() {
 						"description": "Make a request to OpenAI TTS API to convert text to speech",
 						"input_config": {
 							"property": {
-								"audio_file": {
+								"audio": {
 									"origin": "get-event-tts"
 								}
 							}
@@ -912,7 +912,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayFromJSONPathReplaceStart() {
 						"description": "Make a request to OpenAI TTS API to convert text to speech",
 						"input_config": {
 							"property": {
-								"audio_file": {
+								"audio": {
 									"origin": "get-event-tts"
 								}
 							}
@@ -1022,7 +1022,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayFromJSONPathReplaceStart() {
 		suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing4.GetStatus())
 		suite.Nil(completedProcessing4.GetError())
 		suite.Equal("text_replace", completedProcessing4.GetBlock().GetId())
-		output := completedProcessing4.GetOutput().GetValue().String()
+		output := completedProcessing4.GetOutput().GetValue()[0].String()
 		suite.Contains(output, prefix)
 		suite.Contains(output, suffix)
 
@@ -1171,7 +1171,7 @@ func (suite *FunctionalTestSuite) TestPipelineResumeArrayTargetIndex() {
 						"description": "Make a request to OpenAI TTS API to convert text to speech",
 						"input_config": {
 							"property": {
-								"audio_file": {
+								"audio": {
 									"origin": "get-event-tts"
 								}
 							}
@@ -1313,7 +1313,7 @@ func (suite *FunctionalTestSuite) TestPipelineResumeArrayTargetIndex() {
 	suite.Equal("openai_image_request", completedTargetProcessing.GetBlock().GetId())
 	suite.Equal(
 		pngBuffer.Bytes(),
-		completedTargetProcessing.GetOutput().GetValue().Bytes(),
+		completedTargetProcessing.GetOutput().GetValue()[0].Bytes(),
 	)
 
 	// Ensure Registry data is distinct for block openai_image_request
@@ -1338,7 +1338,7 @@ func (suite *FunctionalTestSuite) TestPipelineResumeArrayTargetIndex() {
 		suite.Fail(
 			fmt.Sprintf(
 				"Expected notification channel to be empty, but got a value: %s",
-				sideProcessing.GetOutput().GetValue().String(),
+				sideProcessing.GetOutput().GetValue()[0].String(),
 			),
 		)
 	}
@@ -1487,7 +1487,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayFromJSONPathStartParallel() {
 						"description": "Make a request to OpenAI TTS API to convert text to speech",
 						"input_config": {
 							"property": {
-								"audio_file": {
+								"audio": {
 									"origin": "get-event-tts"
 								}
 							}
@@ -1579,7 +1579,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayFromJSONPathStartParallel() {
 		suite.Fail(
 			fmt.Sprintf(
 				"Expected notification channel to be empty, but got a value: %s",
-				sideProcessing.GetOutput().GetValue().String(),
+				sideProcessing.GetOutput().GetValue()[0].String(),
 			),
 		)
 	}
@@ -1735,7 +1735,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayFromJSONPathStartParallelFail
 						"description": "Make a request to OpenAI TTS API to convert text to speech",
 						"input_config": {
 							"property": {
-								"audio_file": {
+								"audio": {
 									"origin": "get-event-tts"
 								}
 							}
@@ -1840,7 +1840,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayFromJSONPathStartParallelFail
 		suite.Fail(
 			fmt.Sprintf(
 				"Expected notification channel to be empty, but got a value: %s",
-				sideProcessing.GetOutput().GetValue().String(),
+				sideProcessing.GetOutput().GetValue()[0].String(),
 			),
 		)
 	}
@@ -2093,7 +2093,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationApproveAll() {
 						"description": "Make a request to OpenAI TTS API to convert text to speech",
 						"input_config": {
 							"property": {
-								"audio_file": {
+								"audio": {
 									"origin": "get-event-tts"
 								}
 							}
@@ -2244,7 +2244,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationApproveAll() {
 		suite.Fail(
 			fmt.Sprintf(
 				"Expected notification channel to be empty, but got a value: %s",
-				sideProcessing.GetOutput().GetValue().String(),
+				sideProcessing.GetOutput().GetValue()[0].String(),
 			),
 		)
 	}
@@ -2498,7 +2498,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationDeclineThird() {
 						"description": "Make a request to OpenAI TTS API to convert text to speech",
 						"input_config": {
 							"property": {
-								"audio_file": {
+								"audio": {
 									"origin": "get-event-tts"
 								}
 							}
@@ -2653,7 +2653,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationDeclineThird() {
 		suite.Fail(
 			fmt.Sprintf(
 				"Expected notification channel to be empty, but got a value: %s",
-				sideProcessing.GetOutput().GetValue().String(),
+				sideProcessing.GetOutput().GetValue()[0].String(),
 			),
 		)
 	}
@@ -2929,7 +2929,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 						"description": "Make a request to OpenAI TTS API to convert text to speech",
 						"input_config": {
 							"property": {
-								"audio_file": {
+								"audio": {
 									"origin": "get-event-tts"
 								}
 							}
@@ -3111,7 +3111,7 @@ func (suite *FunctionalTestSuite) TestPipelineArrayModerationRegenerateThird() {
 		suite.Fail(
 			fmt.Sprintf(
 				"Expected notification channel to be empty, but got a value: %s",
-				sideProcessing.GetOutput().GetValue().String(),
+				sideProcessing.GetOutput().GetValue()[0].String(),
 			),
 		)
 	}
@@ -3142,7 +3142,7 @@ func (suite *FunctionalTestSuite) TestPipelineMultipartFormDataFile() {
 						"description": "Make a request to OpenAI TTS API to convert audio to transcription",
 						"input_config": {
 							"property": {
-								"audio_file": {
+								"audio": {
 									"origin": "get-audio-from-video"
 								}
 							}
@@ -3252,7 +3252,145 @@ func (suite *FunctionalTestSuite) TestPipelineMultipartFormDataFile() {
 	suite.Nil(completedProcessing3.GetError())
 
 	suite.Contains(
-		completedProcessing3.GetOutput().GetValue().String(),
+		completedProcessing3.GetOutput().GetValue()[0].String(),
 		"Dialogue: 0,00:00:16.73,00:00:20.54,Default,,0,0,0,, propelling them toward unprecedented stardom in the music",
 	)
+}
+
+func (suite *FunctionalTestSuite) TestPipelineAudioChunkOutput() {
+	// Given
+	pipelineSlug := "openai-podcast-summary"
+
+	pipeline := suite.GetTestPipeline(
+		fmt.Sprintf(
+			`{
+				"slug": "%s",
+				"title": "Make a summary of a podcast",
+				"description": "Make a summary of a podcast using OpenAI API",
+				"blocks": [
+					{
+						"id": "upload_file",
+						"slug": "upload-podcast",
+						"description": "Upload a podcast for further processing",
+						"input": {}
+					},
+					{
+						"id": "audio_chunk",
+						"slug": "chunk-podcast",
+						"description": "Chunk the podcast into smaller parts for processing",
+						"input_config": {
+							"property": {
+								"audio": {
+									"origin": "upload-podcast"
+								}
+							}
+						},
+						"input": {
+							"duration": "3s"
+						}
+					},
+					{
+						"id": "audio_convert",
+						"slug": "convert-podcast-to-low-quality",
+						"description": "Convert audio to lower quality",
+						"input_config": {
+							"type": "array",
+							"parallel": true,
+							"property": {
+								"audio": {
+									"origin": "chunk-podcast"
+								}
+							}
+						},
+						"input": {
+							"mono": true,
+							"sample_rate": 22050,
+							"bitrate": "32k"
+						}
+					}
+				]
+			}`,
+			pipelineSlug,
+		),
+	)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/models", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(bytes.NewBufferString(`{
+			"data": [
+				{"id": "gpt-3.5-turbo"},
+				{"id": "text-davinci-003"},
+				{"id": "text-curie-001"}
+			]
+		}`).Bytes())
+	})
+	openAIMockServer := httptest.NewServer(mux)
+	suite.httpTestServers = append(suite.httpTestServers, openAIMockServer)
+	openaiMockClient := openai.NewClientWithConfig(
+		openai.ClientConfig{
+			BaseURL:            openAIMockServer.URL,
+			APIType:            openai.APITypeOpenAI,
+			AssistantVersion:   "v2",
+			OrgID:              "",
+			HTTPClient:         &http.Client{},
+			EmptyMessagesLimit: 0,
+		},
+	)
+	suite._config.OpenAI.SetClient(openaiMockClient)
+
+	server, _, err := suite.NewWorkerServerWithHandlers(true, suite._config)
+	suite.Nil(err)
+
+	server.GetPipelineRegistry().Add(pipeline)
+	notificationChannel := make(chan interfaces.Processing, 100)
+	processingRegistry := server.GetProcessingRegistry()
+	processingRegistry.SetNotificationChannel(notificationChannel)
+
+	audioBuffer := factories.GetShortAudioBufferMP3(10)
+	inputData := schemas.PipelineStartInputSchema{
+		Pipeline: schemas.PipelineInputSchema{
+			Slug: pipelineSlug,
+		},
+		Block: schemas.BlockInputSchema{
+			Slug: "upload-podcast",
+			Input: map[string]interface{}{
+				"file": audioBuffer.Bytes(),
+			},
+			TargetIndex: -1,
+		},
+	}
+
+	// When
+	processingResponse, statusCode, errorResponse, err := suite.SendProcessingStartRequestMultipart(
+		server,
+		inputData,
+		nil,
+	)
+
+	// Then
+	suite.Empty(errorResponse)
+	suite.Nil(err, errorResponse)
+	suite.Equal(http.StatusOK, statusCode, errorResponse)
+	suite.NotNil(processingResponse.ProcessingID)
+
+	completedProcessing1 := <-notificationChannel
+	suite.Equal(completedProcessing1.GetId(), processingResponse.ProcessingID)
+	suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing1.GetStatus())
+	suite.Nil(completedProcessing1.GetError())
+
+	completedProcessing2 := <-notificationChannel
+	suite.Equal(completedProcessing2.GetId(), processingResponse.ProcessingID)
+	suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing2.GetStatus())
+	suite.Nil(completedProcessing2.GetError())
+
+	suite.Equal(4, len(completedProcessing2.GetOutput().GetValue()))
+
+	for i := 0; i < 4; i++ {
+		completedProcessing3 := <-notificationChannel
+		suite.Equal(completedProcessing3.GetId(), processingResponse.ProcessingID)
+		suite.Equal(interfaces.ProcessingStatusCompleted, completedProcessing3.GetStatus())
+		suite.Nil(completedProcessing3.GetError())
+	}
 }

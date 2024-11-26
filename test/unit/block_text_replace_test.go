@@ -103,6 +103,6 @@ func (suite *UnitTestSuite) TestBlockTextReplaceProcessSuccess() {
 			"moment in English history. <PREFIX>William the Conqueror's Norman forces defeated "+
 			"King Harold II's army, leading to Norman<SUFFIX> rule in England. "+
 			"This marked the beginning of significant cultural and political changes.",
-		result.String(),
+		result[0].String(),
 	)
 }

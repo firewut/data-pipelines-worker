@@ -192,7 +192,7 @@ func (b *BlockData) CastValueToValidType(
 
 func (b *BlockData) GetInputConfigData(
 	pipelineResults map[string][]*bytes.Buffer,
-) ([]map[string]interface{}, bool, error) {
+) ([]map[string]interface{}, bool, bool, error) {
 	//  input_config.type = "array"
 	//      the function returns an array of maps
 	//          []map[string]interface{}{
@@ -225,11 +225,11 @@ func (b *BlockData) GetInputConfigData(
 	err := json.Unmarshal([]byte(b.GetBlock().GetSchemaString()), &schema)
 	if err != nil {
 
-		return nil, false, err
+		return nil, false, false, err
 	}
 
 	if b.GetInputConfig() == nil {
-		return inputData, false, nil
+		return inputData, false, false, nil
 	}
 
 	b.Lock()
@@ -237,7 +237,7 @@ func (b *BlockData) GetInputConfigData(
 
 	// Check if `property` in `input_config` is not empty
 	if _, ok := b.InputConfig["property"]; !ok {
-		return inputData, false, nil
+		return inputData, false, false, nil
 	}
 
 	// Check if `type` in `input_config` is not empty
@@ -301,14 +301,49 @@ func (b *BlockData) GetInputConfigData(
 
 								// jsonPath same level as `origin`
 								if jsonPath, ok := property_config.(map[string]interface{})["json_path"].(string); ok {
-									data, err := HandleResultValue(resultValue.Bytes())
-									if err != nil {
-										return nil, false, err
+									var data interface{}
+									if arrayInput {
+										if reflect.TypeOf(valueCasted).Kind() == reflect.Slice && err == nil {
+											dataSlice := make([]interface{}, 0)
+
+											val := reflect.ValueOf(valueCasted)
+											for i := 0; i < val.Len(); i++ {
+												item := val.Index(i).Interface()
+
+												// Convert item to *bytes.Buffer if possible
+												var buffer *bytes.Buffer
+												switch v := item.(type) {
+												case []byte:
+													buffer = bytes.NewBuffer(v)
+												case string:
+													buffer = bytes.NewBufferString(v)
+												default:
+													continue
+												}
+
+												if dataItem, err := HandleResultValue(buffer.Bytes()); err == nil {
+													dataSlice = append(dataSlice, dataItem)
+												}
+
+											}
+											data = dataSlice
+
+										} else {
+											data, err = HandleResultValue(resultValue.Bytes())
+											if err != nil {
+												return nil, inputTypeArray, false, err
+											}
+										}
+									} else {
+										data, err = HandleResultValue(resultValue.Bytes())
+										if err != nil {
+											return nil, inputTypeArray, false, err
+										}
 									}
 
 									jsonPathData, err := jsonpath.JsonPathLookup(data, jsonPath)
 									if err != nil {
-										return nil, false, err
+										return nil, inputTypeArray, false, err
 									}
 									if inputTypeArray && reflect.TypeOf(jsonPathData).Kind() == reflect.Slice {
 										if _, ok := jsonPathData.([]interface{}); ok {
@@ -334,7 +369,7 @@ func (b *BlockData) GetInputConfigData(
 								)
 							}
 						} else {
-							return inputData, false, fmt.Errorf(
+							return inputData, inputTypeArray, false, fmt.Errorf(
 								"origin %s not found in pipelineResults",
 								origin,
 							)
@@ -359,10 +394,10 @@ func (b *BlockData) GetInputConfigData(
 			}
 		}
 
-		return []map[string]interface{}{inputDataNotArray}, false, nil
+		return []map[string]interface{}{inputDataNotArray}, inputTypeArray, false, nil
 	}
 
-	return inputData, inputTypeArrayParallel, nil
+	return inputData, inputTypeArray, inputTypeArrayParallel, nil
 }
 
 // MergeMaps function definition remains unchanged

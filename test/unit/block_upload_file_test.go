@@ -86,5 +86,5 @@ func (suite *UnitTestSuite) TestBlockUploadFileProcessSuccess() {
 	suite.False(stop)
 	suite.Nil(err)
 
-	suite.Equal(result, &imageBuffer)
+	suite.Equal(result[0], &imageBuffer)
 }
