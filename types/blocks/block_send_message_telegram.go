@@ -179,8 +179,7 @@ func NewBlockSendMessageToTelegram() *BlockSendMessageToTelegram {
 						"properties": {
 							"text": {
 								"description": "Text content",
-								"type": "string",
-								"minLength": 10
+								"type": "string"
 							},
 							"image": {
 					        	"description": "Image content",
