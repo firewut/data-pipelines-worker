@@ -9,7 +9,7 @@
             "description": "Get a text from OpenAI Chat Completion API",
             "input": {
                 "model": "gpt-4o-2024-08-06",
-                "system_prompt": "You must look for Historical event ( use google ) which happened today years ago. Write a short story about it. Add some interesting facts and make it engaging. The story MUST BE 30 words long!!!!!!!!",
+                "system_prompt": "You must look for Historical event ( use google ) which happened today years ago. Write a short story about it. If this event has a space to be fun - make it funny. Add some interesting facts and make it engaging. The story MUST BE THIRTY words long!!!!!!!!",
                 "user_prompt": "What happened years ago today?"
             }
         },
@@ -308,7 +308,7 @@
                 }
             },
             "input": {
-                "text": " \n\n "
+                "text": " \n\n"
             }
         },
         {

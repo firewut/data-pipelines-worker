@@ -1,5 +1,5 @@
 Name:           data-pipelines-worker
-Version:        1.0.10
+Version:        1.0.11
 Release:        1%{?dist}
 Summary:        Data pipelines worker
 License:        Custom License
@@ -47,6 +47,8 @@ fi
 /etc/systemd/system/data-pipelines-worker.service
 
 %changelog
+* Mon Feb 10 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.11
+- Updated text generation prompt
 * Tue Nov 26 2024 Andrei Chibisov <andrey844@gmail.com> - 1.0.10
 - Added block `audio_chunk`
 - Added block `audio_convert`
